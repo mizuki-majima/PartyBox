@@ -25,6 +25,8 @@ export interface UnanimousRoundResult {
   noAnswer: string[];
   roundScore: number;
   unanimous: boolean;
+  /** ホストが表記ゆれを手動でまとめたか */
+  merged: boolean;
 }
 
 export interface UnanimousView extends GameViewBase {

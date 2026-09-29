@@ -103,6 +103,7 @@ export class UnanimousGame extends BaseGame<UnanimousPhase> {
       noAnswer: active.filter((id) => !this.answers.has(id)),
       roundScore: groups.reduce((sum, g) => sum + g.points, 0),
       unanimous: active.length >= 3 && groups.length === 1 && groups[0].playerIds.length === active.length,
+      merged: this.merges.size > 0,
     };
   }
 
