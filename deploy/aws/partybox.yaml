@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  PartyBox - EC2 1台 + Caddy(自動HTTPS) で公開する構成。
+  ルーム状態をメモリに持つため、インスタンスは1台で運用します。
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t4g.small
+    AllowedValues: [t4g.micro, t4g.small, t4g.medium]
+    Description: Graviton(arm64) インスタンス。数人〜数十人なら t4g.small で十分です
+  GitRepoUrl:
+    Type: String
+    Default: https://github.com/mizuki-majima/PartyBox.git
+    Description: 公開リポジトリのURL
+  GitBranch:
+    Type: String
+    Default: main
+    Description: デプロイするブランチ
+  DomainName:
+    Type: String
+    Default: ''
+    Description: >-
+      独自ドメイン（任意）。空なら <IP>.sslip.io の自動ドメインで HTTPS 化します。
+      独自ドメインを使う場合は、スタック作成後に出力の PublicIp へ A レコードを向けてください
+
+Conditions:
+  UseCustomDomain: !Not [!Equals [!Ref DomainName, '']]
+
+Resources:
+  # ---------------- ネットワーク ----------------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags: [{ Key: Name, Value: partybox }]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.20.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: partybox-public }]
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: PartyBox HTTP/HTTPS
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: udp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+
+  # ---------------- 管理用（SSH鍵なしで Session Manager から操作） ----------------
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+
+  # ---------------- サーバー ----------------
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachment
+    Properties:
+      Domain: vpc
+
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64}}'
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds: [!Ref WebSecurityGroup]
+      MetadataOptions:
+        HttpTokens: required
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 20, VolumeType: gp3, Encrypted: true }
+      Tags: [{ Key: Name, Value: partybox }]
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash
+            set -euxo pipefail
+            exec > /var/log/partybox-setup.log 2>&1
+
+            # ビルド時のメモリ不足対策として 2GB のスワップ
+            if [ ! -f /swapfile ]; then
+              dd if=/dev/zero of=/swapfile bs=1M count=2048
+              chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+            fi
+
+            dnf install -y docker git
+            systemctl enable --now docker
+
+            mkdir -p /opt/partybox
+            cat > /opt/partybox/env <<'EOF'
+            REPO_URL=${GitRepoUrl}
+            BRANCH=${GitBranch}
+            SITE_HOST=${SiteHost}
+            EOF
+
+            # 更新用スクリプト（最新コードを取得して再ビルド・再起動）
+            cat > /opt/partybox/deploy.sh <<'EOF'
+            #!/bin/bash
+            set -euxo pipefail
+            source /opt/partybox/env
+            cd /opt/partybox
+            if [ -d src/.git ]; then
+              git -C src fetch --depth 1 origin "$BRANCH"
+              git -C src reset --hard FETCH_HEAD
+            else
+              git clone --depth 1 --branch "$BRANCH" "$REPO_URL" src
+            fi
+            docker build -t partybox:latest src
+            docker network inspect partybox >/dev/null 2>&1 || docker network create partybox
+            docker rm -f partybox >/dev/null 2>&1 || true
+            docker run -d --name partybox --network partybox --restart unless-stopped \
+              -e NODE_ENV=production -e PORT=3001 partybox:latest
+            cat > /opt/partybox/Caddyfile <<CADDY
+            $SITE_HOST {
+              encode gzip
+              reverse_proxy partybox:3001
+            }
+            CADDY
+            if ! docker ps --format '{{.Names}}' | grep -q '^caddy$'; then
+              docker rm -f caddy >/dev/null 2>&1 || true
+              docker run -d --name caddy --network partybox --restart unless-stopped \
+                -p 80:80 -p 443:443 -p 443:443/udp \
+                -v /opt/partybox/Caddyfile:/etc/caddy/Caddyfile:ro \
+                -v caddy_data:/data -v caddy_config:/config public.ecr.aws/docker/library/caddy:2
+            else
+              docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+            fi
+            docker image prune -f
+            EOF
+            chmod +x /opt/partybox/deploy.sh
+            /opt/partybox/deploy.sh
+          - SiteHost: !If
+              - UseCustomDomain
+              - !Ref DomainName
+              - !Join ['', [!Join ['-', !Split ['.', !Ref ElasticIp]], '.sslip.io']]
+
+  EipAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref Instance
+      AllocationId: !GetAtt ElasticIp.AllocationId
+
+Outputs:
+  Url:
+    Description: PartyBox の URL（初回は構築・証明書取得に5〜10分ほどかかります）
+    Value: !If
+      - UseCustomDomain
+      - !Sub 'https://${DomainName}'
+      - !Join ['', ['https://', !Join ['-', !Split ['.', !Ref ElasticIp]], '.sslip.io']]
+  PublicIp:
+    Description: サーバーの固定IP（独自ドメインを使う場合は A レコードをここへ）
+    Value: !Ref ElasticIp
+  InstanceId:
+    Description: 更新時に Session Manager / Run Command で使うインスタンスID
+    Value: !Ref Instance

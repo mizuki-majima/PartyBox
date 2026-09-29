@@ -167,6 +167,10 @@ E2E のスクリーンショットは `e2e/screenshots/` に保存されます�
 
 ## デプロイ
 
+### AWS（おすすめ）
+`deploy/aws/partybox.yaml` を CloudFormation でアップロードするだけで、EC2 + 自動HTTPS で公開できます。手順は [deploy/aws/README.md](deploy/aws/README.md) を参照してください。
+
+### Docker
 ```bash
 docker build -t partybox .
 docker run -p 3001:3001 partybox
