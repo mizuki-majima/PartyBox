@@ -1,5 +1,6 @@
 import {
   ConeGeometry,
+  Light,
   Group,
   Mesh,
   MeshStandardMaterial,
@@ -168,15 +169,18 @@ export class RaceView implements View {
 
   dispose(): void {
     for (const m of this.models) m.dispose();
-    this.marker?.traverse((o) => {
+    this.puffs.dispose();
+    this.streaks.dispose();
+    // コースは使い回すので捨てずに外すだけ
+    this.track.group.removeFromParent();
+    // 残り（雲・目印など、この場面だけのもの）を片付ける
+    this.scene.traverse((o) => {
+      // 影を落とすライトはシャドウマップ（テクスチャ）を持っているので一緒に捨てる
+      if (o instanceof Light) o.dispose();
       if (o instanceof Mesh) {
         o.geometry.dispose();
         (o.material as MeshStandardMaterial).dispose();
       }
     });
-    this.puffs.dispose();
-    this.streaks.dispose();
-    // コースは使い回すので捨てずに外すだけ
-    this.track.group.removeFromParent();
   }
 }

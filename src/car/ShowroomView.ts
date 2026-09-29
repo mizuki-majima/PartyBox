@@ -3,6 +3,7 @@ import {
   CylinderGeometry,
   DirectionalLight,
   HemisphereLight,
+  Light,
   Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
@@ -10,6 +11,7 @@ import {
   Scene,
   ShadowMaterial,
   Vector3,
+  type Material,
   type WebGLRenderer,
 } from 'three';
 import { getEnvironmentMap } from '../engine/environment';
@@ -139,7 +141,16 @@ export class ShowroomView implements View {
 
   dispose(): void {
     for (const c of this.cars) c.dispose();
+    for (const p of this.podiums) p.removeFromParent();
     this.podiumGeo.dispose();
     this.podiumMat.dispose();
+    this.scene.traverse((o) => {
+      // 影を落とすライトはシャドウマップ（テクスチャ）を持っているので一緒に捨てる
+      if (o instanceof Light) o.dispose();
+      if (o instanceof Mesh) {
+        o.geometry.dispose();
+        (o.material as Material).dispose();
+      }
+    });
   }
 }
