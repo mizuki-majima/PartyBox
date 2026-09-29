@@ -1,4 +1,5 @@
 import type { App, Screen } from '../app/App';
+import { sfx } from '../audio/Sfx';
 import { mainColor } from '../blueprint/colors';
 import { pickRivals } from '../generator/rivals';
 import { CAMERA_LABELS, type CameraMode } from '../race/CameraDirector';
@@ -14,6 +15,37 @@ import { Telop } from '../ui/Telop';
 
 /** 全車ゴールしてからリザルトへ移るまでの秒数 */
 const RESULT_DELAY = 4;
+
+/** レースの出来事に合わせた効果音 */
+function playSound(type: string, player: boolean, position?: number): void {
+  switch (type) {
+    case 'start':
+      sfx.countdown(true);
+      sfx.engineStart();
+      break;
+    case 'overtake':
+    case 'lead':
+      if (player || type === 'lead') sfx.overtake();
+      break;
+    case 'spin':
+      sfx.squeal();
+      break;
+    case 'courseOut':
+      sfx.bump();
+      break;
+    case 'boost':
+      sfx.boost();
+      break;
+    case 'lap':
+    case 'finalLap':
+      if (player || type === 'finalLap') sfx.lap();
+      break;
+    case 'finish':
+      if (position === 1) sfx.fanfare(player);
+      else if (player) sfx.fanfare(false);
+      break;
+  }
+}
 
 /** レース観戦画面 */
 export function raceScreen(app: App): Screen {
@@ -35,7 +67,7 @@ export function raceScreen(app: App): Screen {
         blueprints.map((bp, i) => ({ id: `car${i}`, name: bp.name, stats: bp.stats, isPlayer: i === 0 })),
         { laps: devLaps > 0 ? devLaps : 3 },
       );
-      view = new RaceView(sim, blueprints);
+      view = new RaceView(sim, blueprints, { renderer: app.stage.renderer });
       const director = view.director;
       const hud = new RaceHud(blueprints, 0);
       const commentary = new Commentary(sim, blueprints);
@@ -75,10 +107,22 @@ export function raceScreen(app: App): Screen {
 
       let finishedFor = 0;
       let flagShown = false;
+      let lastCount = -1;
+      const me = sim.cars.find((c) => c.input.isPlayer)!;
       view.onFrame = (dt) => {
+        // カウントダウンの音
+        if (sim.phase === 'countdown') {
+          const n = Math.ceil(sim.countdown);
+          if (n !== lastCount) {
+            lastCount = n;
+            sfx.countdown(false);
+          }
+        }
         for (const e of sim.drainEvents()) {
           commentary.handle(e);
           director.onEvent(e, sim);
+          const involved = !!sim.cars[e.car].input.isPlayer || (e.other !== undefined && !!sim.cars[e.other].input.isPlayer);
+          playSound(e.type, involved, e.position);
           if (e.type === 'finish') {
             const car = sim.cars[e.car];
             if (e.position === 1 && !flagShown) {
@@ -94,6 +138,7 @@ export function raceScreen(app: App): Screen {
             }
           }
         }
+        sfx.engineUpdate(me.finished ? me.v * 0.6 : me.v);
         commentary.update(dt);
         telop.sync(commentary.current);
         hud.update(sim, dt);
@@ -122,6 +167,7 @@ export function raceScreen(app: App): Screen {
       );
     },
     unmount() {
+      sfx.engineStop();
       celebration?.dispose();
       celebration = null;
       view?.dispose();

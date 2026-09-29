@@ -17,7 +17,7 @@ export function titleScreen(app: App): Screen {
         cars.map((bp, i) => ({ id: `demo${i}`, name: bp.name, stats: bp.stats })),
         { endless: true },
       );
-      view = new RaceView(sim, cars, { attract: true });
+      view = new RaceView(sim, cars, { attract: true, renderer: app.stage.renderer });
       app.stage.setView(view);
 
       root.append(
@@ -29,7 +29,14 @@ export function titleScreen(app: App): Screen {
             { class: 'title-box' },
             h('div', { class: 'title-kicker', text: 'ことばでつくる ミニカーレース' }),
             h('h1', { class: 'title-logo' }, h('span', { text: 'プロンプト' }), h('span', { text: 'グランプリ' })),
-            h('p', { class: 'title-lead', text: '「こんな車」と書くだけで、ミニカーができあがる。\nあとは応援するだけ！' }),
+            h('p', { class: 'title-lead', text: '「こんな車」と書くだけで、\nミニカーができあがる。\nあとは応援するだけ！' }),
+            h(
+              'ol',
+              { class: 'title-steps' },
+              h('li', {}, h('b', { text: '1' }), 'ことばで車をつくる'),
+              h('li', {}, h('b', { text: '2' }), 'ライバルと3周レース'),
+              h('li', {}, h('b', { text: '3' }), '応援して観戦！'),
+            ),
             button('あそぶ', () => app.next(), 'start'),
           ),
         ),

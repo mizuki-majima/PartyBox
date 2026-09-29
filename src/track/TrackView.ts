@@ -16,6 +16,7 @@ import {
   SphereGeometry,
   Vector3,
 } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { canvasTexture, checkerTexture } from '../engine/textures';
 import { Rng } from '../util/rng';
 import type { TrackData } from './TrackData';
@@ -69,9 +70,9 @@ export class TrackView {
       256,
       256,
       (ctx, w, h) => {
-        ctx.fillStyle = '#9fd98a';
+        ctx.fillStyle = '#8fd07a';
         ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#95d180';
+        ctx.fillStyle = '#86c971';
         ctx.fillRect(0, 0, w / 2, h / 2);
         ctx.fillRect(w / 2, h / 2, w / 2, h / 2);
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';
@@ -120,7 +121,7 @@ export class TrackView {
     return mesh;
   }
 
-  private buildWalls(): Group {
+  private buildWalls(): Mesh {
     const t = this.track;
     const half = t.width / 2;
     const stripe = canvasTexture(
@@ -135,8 +136,8 @@ export class TrackView {
       { repeat: true, pixelated: true },
     );
     const mat = new MeshStandardMaterial({ map: stripe, roughness: 0.5, side: DoubleSide });
-    const group = new Group();
     const u = (i: number) => (i * t.ds) / 4;
+    const strips: BufferGeometry[] = [];
     for (const side of [1, -1]) {
       const inB = this.edge(side * half, 0);
       const inT = this.edge(side * half, WALL_HEIGHT);
@@ -147,13 +148,14 @@ export class TrackView {
         [inT, outT],
         [outT, outB],
       ] as const) {
-        const mesh = new Mesh(stripGeometry(a, b, u, [0, 0]), mat);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        group.add(mesh);
+        strips.push(stripGeometry(a, b, u, [0, 0]));
       }
     }
-    return group;
+    // 内側・上・外側の面を左右ぶん、1 つのメッシュにまとめる
+    const mesh = new Mesh(mergeGeometries(strips) ?? strips[0], mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
   }
 
   private buildStartLine(): Mesh {
@@ -186,7 +188,7 @@ export class TrackView {
       ball.castShadow = true;
       g.add(ball);
     }
-    const banner = canvasTexture(512, 96, (ctx, w, h) => {
+    const banner = canvasTexture(1024, 112, (ctx, w, h) => {
       const sq = h / 4;
       for (let y = 0; y < 4; y++) {
         for (let x = 0; x < w / sq; x++) {
@@ -199,10 +201,19 @@ export class TrackView {
       ctx.roundRect(w * 0.14, h * 0.12, w * 0.72, h * 0.76, 20);
       ctx.fill();
       ctx.fillStyle = '#e8412c';
-      ctx.font = `900 ${Math.floor(h * 0.5)}px "M PLUS Rounded 1c", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('PROMPT GRAND PRIX', w / 2, h / 2 + 2);
+      // 白い枠に収まるよう、文字の大きさを幅から決める
+      const label = 'PROMPT GRAND PRIX';
+      let size = Math.floor(h * 0.5);
+      ctx.font = `900 ${size}px "M PLUS Rounded 1c", sans-serif`;
+      const maxW = w * 0.66;
+      const tw = ctx.measureText(label).width;
+      if (tw > maxW) {
+        size = Math.floor((size * maxW) / tw);
+        ctx.font = `900 ${size}px "M PLUS Rounded 1c", sans-serif`;
+      }
+      ctx.fillText(label, w / 2, h / 2 + 2);
     });
     const beam = new Mesh(
       new BoxGeometry(0.5, 1.1, span * 2 + 0.4),

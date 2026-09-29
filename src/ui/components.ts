@@ -1,4 +1,5 @@
 import { STAT_KEYS, STAT_LABELS, LIMITS, type CarBlueprint, type CarStats } from '../blueprint/types';
+import { sfx } from '../audio/Sfx';
 import { h } from './dom';
 
 const STAT_COLORS: Record<(typeof STAT_KEYS)[number], string> = {
@@ -46,5 +47,15 @@ export function carCard(bp: CarBlueprint, opts: { badge?: string; compact?: bool
 }
 
 export function button(label: string, onClick: () => void, variant = 'primary'): HTMLButtonElement {
-  return h('button', { class: `btn btn-${variant}`, text: label, attrs: { type: 'button' }, on: { click: onClick } });
+  return h('button', {
+    class: `btn btn-${variant}`,
+    text: label,
+    attrs: { type: 'button' },
+    on: {
+      click: () => {
+        sfx.click();
+        onClick();
+      },
+    },
+  });
 }

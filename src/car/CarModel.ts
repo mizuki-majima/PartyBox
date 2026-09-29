@@ -18,6 +18,7 @@ import {
   type Texture,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { BlueprintPart, CarBlueprint, PartMaterial, PartRole, WheelStyle } from '../blueprint/types';
 import { canvasTexture } from '../engine/textures';
 
@@ -192,6 +193,48 @@ export class CarModel {
     }
 
     this.fitSize();
+    this.mergeStatic();
+  }
+
+  /**
+   * 車輪以外のパーツは走行中に動かないので、材質ごとに 1 つのメッシュへまとめる。
+   * 30 パーツの車でも描画回数が数回で済み、スマホでも軽くなる。
+   */
+  private mergeStatic(): void {
+    const wheelMeshes = new Set(this.wheels.map((w) => w.mesh));
+    const groups = new Map<Material, BufferGeometry[]>();
+    const remove: Mesh[] = [];
+    for (const child of this.inner.children) {
+      if (!(child instanceof Mesh) || wheelMeshes.has(child)) continue;
+      child.updateMatrix();
+      const g = child.geometry.index ? child.geometry.toNonIndexed() : child.geometry.clone();
+      g.applyMatrix4(child.matrix);
+      for (const name of Object.keys(g.attributes)) {
+        if (name !== 'position' && name !== 'normal' && name !== 'uv') g.deleteAttribute(name);
+      }
+      const mat = child.material as Material;
+      const list = groups.get(mat) ?? [];
+      list.push(g);
+      groups.set(mat, list);
+      remove.push(child);
+    }
+    for (const [mat, list] of groups) {
+      const merged = mergeGeometries(list);
+      list.forEach((g) => g !== merged && g.dispose());
+      if (!merged) continue;
+      this.geometries.push(merged);
+      const mesh = new Mesh(merged, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.inner.add(mesh);
+    }
+    for (const m of remove) {
+      this.inner.remove(m);
+      // 元のジオメトリはもう使わないので、すぐ捨てる
+      m.geometry.dispose();
+      const i = this.geometries.indexOf(m.geometry);
+      if (i >= 0) this.geometries.splice(i, 1);
+    }
   }
 
   private addWheel(
@@ -219,13 +262,14 @@ export class CarModel {
     const hub = new Mesh(hubGeo, material('plastic', hs.hub));
     mesh.add(hub);
     if (hs.spokes > 0) {
-      for (let i = 0; i < hs.spokes; i++) {
-        const geo = new BoxGeometry(r * hs.spokeLen, h * 1.1, r * 0.16);
-        this.geometries.push(geo);
-        const spoke = new Mesh(geo, material('plastic', hs.spoke));
-        spoke.rotation.y = (i / hs.spokes) * Math.PI;
-        mesh.add(spoke);
-      }
+      // スポークは 1 つのジオメトリにまとめる（描画回数を減らす）
+      const bars = Array.from({ length: hs.spokes }, (_, i) =>
+        new BoxGeometry(r * hs.spokeLen, h * 1.1, r * 0.16).rotateY((i / hs.spokes) * Math.PI),
+      );
+      const geo = mergeGeometries(bars) ?? bars[0];
+      bars.forEach((b) => b !== geo && b.dispose());
+      this.geometries.push(geo);
+      mesh.add(new Mesh(geo, material('plastic', hs.spoke)));
     } else {
       // かわいい車輪: 中心からずれた水玉で回転が見えるようにする
       const geo = new CylinderGeometry(r * 0.16, r * 0.16, h * 1.12, 12);

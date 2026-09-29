@@ -10,7 +10,9 @@ import {
   Scene,
   ShadowMaterial,
   Vector3,
+  type WebGLRenderer,
 } from 'three';
+import { getEnvironmentMap } from '../engine/environment';
 import type { View } from '../engine/Stage';
 import type { CarModel } from './CarModel';
 
@@ -35,9 +37,13 @@ export class ShowroomView implements View {
   /** カメラの注視点を少し上下させたいとき用（UI に隠れる分をずらす） */
   lookOffsetY = 0;
 
-  constructor(background = '#fff3d6') {
+  constructor(background = '#fff3d6', renderer?: WebGLRenderer) {
     this.scene.background = new Color(background);
-    this.scene.add(new HemisphereLight('#ffffff', '#d8c8a8', 2.0));
+    if (renderer) {
+      this.scene.environment = getEnvironmentMap(renderer);
+      this.scene.environmentIntensity = 0.5;
+    }
+    this.scene.add(new HemisphereLight('#ffffff', '#d8c8a8', renderer ? 1.6 : 2.0));
     const key = (this.key = new DirectionalLight('#ffffff', 2.2));
     key.position.set(4, 8, 6);
     key.castShadow = true;

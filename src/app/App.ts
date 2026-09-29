@@ -1,5 +1,6 @@
 import type { CarBlueprint } from '../blueprint/types';
 import type { RaceResult } from '../race/RaceSim';
+import { sfx } from '../audio/Sfx';
 import { Stage } from '../engine/Stage';
 import { createCarGenerator, type CarGenerator } from '../generator';
 import { h } from '../ui/dom';
@@ -51,7 +52,23 @@ export class App {
     this.generator = createCarGenerator();
     this.stageHost = h('div', { class: 'stage-host' });
     this.uiRoot = h('div', { class: 'ui-root' });
-    root.append(this.stageHost, this.uiRoot, h('div', { class: 'demo-badge', text: this.generator.label }));
+    const soundBtn = h('button', {
+      class: 'sound-btn',
+      attrs: { type: 'button' },
+      on: { click: () => sfx.setMuted(!sfx.muted) },
+    });
+    const syncSound = (muted: boolean) => {
+      soundBtn.textContent = muted ? '🔇' : '🔊';
+      soundBtn.setAttribute('aria-label', muted ? '音を出す' : '音を消す');
+      soundBtn.setAttribute('aria-pressed', String(!muted));
+    };
+    syncSound(sfx.muted);
+    sfx.onMuteChange(syncSound);
+    root.append(this.stageHost, this.uiRoot, h('div', { class: 'demo-badge', text: this.generator.label }), soundBtn);
+    // ブラウザは最初の操作があるまで音を出せないので、その時に音の準備をする
+    const unlock = () => sfx.unlock();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
     this.stage = new Stage();
     this.stage.attach(this.stageHost);
   }

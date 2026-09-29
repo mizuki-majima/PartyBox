@@ -1,5 +1,6 @@
 import type { App, Screen } from '../app/App';
 import { LIMITS, type CarBlueprint } from '../blueprint/types';
+import { sfx } from '../audio/Sfx';
 import { CarModel } from '../car/CarModel';
 import { ShowroomView } from '../car/ShowroomView';
 import { EXAMPLE_PROMPTS } from '../generator';
@@ -18,7 +19,7 @@ export function buildScreen(app: App): Screen {
 
   return {
     mount(root) {
-      view = new ShowroomView('#fff3d6');
+      view = new ShowroomView('#fff3d6', app.stage.renderer);
       view.setCars([], { slots: 1 });
 
       const preview = h('div', { class: 'build-preview' });
@@ -121,6 +122,7 @@ export function buildScreen(app: App): Screen {
         loading.hidden = false;
         overlay.hidden = true;
         if (view) view.spinSpeed = 5;
+        sfx.sparkle();
         try {
           const bp = await app.generator.generate(Array.from(prompt).slice(0, LIMITS.promptMax).join(''), {
             signal: ctrl.signal,
@@ -128,6 +130,7 @@ export function buildScreen(app: App): Screen {
           });
           app.state.player = bp;
           app.state.rivals = []; // 車が変わったらライバルも選び直す
+          sfx.pop();
           showCar(bp, true);
         } catch (err) {
           if ((err as Error).name === 'AbortError') return;

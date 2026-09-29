@@ -179,6 +179,16 @@ export class CameraDirector {
     this.apply(dt, 4);
   }
 
+  /** いま見ている地点（影の範囲合わせに使う） */
+  get focusPoint(): Vector3 {
+    return this.look;
+  }
+
+  /** 広い範囲を映しているか */
+  get wide(): boolean {
+    return this.mode === 'overhead';
+  }
+
   private apply(dt: number, rate: number): void {
     if (this.cut) {
       this.pos.copy(this.tmpPos);

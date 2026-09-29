@@ -1,5 +1,6 @@
 import type { App, Screen } from '../app/App';
 import { mainColor } from '../blueprint/colors';
+import { sfx } from '../audio/Sfx';
 import { CarModel } from '../car/CarModel';
 import { ShowroomView } from '../car/ShowroomView';
 import { pickRivals } from '../generator/rivals';
@@ -21,7 +22,7 @@ export function rivalsScreen(app: App): Screen {
       }
       if (app.state.rivals.length === 0) app.state.rivals = pickRivals(3);
       const rivals = app.state.rivals;
-      view = new ShowroomView('#e6f4ff');
+      view = new ShowroomView('#e6f4ff', app.stage.renderer);
 
       const heading = h('div', { class: 'rivals-heading' });
       const cardSlot = h('div', { class: 'rivals-card' });
@@ -36,6 +37,7 @@ export function rivalsScreen(app: App): Screen {
       let step = 0;
       function show(i: number) {
         step = i;
+        sfx.pop();
         clear(cardSlot);
         if (i < rivals.length) {
           const bp = rivals[i];

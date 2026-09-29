@@ -1,7 +1,17 @@
-import { ConeGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, TorusGeometry, type Scene } from 'three';
+import {
+  ConeGeometry,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  PerspectiveCamera,
+  TorusGeometry,
+  type DirectionalLight,
+  type Scene,
+  type WebGLRenderer,
+} from 'three';
 import type { CarBlueprint } from '../blueprint/types';
 import { CarModel } from '../car/CarModel';
-import { createOutdoorScene } from '../engine/environment';
+import { createOutdoorScene, focusShadow } from '../engine/environment';
 import { Particles } from '../engine/Particles';
 import type { View } from '../engine/Stage';
 import { TrackView } from '../track/TrackView';
@@ -12,6 +22,8 @@ import type { RaceSim } from './RaceSim';
 export interface RaceViewOptions {
   /** タイトル画面の背景用: カメラがゆっくりコースを回る */
   attract?: boolean;
+  /** 渡すと環境マップ（映り込み）を使う */
+  renderer?: WebGLRenderer;
 }
 
 /** レース観戦の場面 */
@@ -23,6 +35,7 @@ export class RaceView implements View {
   readonly director: CameraDirector;
   private readonly opts: RaceViewOptions;
   private readonly track: TrackView;
+  private readonly sun: DirectionalLight;
   private readonly puffs = new Particles(220);
   private readonly streaks = Particles.streaks(80);
   private readonly marker: Group | null = null;
@@ -34,8 +47,9 @@ export class RaceView implements View {
   constructor(sim: RaceSim, blueprints: CarBlueprint[], opts: RaceViewOptions = {}) {
     this.sim = sim;
     this.opts = opts;
-    const { scene } = createOutdoorScene();
+    const { scene, sun } = createOutdoorScene(opts.renderer);
     this.scene = scene;
+    this.sun = sun;
     this.track = TrackView.shared(sim.track);
     scene.add(this.track.group, this.puffs.mesh, this.streaks.mesh);
     this.models = blueprints.map((bp) => new CarModel(bp));
@@ -104,9 +118,13 @@ export class RaceView implements View {
       const a = time * 0.06;
       this.camera.position.set(Math.sin(a) * 62, 34, Math.cos(a) * 52);
       this.camera.lookAt(0, 0, 0);
+      focusShadow(this.sun, 0, 0, 62);
       return;
     }
     this.director.update(dt, sim);
+    const f = this.director.focusPoint;
+    if (this.director.wide) focusShadow(this.sun, f.x * 0.5, f.z * 0.5, 60);
+    else focusShadow(this.sun, f.x, f.z, 26);
   }
 
   /** スピンの煙、コースアウトの土ぼこり、スリップストリームの筋、本気モードの火花 */
@@ -150,6 +168,12 @@ export class RaceView implements View {
 
   dispose(): void {
     for (const m of this.models) m.dispose();
+    this.marker?.traverse((o) => {
+      if (o instanceof Mesh) {
+        o.geometry.dispose();
+        (o.material as MeshStandardMaterial).dispose();
+      }
+    });
     this.puffs.dispose();
     this.streaks.dispose();
     // コースは使い回すので捨てずに外すだけ

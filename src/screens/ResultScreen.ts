@@ -1,5 +1,6 @@
 import type { App, Screen } from '../app/App';
 import { mainColor } from '../blueprint/colors';
+import { sfx } from '../audio/Sfx';
 import { CarModel } from '../car/CarModel';
 import { ShowroomView } from '../car/ShowroomView';
 import { buildHighlights, playerMessage } from '../race/highlights';
@@ -26,7 +27,7 @@ export function resultScreen(app: App): Screen {
       const me = entries.find((e) => e.isPlayer);
 
       // 表彰台
-      view = new ShowroomView('#fff0c9');
+      view = new ShowroomView('#fff0c9', app.stage.renderer);
       view.spinSpeed = 0.35;
       const slots = PODIUM_ORDER.filter((rank) => rank < entries.length);
       view.setCars(
@@ -98,6 +99,8 @@ export function resultScreen(app: App): Screen {
       );
       app.stage.attach(preview);
       app.stage.setView(view);
+      if (me && me.position === 1) sfx.fanfare(true);
+      else sfx.pop();
     },
     unmount() {
       view?.dispose();
