@@ -28,6 +28,18 @@ const WALL_THICK = 0.4;
  * 静的なので、できるだけジオメトリをまとめたりインスタンス化したりして軽くしている。
  */
 export class TrackView {
+  private static cache = new Map<string, TrackView>();
+
+  /** コースの見た目は重いので、コースごとに 1 つだけ作って使い回す */
+  static shared(track: TrackData): TrackView {
+    let view = TrackView.cache.get(track.def.id);
+    if (!view) {
+      view = new TrackView(track);
+      TrackView.cache.set(track.def.id, view);
+    }
+    return view;
+  }
+
   readonly group = new Group();
   private readonly track: TrackData;
 
@@ -165,12 +177,12 @@ export class TrackView {
     const span = t.width / 2 + WALL_THICK + 0.6;
     const pillarMat = new MeshStandardMaterial({ color: '#ffd23f', roughness: 0.5 });
     for (const side of [1, -1]) {
-      const pillar = new Mesh(new CylinderGeometry(0.35, 0.4, 4.2, 16), pillarMat);
-      pillar.position.set(0, 2.1, side * span);
+      const pillar = new Mesh(new CylinderGeometry(0.35, 0.4, 6.2, 16), pillarMat);
+      pillar.position.set(0, 3.1, side * span);
       pillar.castShadow = true;
       g.add(pillar);
       const ball = new Mesh(new SphereGeometry(0.5, 16, 12), new MeshStandardMaterial({ color: '#ff5a5a' }));
-      ball.position.set(0, 4.6, side * span);
+      ball.position.set(0, 6.6, side * span);
       ball.castShadow = true;
       g.add(ball);
     }
@@ -204,7 +216,7 @@ export class TrackView {
       ],
     );
     // BoxGeometry の面の順は +X, -X, +Y, -Y, +Z, -Z。進行方向を向く ±X 面にバナーを貼る
-    beam.position.set(0, 3.8, 0);
+    beam.position.set(0, 5.6, 0);
     beam.castShadow = true;
     g.add(beam);
     g.position.set(f.x, 0, f.z);

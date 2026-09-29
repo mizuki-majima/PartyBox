@@ -1,37 +1,17 @@
 import './style.css';
-import { normalizeBlueprint } from './blueprint/schema';
-import { SAMPLE_BLUEPRINTS } from './blueprint/samples';
-import { CarModel } from './car/CarModel';
-import { ShowroomView } from './car/ShowroomView';
-import { Stage } from './engine/Stage';
-import { RaceSim } from './race/RaceSim';
-import { RaceView } from './race/RaceView';
-import { TOY_CIRCUIT, TrackData } from './track/TrackData';
+import { App } from './app/App';
+import { buildScreen } from './screens/BuildScreen';
+import { raceScreen } from './screens/RaceScreen';
+import { titleScreen } from './screens/TitleScreen';
 
-const app = document.getElementById('app')!;
-const stage = new Stage();
-stage.attach(app);
-
-const blueprints = SAMPLE_BLUEPRINTS.map((raw) => {
-  const { blueprint, issues } = normalizeBlueprint(raw);
-  if (issues.length) console.info(`[blueprint] ${blueprint.name}:`, issues);
-  return blueprint;
-});
-
+const root = document.getElementById('app')!;
 const params = new URLSearchParams(location.search);
-if (params.has('gallery')) {
-  // 手書き JSON の組み立て確認用ギャラリー（?gallery=1 で 1 台だけ）
-  const view = new ShowroomView();
-  const only = params.get('gallery');
-  const list = only ? blueprints.filter((_, i) => String(i) === only) : blueprints;
-  view.setCars(list.map((bp) => new CarModel(bp)));
-  stage.setView(view);
+
+if (import.meta.env.DEV && (params.has('gallery') || params.has('gen'))) {
+  // 開発用: ?gallery で手書きサンプル、?gen=文1|文2 で生成結果を並べて確認する
+  void import('./dev/gallery').then((m) => m.showGallery(root, params));
 } else {
-  const racers = blueprints.slice(0, 4);
-  const track = new TrackData(TOY_CIRCUIT);
-  const sim = new RaceSim(
-    track,
-    racers.map((bp, i) => ({ id: `car${i}`, name: bp.name, stats: bp.stats })),
-  );
-  stage.setView(new RaceView(sim, racers.map((bp) => new CarModel(bp))));
+  const app = new App(root);
+  app.register('title', titleScreen).register('build', buildScreen).register('race', raceScreen);
+  app.goto('title');
 }

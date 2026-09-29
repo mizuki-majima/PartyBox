@@ -1,26 +1,42 @@
 import { PerspectiveCamera, type Scene } from 'three';
-import type { CarModel } from '../car/CarModel';
+import type { CarBlueprint } from '../blueprint/types';
+import { CarModel } from '../car/CarModel';
 import { createOutdoorScene } from '../engine/environment';
 import type { View } from '../engine/Stage';
 import { TrackView } from '../track/TrackView';
-import { RaceSim } from './RaceSim';
+import { damp } from '../util/rng';
+import type { RaceCar, RaceSim } from './RaceSim';
+
+export interface RaceViewOptions {
+  /** タイトル画面の背景用: カメラがゆっくりコースを回る */
+  attract?: boolean;
+}
 
 /** レース観戦の場面 */
 export class RaceView implements View {
   readonly scene: Scene;
   readonly camera = new PerspectiveCamera(50, 1, 0.1, 500);
-  private readonly sim: RaceSim;
-  private readonly models: CarModel[];
+  readonly sim: RaceSim;
+  readonly models: CarModel[];
+  private readonly opts: RaceViewOptions;
+  private readonly track: TrackView;
 
-  constructor(sim: RaceSim, models: CarModel[]) {
+  constructor(sim: RaceSim, blueprints: CarBlueprint[], opts: RaceViewOptions = {}) {
     this.sim = sim;
-    this.models = models;
+    this.opts = opts;
     const { scene } = createOutdoorScene();
     this.scene = scene;
-    scene.add(new TrackView(sim.track).group);
-    for (const m of models) scene.add(m.root);
+    this.track = TrackView.shared(sim.track);
+    scene.add(this.track.group);
+    this.models = blueprints.map((bp) => new CarModel(bp));
+    for (const m of this.models) scene.add(m.root);
     this.camera.position.set(0, 70, 75);
     this.camera.lookAt(0, 0, 2);
+  }
+
+  /** 追いかける車（プレイヤーがいればプレイヤー、いなければ先頭） */
+  private focusCar(): RaceCar {
+    return this.sim.cars.find((c) => c.input.isPlayer) ?? this.sim.cars.reduce((a, b) => (b.progress > a.progress ? b : a));
   }
 
   update(dt: number, time: number): void {
@@ -31,15 +47,27 @@ export class RaceView implements View {
       m.root.rotation.y = car.heading;
       m.update(dt, car.v, time);
     });
-    // 先頭の車を斜め上から追いかける
-    const lead = this.sim.cars.reduce((a, b) => (b.progress > a.progress ? b : a));
-    const back = 9;
-    const tx = lead.x - Math.cos(lead.heading) * back;
-    const tz = lead.z + Math.sin(lead.heading) * back;
-    const k = 1 - Math.exp(-2 * dt);
+
+    if (this.opts.attract) {
+      const a = time * 0.06;
+      this.camera.position.set(Math.sin(a) * 62, 34, Math.cos(a) * 52);
+      this.camera.lookAt(0, 0, 0);
+      return;
+    }
+    const car = this.focusCar();
+    const back = 7;
+    const tx = car.x - Math.cos(car.heading) * back;
+    const tz = car.z + Math.sin(car.heading) * back;
+    const k = damp(2.5, dt);
     this.camera.position.x += (tx - this.camera.position.x) * k;
-    this.camera.position.y += (5 - this.camera.position.y) * k;
+    this.camera.position.y += (3.4 - this.camera.position.y) * k;
     this.camera.position.z += (tz - this.camera.position.z) * k;
-    this.camera.lookAt(lead.x, 0.8, lead.z);
+    this.camera.lookAt(car.x, 0.8, car.z);
+  }
+
+  dispose(): void {
+    for (const m of this.models) m.dispose();
+    // コースは使い回すので捨てずに外すだけ
+    this.track.group.removeFromParent();
   }
 }

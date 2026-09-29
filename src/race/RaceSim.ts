@@ -80,7 +80,7 @@ export class RaceSim {
   private acc = 0;
   private readonly frame = { x: 0, z: 0, heading: 0 };
 
-  constructor(track: TrackData, racers: RacerInput[]) {
+  constructor(track: TrackData, racers: RacerInput[], _opts: { endless?: boolean } = {}) {
     this.track = track;
     const lane = track.width * 0.22;
     this.cars = racers.map((r, i) => {

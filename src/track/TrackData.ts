@@ -146,6 +146,18 @@ export class TrackData {
   }
 }
 
+const trackCache = new Map<string, TrackData>();
+
+/** コースの計算結果は使い回す */
+export function getTrack(def: TrackDefinition = TOY_CIRCUIT): TrackData {
+  let t = trackCache.get(def.id);
+  if (!t) {
+    t = new TrackData(def);
+    trackCache.set(def.id, t);
+  }
+  return t;
+}
+
 /** おもちゃのサーキット: 楕円にちょっとだけ S 字を足したコース */
 export const TOY_CIRCUIT: TrackDefinition = {
   id: 'toy-circuit',
