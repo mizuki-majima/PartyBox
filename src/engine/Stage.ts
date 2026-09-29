@@ -23,6 +23,8 @@ export class Stage {
   private readonly observer: ResizeObserver;
   private last = 0;
   private time = 0;
+  /** 時間の進みの倍率（開発時の早送り確認用） */
+  timeScale = 1;
 
   constructor() {
     this.renderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -61,7 +63,7 @@ export class Stage {
   }
 
   private frame(now: number): void {
-    const dt = this.last === 0 ? 0 : Math.min((now - this.last) / 1000, 0.1);
+    const dt = (this.last === 0 ? 0 : Math.min((now - this.last) / 1000, 0.1)) * this.timeScale;
     this.last = now;
     this.time += dt;
     if (!this.view) return;

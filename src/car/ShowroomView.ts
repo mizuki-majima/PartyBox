@@ -60,7 +60,7 @@ export class ShowroomView implements View {
    * 並べる車を差し替える。前に並んでいた車は（新しい一覧に無ければ）破棄する。
    * slots: 台座の数（車がまだ無くても台座だけ見せたいとき用）
    */
-  setCars(cars: CarModel[], opts: { slots?: number; pop?: boolean } = {}): void {
+  setCars(cars: CarModel[], opts: { slots?: number; pop?: boolean; heights?: number[] } = {}): void {
     for (const c of this.cars) if (!cars.includes(c)) c.dispose();
     for (const p of this.podiums) p.removeFromParent();
     this.podiums.length = 0;
@@ -69,14 +69,18 @@ export class ShowroomView implements View {
     const gap = 3.6;
     for (let i = 0; i < this.slots; i++) {
       const x = (i - (this.slots - 1) / 2) * gap;
+      // heights を渡すと表彰台のように台座の高さを変えられる
+      const height = opts.heights?.[i] ?? 0.3;
       const podium = new Mesh(this.podiumGeo, this.podiumMat);
-      podium.position.set(x, 0.15, 0);
+      podium.scale.y = height / 0.3;
+      podium.position.set(x, height / 2, 0);
       podium.receiveShadow = true;
+      podium.castShadow = height > 0.3;
       this.scene.add(podium);
       this.podiums.push(podium);
       const car = cars[i];
       if (!car) continue;
-      car.root.position.set(x, 0.3, 0);
+      car.root.position.set(x, height, 0);
       car.root.scale.setScalar(opts.pop ? 0.01 : 1);
       this.scene.add(car.root);
     }

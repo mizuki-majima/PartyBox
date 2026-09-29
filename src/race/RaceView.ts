@@ -19,6 +19,8 @@ export class RaceView implements View {
   readonly sim: RaceSim;
   readonly models: CarModel[];
   private readonly opts: RaceViewOptions;
+  /** 毎フレーム、シミュレーションを進めた直後に呼ばれる（HUD や実況の更新用） */
+  onFrame: ((dt: number, time: number) => void) | null = null;
   private readonly track: TrackView;
 
   constructor(sim: RaceSim, blueprints: CarBlueprint[], opts: RaceViewOptions = {}) {
@@ -47,6 +49,7 @@ export class RaceView implements View {
       m.root.rotation.y = car.heading;
       m.update(dt, car.v, time);
     });
+    this.onFrame?.(dt, time);
 
     if (this.opts.attract) {
       const a = time * 0.06;

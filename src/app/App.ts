@@ -1,4 +1,5 @@
 import type { CarBlueprint } from '../blueprint/types';
+import type { RaceResult } from '../race/RaceSim';
 import { Stage } from '../engine/Stage';
 import { createCarGenerator, type CarGenerator } from '../generator';
 import { h } from '../ui/dom';
@@ -11,9 +12,11 @@ import { h } from '../ui/dom';
 export const FLOW = ['title', 'build', 'rivals', 'race', 'result'] as const;
 export type ScreenId = (typeof FLOW)[number] | (string & {});
 
-export interface RaceEntry {
-  blueprint: CarBlueprint;
-  isPlayer: boolean;
+/** 1 レースぶんの記録（リザルト画面で使う） */
+export interface RaceRecord {
+  result: RaceResult;
+  /** result.entries[].index と同じ並び */
+  blueprints: CarBlueprint[];
 }
 
 /** 画面をまたいで持ち回る状態 */
@@ -21,7 +24,7 @@ export interface GameState {
   player: CarBlueprint | null;
   rivals: CarBlueprint[];
   /** 最後のレース結果（リザルト画面で使う） */
-  lastResult: unknown;
+  lastResult: RaceRecord | null;
   /** 同じ顔ぶれで何回走ったか（「もう一回」で増える） */
   raceCount: number;
 }
