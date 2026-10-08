@@ -85,7 +85,7 @@ npm run dev        # http://localhost:5173/grand-prix/ で開発サーバー（P
   - このページには、単独で公開していたとき（`vercel.json`）と同じ `X-Frame-Options` などのヘッダーを付ける（`/grand-prix/index.html` も `/grand-prix/` へ転送）
 - 画像（`og.png`・`favicon.svg`）は `public/grand-prix/` にある
 - デプロイは PartyBox と同じ（ルートの README「デプロイ」）。GitHub Pages / Vercel 用の設定はこのリポジトリには持ち込んでいない
-  - 元のリポジトリから公開していた GitHub Pages（`https://mizuki-majima.github.io/prompt-grand-prix/`）は、このリポジトリの変更では止まらない。PartyBox の公開 URL が決まったら、元のリポジトリ側で PartyBox の `/grand-prix/` へ転送するか公開をやめる
+  - 元のリポジトリから公開していた GitHub Pages（`https://mizuki-majima.github.io/prompt-grand-prix/`）は、このリポジトリの変更では止まらない。PartyBox の公開 URL が決まったら、元のリポジトリの `redirect/target-url.txt` に URL を書いて main にマージすると、PartyBox の `/grand-prix/` への転送ページに切り替わる。そのあと元のリポジトリをアーカイブする（手順は元のリポジトリの README「PartyBox への引っ越し」）
 
 ### 公開前のチェック
 
