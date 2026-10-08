@@ -178,6 +178,40 @@ export const GAMES: GameMeta[] = [
   },
 ];
 
+/**
+ * ルームを作らずに1人で遊ぶゲーム。SPA とは別のページで動くので、トップページのカードから通常のリンクで開く。
+ * （ルームのゲームではないため GAMES には入れない。サーバーの人数チェックやゲーム変更の対象外）
+ */
+export interface SoloGameMeta {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  emoji: string;
+  category: string;
+  /** カードに出す人数の表記 */
+  players: string;
+  estimatedTime: string;
+  theme: { from: string; to: string };
+  /** 遊ぶページの URL */
+  href: string;
+}
+
+export const SOLO_GAMES: SoloGameMeta[] = [
+  {
+    id: 'prompt-grand-prix',
+    title: 'プロンプト・グランプリ',
+    tagline: 'ことばで作ったミニカーが走る',
+    description: '「こんな車」と書くだけで、その通りのミニカーが3Dで誕生。CPUの車とおもちゃのサーキットでレースし、応援しながら観戦！',
+    emoji: '🏎️',
+    category: 'ひとりで・レース',
+    players: '1人',
+    estimatedTime: '約2分',
+    theme: { from: '#3fa7ff', to: '#ff5a5a' },
+    href: '/grand-prix/',
+  },
+];
+
 export function getGameMeta(id: string): GameMeta | undefined {
   return GAMES.find((g) => g.id === id);
 }

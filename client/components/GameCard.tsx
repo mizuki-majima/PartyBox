@@ -1,14 +1,16 @@
 import { Link } from 'react-router';
-import type { GameMeta } from '../../shared/games';
+import type { GameMeta, SoloGameMeta } from '../../shared/games';
 
-export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }) {
+const CARD_CLASS =
+  'group animate-slide-up relative flex flex-col overflow-hidden rounded-3xl bg-panel ring-1 ring-line transition hover:-translate-y-1 hover:ring-white/25 focus-visible:ring-4 focus-visible:ring-pop-violet';
+
+type CardContent = Pick<GameMeta, 'title' | 'tagline' | 'description' | 'emoji' | 'category' | 'estimatedTime' | 'theme'> & {
+  players: string;
+};
+
+function CardBody({ game }: { game: CardContent }) {
   return (
-    <Link
-      to={`/play/${game.id}`}
-      className="group animate-slide-up relative flex flex-col overflow-hidden rounded-3xl bg-panel ring-1 ring-line transition hover:-translate-y-1 hover:ring-white/25 focus-visible:ring-4 focus-visible:ring-pop-violet"
-      style={{ animationDelay: `${index * 70}ms` }}
-      data-testid={`game-card-${game.id}`}
-    >
+    <>
       <div
         className="relative flex h-36 items-center justify-center overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${game.theme.from}, ${game.theme.to})` }}
@@ -28,7 +30,7 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
         <p className="line-clamp-2 text-sm text-white/70">{game.description}</p>
         <div className="mt-auto flex items-center justify-between pt-3">
           <div className="flex gap-3 text-sm font-bold text-white/80">
-            <span>👥 {game.minPlayers}〜{game.maxPlayers}人</span>
+            <span>👥 {game.players}</span>
             <span>⏱ {game.estimatedTime}</span>
           </div>
           <span className="rounded-full bg-white px-4 py-1.5 text-sm font-extrabold text-ink transition group-hover:bg-pop-yellow">
@@ -36,6 +38,29 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
           </span>
         </div>
       </div>
+    </>
+  );
+}
+
+/** みんなで遊ぶゲーム（ルームを作る画面へ） */
+export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }) {
+  return (
+    <Link
+      to={`/play/${game.id}`}
+      className={CARD_CLASS}
+      style={{ animationDelay: `${index * 70}ms` }}
+      data-testid={`game-card-${game.id}`}
+    >
+      <CardBody game={{ ...game, players: `${game.minPlayers}〜${game.maxPlayers}人` }} />
     </Link>
+  );
+}
+
+/** 1人で遊ぶゲーム（SPA の外の別ページなので、通常のリンクで開く） */
+export function SoloGameCard({ game, index = 0 }: { game: SoloGameMeta; index?: number }) {
+  return (
+    <a href={game.href} className={CARD_CLASS} style={{ animationDelay: `${index * 70}ms` }} data-testid={`game-card-${game.id}`}>
+      <CardBody game={game} />
+    </a>
   );
 }

@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* プロンプト・グランプリ（別ページ・Tailwind 不使用）の文字列からクラスを拾わない */
+@source not '../grand-prix';
 
 @theme {
   --font-sans: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
