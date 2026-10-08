@@ -82,9 +82,10 @@ npm run dev        # http://localhost:5173/grand-prix/ で開発サーバー（P
   - three.js は `three-*.js` という別ファイルになり、PartyBox のページでは読み込まれない
   - 本番ビルドのこのページにだけ Content-Security-Policy を `<meta>` で入れる
 - PartyBox のサーバー（`server/app.ts`）が `/grand-prix/` でこのページを返す。`/grand-prix` などは `/grand-prix/` に転送する
-  - 単独で公開していたとき（`vercel.json`）と同じ `X-Frame-Options` などのヘッダーを付ける
+  - このページには、単独で公開していたとき（`vercel.json`）と同じ `X-Frame-Options` などのヘッダーを付ける（`/grand-prix/index.html` も `/grand-prix/` へ転送）
 - 画像（`og.png`・`favicon.svg`）は `public/grand-prix/` にある
-- デプロイは PartyBox と同じ（ルートの README「デプロイ」）。GitHub Pages / Vercel 用の設定は取り込み時に外した
+- デプロイは PartyBox と同じ（ルートの README「デプロイ」）。GitHub Pages / Vercel 用の設定はこのリポジトリには持ち込んでいない
+  - 元のリポジトリから公開していた GitHub Pages（`https://mizuki-majima.github.io/prompt-grand-prix/`）は、このリポジトリの変更では止まらない。PartyBox の公開 URL が決まったら、元のリポジトリ側で PartyBox の `/grand-prix/` へ転送するか公開をやめる
 
 ### 公開前のチェック
 
@@ -194,7 +195,7 @@ npm install @anthropic-ai/sdk
 ```
 
 ```ts
-// server/app.ts（startPartyServer の中、SPA の配信より前に置く）
+// server/app.ts（import はファイルの先頭へ。ルートは startPartyServer の中、SPA の配信より前に置く）
 import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync } from 'node:fs';
 
@@ -293,7 +294,7 @@ export function createCarGenerator(): CarGenerator {
 - **キャッシュ**: 正規化した入力文をキーに結果を保存し、同じ文なら API を呼ばない（「同じ文なら同じ車」も保てる）
 - **入力と出力の上限**: 入力は 60 文字まで、`max_tokens` を抑える、`effort` は低め
 - **Anthropic Console の利用上限（Spend limits）** を設定しておく
-- **不正利用対策**: `Origin` ヘッダーの確認、AWS WAF などの Bot 対策
+- **不正利用対策**: `Origin` ヘッダーの確認、必要なら Cloudflare などの前段で Bot 対策
 - **失敗時はデモ版に切り替え**: 上限到達や障害時もゲームは止めない（上のフロント実装の `catch`）
 
 ---

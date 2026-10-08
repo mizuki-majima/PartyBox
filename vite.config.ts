@@ -37,7 +37,7 @@ function grandPrixCsp(): Plugin {
     name: 'grand-prix-csp',
     apply: 'build',
     transformIndexHtml(html, ctx) {
-      if (ctx.filename !== PAGES['grand-prix']) return html;
+      if (ctx.path !== '/grand-prix/index.html') return html;
       return html.replace(
         '<meta charset="UTF-8" />',
         `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${GRAND_PRIX_CSP}" />`,
@@ -51,8 +51,8 @@ export default defineConfig({
   build: {
     outDir: 'dist/client',
     emptyOutDir: true,
-    // three.js（プロンプト・グランプリだけが使う）は 1 ファイルで 1MB 近くあるため
-    chunkSizeWarningLimit: 1200,
+    // three.js（プロンプト・グランプリだけが使う）は 1 ファイルで約 560kB あるため（既定は 500kB）
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       input: PAGES,
       output: {

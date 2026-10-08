@@ -11,7 +11,7 @@ export interface GenerateOptions {
  * 話し言葉 → 車の設計図。
  * 実装を差し替えられるようにインターフェースで分けてある。
  * - MockCarGenerator: キーワード辞書＋ハッシュ乱数（API を呼ばない。現在の既定）
- * - ClaudeCarGenerator: Claude API＋サーバーレス関数（将来追加。README 参照）
+ * - ClaudeCarGenerator: Claude API＋PartyBox サーバーの /api/generate-car（将来追加。README 参照）
  *
  * どの実装も「必ず何かしらの車を返す」こと。失敗したら例外ではなくフォールバックの車を返す。
  */

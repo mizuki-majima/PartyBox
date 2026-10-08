@@ -1,6 +1,6 @@
 # 車デザイナー用システムプロンプト（下書き）
 
-将来 `ClaudeCarGenerator`（Claude API＋サーバーレス関数）で使うシステムプロンプトの下書きです。
+将来 `ClaudeCarGenerator`（Claude API＋PartyBox サーバーの `/api/generate-car`）で使うシステムプロンプトの下書きです。
 ユーザーの入力文（話し言葉）はユーザーメッセージとしてそのまま渡し、このプロンプトをシステムプロンプトにします。
 出力はフロントエンドの `normalizeBlueprint()`（`src/blueprint/schema.ts`）で必ず検証・補正されるので、
 多少ルールから外れても車は必ず出ます。ただし、ここに書いたルールを守るほど意図どおりの車になります。

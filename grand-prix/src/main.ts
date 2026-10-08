@@ -5,6 +5,8 @@ import { raceScreen } from './screens/RaceScreen';
 import { resultScreen } from './screens/ResultScreen';
 import { rivalsScreen } from './screens/RivalsScreen';
 import { titleScreen } from './screens/TitleScreen';
+import { homeLink } from './ui/components';
+import { h } from './ui/dom';
 
 const root = document.getElementById('app')!;
 const params = new URLSearchParams(location.search);
@@ -25,12 +27,21 @@ function waitFonts(ms: number): Promise<unknown> {
 
 async function start() {
   if (!hasWebGL()) {
-    root.replaceChildren();
-    const msg = document.createElement('div');
-    msg.className = 'fatal';
-    msg.textContent = 'ごめんなさい、このブラウザでは 3D の表示ができないようです。\n最新の Chrome / Safari / Edge / Firefox でお試しください。';
-    msg.style.whiteSpace = 'pre-line';
-    root.append(msg);
+    root.replaceChildren(
+      h(
+        'div',
+        { class: 'fatal' },
+        h(
+          'div',
+          {},
+          h('p', {
+            text: 'ごめんなさい、このブラウザでは 3D の表示ができないようです。\n最新の Chrome / Safari / Edge / Firefox でお試しください。',
+            style: { whiteSpace: 'pre-line' },
+          }),
+          homeLink('inline'),
+        ),
+      ),
+    );
     return;
   }
   await waitFonts(1500);

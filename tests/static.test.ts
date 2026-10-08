@@ -49,6 +49,8 @@ describe('ページ配信', () => {
       ['/grand-prix', '/grand-prix/'],
       ['/grand-prix?speed=8', '/grand-prix/?speed=8'],
       ['/grand-prix/race', '/grand-prix/'],
+      ['/grand-prix/index.html', '/grand-prix/'],
+      ['/grand-prix/index.html?speed=8', '/grand-prix/?speed=8'],
     ]) {
       const res = await get(p);
       expect(res.status, p).toBe(301);
