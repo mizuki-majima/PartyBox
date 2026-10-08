@@ -4,7 +4,7 @@ import { sfx } from '../audio/Sfx';
 import { CarModel } from '../car/CarModel';
 import { ShowroomView } from '../car/ShowroomView';
 import { buildHighlights, playerMessage } from '../race/highlights';
-import { button } from '../ui/components';
+import { button, homeLink } from '../ui/components';
 import { h } from '../ui/dom';
 import { formatTime } from '../ui/RaceHud';
 
@@ -94,6 +94,7 @@ export function resultScreen(app: App): Screen {
               button('もう一回', () => app.goto('race'), 'go'),
               button('車を作り直す', () => app.goto('build'), 'primary'),
             ),
+            homeLink('inline'),
           ),
         ),
       );

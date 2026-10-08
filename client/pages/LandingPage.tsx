@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
-import { GAMES } from '../../shared/games';
-import { GameCard } from '../components/GameCard';
+import { GAMES, SOLO_GAMES } from '../../shared/games';
+import { GameCard, SoloGameCard } from '../components/GameCard';
 import { Button, Logo } from '../components/ui';
 
 const STEPS = [
@@ -16,6 +16,7 @@ const FLOATERS = [
   { emoji: '⚖️', className: 'left-[10%] bottom-[8%]', r: '8deg', delay: '2.1s' },
   { emoji: '🎭', className: 'right-[12%] bottom-[14%]', r: '-8deg', delay: '0.6s' },
   { emoji: '🤝', className: 'right-[3%] top-[46%]', r: '4deg', delay: '1.6s' },
+  { emoji: '🏎️', className: 'left-[2%] top-[50%]', r: '-6deg', delay: '2.6s' },
 ];
 
 function scrollToGames() {
@@ -84,11 +85,14 @@ export function LandingPage() {
             <p className="text-xs font-extrabold tracking-[0.3em] text-pop-pink">GAME LIST</p>
             <h2 className="font-display text-3xl">ゲームをえらぶ</h2>
           </div>
-          <p className="hidden text-sm text-muted sm:block">全{GAMES.length}種類</p>
+          <p className="hidden text-sm text-muted sm:block">全{GAMES.length + SOLO_GAMES.length}種類</p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {GAMES.map((g, i) => (
             <GameCard key={g.id} game={g} index={i} />
+          ))}
+          {SOLO_GAMES.map((g, i) => (
+            <SoloGameCard key={g.id} game={g} index={GAMES.length + i} />
           ))}
           <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-white/12 p-6 text-center text-muted">
             <span className="text-4xl">🧩</span>

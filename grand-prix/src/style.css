@@ -1319,6 +1319,38 @@ body {
   box-shadow: 0 1px 0 var(--ink);
 }
 
+/* ───────── PartyBox へ戻るリンク ───────── */
+
+.home-link {
+  pointer-events: auto;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.home-link-corner {
+  position: absolute;
+  top: calc(10px + var(--safe-t));
+  left: 10px;
+  z-index: 10;
+  padding: 6px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 3px 0 var(--ink);
+  text-decoration: none;
+}
+
+.home-link-corner:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.home-link-inline {
+  align-self: center;
+  text-underline-offset: 3px;
+}
+
 /* ───────── 仕上げ ───────── */
 
 .ui-root > .screen {

@@ -46,6 +46,15 @@ export function carCard(bp: CarBlueprint, opts: { badge?: string; compact?: bool
   );
 }
 
+/** PartyBox のトップ（ゲーム一覧）へ戻るリンク。このゲームは PartyBox とは別のページなので、ページごと移動する */
+export function homeLink(variant: 'corner' | 'inline'): HTMLAnchorElement {
+  return h('a', {
+    class: `home-link home-link-${variant}`,
+    text: variant === 'corner' ? '← PartyBox' : 'PartyBox のほかのゲームで遊ぶ',
+    attrs: { href: '/', 'data-testid': `home-link-${variant}` },
+  });
+}
+
 export function button(label: string, onClick: () => void, variant = 'primary'): HTMLButtonElement {
   return h('button', {
     class: `btn btn-${variant}`,

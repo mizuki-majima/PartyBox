@@ -3,7 +3,7 @@ import { pickRivals } from '../generator/rivals';
 import { RaceSim } from '../race/RaceSim';
 import { RaceView } from '../race/RaceView';
 import { getTrack } from '../track/TrackData';
-import { button } from '../ui/components';
+import { button, homeLink } from '../ui/components';
 import { h } from '../ui/dom';
 
 /** タイトル画面。背景ではデモのレースがずっと走っている。 */
@@ -24,6 +24,7 @@ export function titleScreen(app: App): Screen {
         h(
           'div',
           { class: 'screen title-screen' },
+          homeLink('corner'),
           h(
             'div',
             { class: 'title-box' },

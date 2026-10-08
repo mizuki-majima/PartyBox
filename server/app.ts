@@ -60,6 +60,25 @@ export async function startPartyServer(options: PartyServerOptions = {}): Promis
   const staticDir = options.staticDir === undefined ? path.resolve(process.cwd(), 'dist/client') : options.staticDir;
   if (staticDir && existsSync(staticDir)) {
     app.use(express.static(staticDir, { index: false, maxAge: '1h' }));
+    // プロンプト・グランプリ（1人用の 3D レース）は SPA とは別のページ。/grand-prix/ に寄せて配信する
+    const grandPrixHtml = path.join(staticDir, 'grand-prix', 'index.html');
+    if (existsSync(grandPrixHtml)) {
+      app.get(/^\/grand-prix(?:\/.*)?$/, (req, res) => {
+        if (req.path !== '/grand-prix/') {
+          const q = req.url.indexOf('?');
+          res.redirect(301, `/grand-prix/${q >= 0 ? req.url.slice(q) : ''}`);
+          return;
+        }
+        // 独立して公開していたとき（vercel.json）と同じヘッダー
+        res.set({
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+          'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+        });
+        res.sendFile(grandPrixHtml);
+      });
+    }
     // SPA: /room/XXXX などはすべて index.html を返す
     app.get(/^\/(?!api\/|socket\.io\/).*/, (_req, res) => {
       res.sendFile(path.join(staticDir, 'index.html'));

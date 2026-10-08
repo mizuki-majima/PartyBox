@@ -3,7 +3,10 @@
 話し言葉で「こんな車」と書くと、その通りのミニカーが 3D で生まれ、
 おもちゃのサーキットで CPU の車とレースする。プレイヤーは運転せず、応援しながら観戦するブラウザゲームです。
 
-![タイトル画面](public/og.png)
+**PartyBox の 1 人用ゲーム** として、PartyBox と同じサーバー・同じ URL で動きます（トップページのカード → `/grand-prix/`）。
+元は単独のリポジトリ（mizuki-majima/prompt-grand-prix）で、履歴ごとこのディレクトリに取り込んでいます。
+
+![タイトル画面](../public/grand-prix/og.png)
 
 - 「かっこいい車」「ヒラぺったい車」「江戸時代にあるような車」「カレーの匂いがしそうな車」…なんでも OK
 - 書いた内容が **見た目** と **性能** の両方に出る
@@ -17,7 +20,7 @@
 
 ## 遊び方
 
-1. **タイトル** → 「あそぶ」
+1. **タイトル** → 「あそぶ」（左上の「← PartyBox」で PartyBox のトップへ戻れます）
 2. **車づくり**: どんな車がいいか自由に書いて「この言葉で車をつくる」（入力例のボタンもあります）
    - 1〜2 秒の「生成中…」のあと、くるくる回るプレビュー・名前・性能・性格・ひとことが出ます
    - 同じ文なら何度作っても同じ車。言葉を変えれば作り直せます
@@ -26,7 +29,7 @@
    - 実況テロップ（追い抜き・スピン・最終コーナーの追い上げ…）
    - カメラは「自動／自車／先頭／俯瞰」をボタンで切り替え（自動ではハプニングや自車のバトルに寄ります）
    - 画面左に順位、上に周回とタイム。自分の車には頭の上に赤い目印
-5. **リザルト**: 表彰台・順位・タイム・ハイライト。「もう一回」（同じ顔ぶれで再戦）か「車を作り直す」
+5. **リザルト**: 表彰台・順位・タイム・ハイライト。「もう一回」（同じ顔ぶれで再戦）か「車を作り直す」。下のリンクから PartyBox のほかのゲームへ
 
 右下のボタンで効果音のオン／オフができます。
 
@@ -47,59 +50,46 @@
 
 ## ローカルでの起動
 
-必要なもの: Node.js 20.19 以上（22 推奨）
+PartyBox のリポジトリのルートで動かします（このディレクトリ専用の `package.json` はありません）。
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 で開発サーバー
+npm run dev        # http://localhost:5173/grand-prix/ で開発サーバー（PartyBox のトップは http://localhost:5173/）
 ```
 
-| コマンド | 内容 |
+| コマンド（ルートで実行） | 内容 |
 |---|---|
 | `npm run dev` | 開発サーバー（ホットリロード） |
-| `npm test` | ユニットテスト（設計図の検証、生成器、レースのバランス、実況） |
+| `npm test` | ユニットテスト（PartyBox のテストと一緒に、設計図の検証・生成器・レースのバランス・実況も回る） |
 | `npm run typecheck` | 型チェック |
-| `npm run build` | 型チェック＋本番ビルド（`dist/`） |
-| `npm run preview` | ビルド結果をローカルで確認 |
+| `npm run build` / `npm start` | 本番ビルド（`dist/client/grand-prix/`）と起動（http://localhost:3001/grand-prix/） |
+| `npm run test:e2e` | トップのカードから車づくり → レース開始 → PartyBox に戻るまでをブラウザで確認（`e2e/grand-prix.spec.ts`） |
 
 ### 開発用の URL パラメータ（`npm run dev` のときだけ有効）
 
 | パラメータ | 内容 |
 |---|---|
-| `?gallery` | 手書きの設計図サンプルを並べて表示（`?gallery=0` で 1 台だけ） |
-| `?gen=かっこいい車\|江戸の車` | 生成結果を並べて表示（`\|` 区切り） |
-| `?speed=8` | ゲーム全体を早送り |
-| `?laps=1` | 1 周だけのレース（ゴール演出の確認用） |
+| `/grand-prix/?gallery` | 手書きの設計図サンプルを並べて表示（`?gallery=0` で 1 台だけ） |
+| `/grand-prix/?gen=かっこいい車\|江戸の車` | 生成結果を並べて表示（`\|` 区切り） |
+| `/grand-prix/?speed=8` | ゲーム全体を早送り |
+| `/grand-prix/?laps=1` | 1 周だけのレース（ゴール演出の確認用） |
 
 ---
 
-## デプロイ（一般公開）
+## 配信のしくみ（PartyBox との統合）
 
-ビルド成果物は `dist/` の静的ファイルだけです。`vite.config.ts` で `base: './'` にしているので、
-**GitHub Pages（`/リポジトリ名/` 配下）でも Vercel（ルート）でも同じビルドがそのまま動きます。**
-
-### GitHub Pages
-
-`.github/workflows/deploy.yml` が入っています。
-
-1. GitHub のリポジトリで **Settings → Pages → Build and deployment → Source** を **GitHub Actions** にする
-2. `main` ブランチに push（または Actions タブから手動実行）
-3. テスト → ビルド → 公開まで自動で行われ、`https://<ユーザー名>.github.io/prompt-grand-prix/` で遊べます
-
-プルリクエストでは `.github/workflows/ci.yml` がテストとビルドを確認します。
-
-### Vercel
-
-1. Vercel で「Add New… → Project」からこのリポジトリを選ぶ
-2. 設定は `vercel.json` に書いてあるので、そのまま Deploy（Framework: Vite / Output: `dist`）
-
-`vercel.json` ではアセットの長期キャッシュと、`X-Content-Type-Options` などのセキュリティヘッダーを設定しています。
-将来 AI 生成を入れるときは、サーバーレス関数が使える Vercel が便利です。
+- Vite のマルチページビルドで、PartyBox の `index.html` と `grand-prix/index.html` を一緒にビルドする（ルートの `vite.config.ts`）
+  - three.js は `three-*.js` という別ファイルになり、PartyBox のページでは読み込まれない
+  - 本番ビルドのこのページにだけ Content-Security-Policy を `<meta>` で入れる
+- PartyBox のサーバー（`server/app.ts`）が `/grand-prix/` でこのページを返す。`/grand-prix` などは `/grand-prix/` に転送する
+  - 単独で公開していたとき（`vercel.json`）と同じ `X-Frame-Options` などのヘッダーを付ける
+- 画像（`og.png`・`favicon.svg`）は `public/grand-prix/` にある
+- デプロイは PartyBox と同じ（ルートの README「デプロイ」）。GitHub Pages / Vercel 用の設定は取り込み時に外した
 
 ### 公開前のチェック
 
-- `index.html` の `og:image` は相対パスです。公開 URL が決まったら絶対 URL（`https://…/og.png`）にすると SNS でのプレビューが確実になります
-- 本番ビルドには Content-Security-Policy を `<meta>` で入れています（`vite.config.ts`）。外部の API を呼ぶようにしたら `connect-src` に追加してください
+- `index.html` の `og:image` はサイト内の絶対パス（`/grand-prix/og.png`）です。公開 URL が決まったら `https://…/grand-prix/og.png` にすると SNS でのプレビューが確実になります
+- 外部の API を呼ぶようにしたら、ルートの `vite.config.ts` の CSP の `connect-src` に追加してください（同じサーバーの `/api` なら不要）
 
 ---
 
@@ -170,7 +160,10 @@ npm run dev        # http://localhost:5173 で開発サーバー
 
 ### ディレクトリ構成
 
+`grand-prix/` の中:
+
 ```
+index.html              このゲームのページ（/grand-prix/）
 src/
   app/App.ts            画面遷移（FLOW）と共有状態
   screens/              タイトル・車づくり・ライバル紹介・レース・リザルト
@@ -183,7 +176,7 @@ src/
   ui/                   DOM ヘルパー、HUD、テロップ、ゴール演出
   audio/Sfx.ts          効果音
 prompts/car-designer.md LLM 用システムプロンプトの下書き
-tests/                  ユニットテスト
+tests/                  ユニットテスト（ルートの npm test で実行）
 ```
 
 ---
@@ -191,27 +184,28 @@ tests/                  ユニットテスト
 ## AI 生成の組み込み方
 
 いまの構造のまま、Claude で車を生成するように差し替えられます。
-**API キーをブラウザに置かないため、必ずサーバーレス関数を経由します**（GitHub Pages では関数を置けないので Vercel を想定）。
+**API キーをブラウザに置かないため、必ずサーバーを経由します。** PartyBox に統合したので、PartyBox の Express サーバーに API を足すだけで済みます（同じオリジンなので CSP の変更も不要）。
 
-### 1. サーバーレス関数（Vercel: `api/generate-car.ts`）
+### 1. サーバーの API（`server/app.ts` に `POST /api/generate-car` を追加）
 
 ```bash
 npm install @anthropic-ai/sdk
-# Vercel の環境変数に ANTHROPIC_API_KEY を設定する（コードやリポジトリには書かない）
+# サーバーの環境変数に ANTHROPIC_API_KEY を設定する（コードやリポジトリには書かない）
 ```
 
 ```ts
-// api/generate-car.ts
+// server/app.ts（startPartyServer の中、SPA の配信より前に置く）
 import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync } from 'node:fs';
 
 const client = new Anthropic(); // ANTHROPIC_API_KEY を環境変数から読む
-const SYSTEM = readFileSync(new URL('../prompts/car-designer.md', import.meta.url), 'utf8');
+const SYSTEM = readFileSync(path.resolve(process.cwd(), 'grand-prix/prompts/car-designer.md'), 'utf8');
 
-export async function POST(req: Request): Promise<Response> {
-  const { prompt } = (await req.json().catch(() => ({}))) as { prompt?: unknown };
+app.post('/api/generate-car', express.json({ limit: '4kb' }), async (req, res) => {
+  const prompt = (req.body as { prompt?: unknown } | undefined)?.prompt;
   if (typeof prompt !== 'string' || prompt.trim() === '' || prompt.length > 60) {
-    return Response.json({ error: 'invalid prompt' }, { status: 400 });
+    res.status(400).json({ error: 'invalid prompt' });
+    return;
   }
   // ここで回数制限をチェックする（下の「API 料金の対策」参照）
 
@@ -227,25 +221,27 @@ export async function POST(req: Request): Promise<Response> {
       messages: [{ role: 'user', content: prompt }],
     });
     if (response.stop_reason === 'refusal') {
-      return Response.json({ error: 'refused' }, { status: 422 });
+      res.status(422).json({ error: 'refused' });
+      return;
     }
     const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
     // JSON 部分だけ取り出して返す（検証と補正はフロントの normalizeBlueprint が必ず行う）
-    const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
-    return new Response(json, { headers: { 'Content-Type': 'application/json' } });
+    res.type('application/json').send(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError) return Response.json({ error: 'busy' }, { status: 429 });
-    if (err instanceof Anthropic.APIError) return Response.json({ error: 'upstream' }, { status: 502 });
+    if (err instanceof Anthropic.RateLimitError) return void res.status(429).json({ error: 'busy' });
+    if (err instanceof Anthropic.APIError) return void res.status(502).json({ error: 'upstream' });
     throw err;
   }
-}
+});
 ```
 
-- システムプロンプトは `prompts/car-designer.md` の下書きをそのまま使えます（スキーマ・ルール・出力例入り）
+- システムプロンプトは `grand-prix/prompts/car-designer.md` の下書きをそのまま使えます（スキーマ・ルール・出力例入り）
+  - Docker の実行用イメージには `dist` しか入らないので、`Dockerfile` の 2 段目に `COPY --from=build /app/grand-prix/prompts ./grand-prix/prompts` を足す
 - モデルは `CLAUDE_MODEL` 環境変数で切り替えられます。品質・速さ・料金のバランスを見て選んでください
 - 出力がルールから外れても、フロントの `normalizeBlueprint()` が必ず走れる車に直します
+- 開発中は Vite が `/api` を PartyBox のサーバーへ中継するので、`npm run dev` のままで試せます
 
-### 2. フロント側の生成器（`src/generator/ClaudeCarGenerator.ts`）
+### 2. フロント側の生成器（`grand-prix/src/generator/ClaudeCarGenerator.ts`）
 
 ```ts
 import { normalizeBlueprint } from '../blueprint/schema';
@@ -278,7 +274,7 @@ export class ClaudeCarGenerator implements CarGenerator {
 }
 ```
 
-### 3. 切り替え（`src/generator/index.ts`）
+### 3. 切り替え（`grand-prix/src/generator/index.ts`）
 
 ```ts
 export function createCarGenerator(): CarGenerator {
@@ -287,17 +283,17 @@ export function createCarGenerator(): CarGenerator {
 }
 ```
 
-Vercel の環境変数に `VITE_USE_AI=1` を入れてビルドすれば AI 版、入れなければデモ版になります。
+ビルド時に `VITE_USE_AI=1` を渡せば AI 版、渡さなければデモ版になります（Docker なら `Dockerfile` の 1 段目に `ARG VITE_USE_AI` を足し、`docker build --build-arg VITE_USE_AI=1`）。
 画面の「デモ版」表示は `generator.label` から出しているので自動で切り替わります。
-ライバルの車（`src/generator/rivals.ts`）は、API 料金を抑えるためデモ版のままにしておくのがおすすめです。
+ライバルの車（`grand-prix/src/generator/rivals.ts`）は、API 料金を抑えるためデモ版のままにしておくのがおすすめです。
 
 ### API 料金の対策（一般公開するとき）
 
-- **回数制限**: IP ごと（例: 1 分 3 回・1 日 20 回）と、サイト全体の 1 日の上限を設ける（Upstash Redis / Vercel KV など）
+- **回数制限**: IP ごと（例: 1 分 3 回・1 日 20 回）と、サイト全体の 1 日の上限を設ける（PartyBox はサーバー 1 台で動かす前提なので、メモリ上のカウンターで足りる。Caddy の後ろなので IP は `X-Forwarded-For` から取り、Express の `trust proxy` を設定する）
 - **キャッシュ**: 正規化した入力文をキーに結果を保存し、同じ文なら API を呼ばない（「同じ文なら同じ車」も保てる）
 - **入力と出力の上限**: 入力は 60 文字まで、`max_tokens` を抑える、`effort` は低め
 - **Anthropic Console の利用上限（Spend limits）** を設定しておく
-- **不正利用対策**: `Origin` ヘッダーの確認、Vercel Firewall / Bot 対策
+- **不正利用対策**: `Origin` ヘッダーの確認、AWS WAF などの Bot 対策
 - **失敗時はデモ版に切り替え**: 上限到達や障害時もゲームは止めない（上のフロント実装の `catch`）
 
 ---
@@ -315,7 +311,7 @@ Vercel の環境変数に `VITE_USE_AI=1` を入れてビルドすれば AI 版�
 
 ## 技術スタック
 
-- TypeScript + Vite
+- TypeScript + Vite（UI は React を使わず DOM を直接組み立てる。PartyBox と同じビルド・同じサーバーで配信）
 - Three.js（物理エンジンは使わず、コースに沿った簡易な自前シミュレーション）
 - Vitest（ユニットテスト）
 - フォント: [M PLUS Rounded 1c](https://fonts.google.com/specimen/M+PLUS+Rounded+1c)（Google Fonts）
