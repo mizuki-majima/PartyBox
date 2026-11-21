@@ -1,0 +1,24 @@
+# プルリクエストと main への push で、型チェック・テスト・ビルドが通るか確かめる。
+# （PartyBox のテストと、取り込んだプロンプト・グランプリのテストを一緒に回す）
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

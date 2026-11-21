@@ -2,6 +2,7 @@
 
 **みんなで遊べる、かんたんオンラインゲーム。**
 URLを送るだけで、友達とすぐにブラウザで遊べるパーティーゲーム集です。Discord などで通話しながら遊ぶことを想定しています。
+1人で遊べる 3D レース「プロンプト・グランプリ」も、同じトップページから遊べます（入り口は1つ）。
 
 ```
 サイトを開く → ゲームを選ぶ → ルームを作る → URL/コードを共有 → 友達がスマホで参加 → 全員そろったら開始 → 結果発表 → もう一回
@@ -16,6 +17,7 @@ URLを送るだけで、友達とすぐにブラウザで遊べるパーティ�
 | 🎭 嘘つきは誰だ？ | 正体隠匿 | 4〜8人 | 1人だけお題を知らない嘘つきを話し合いで暴く（ワードウルフモードあり） |
 | 🎨 回答を育てろ | お絵描き | 3〜8人 | 絵 → 文章 → 絵… と伝言し、最後にアルバムで振り返る |
 | ⚖️ 10秒裁判 | 会話 | 4〜8人 | 被告・検察・弁護士・証人になって10秒ずつ発言し、有罪/無罪を判決 |
+| 🏎️ プロンプト・グランプリ | ひとりで・レース | 1人 | 「こんな車」と書くと 3D のミニカーが生まれ、CPU とレース。応援して観戦する（ルーム不要。`/grand-prix/`。詳しくは [grand-prix/README.md](grand-prix/README.md)） |
 
 ## クイックスタート
 
@@ -24,7 +26,7 @@ npm install
 
 # 開発（サーバー :3001 + Vite :5173 を同時起動）
 npm run dev
-# → http://localhost:5173
+# → http://localhost:5173（プロンプト・グランプリは http://localhost:5173/grand-prix/）
 
 # 本番ビルド & 起動（1つのポートで画面とWebSocketを配信）
 npm run build
@@ -43,6 +45,7 @@ npm start
 |---|---|
 | Frontend | React 19 / TypeScript / Vite / Tailwind CSS v4 / React Router |
 | Backend | Node.js / Express 5 / Socket.IO 4 |
+| 3D（プロンプト・グランプリ） | Three.js（React を使わず DOM を直接組み立てる別ページ） |
 | テスト | Vitest（ソケット結合テスト）/ Playwright（複数ブラウザE2E） |
 
 ## ディレクトリ構成
@@ -66,11 +69,26 @@ client/
   games/                 ゲーム共通フレーム + 各ゲーム画面、registry.tsx
   components/            UI部品（ボタン・タイマー・得点表・結果画面など）
   lib/                   ソケット接続・再接続・セッション保存・時刻補正
-tests/                   Vitest（ルーム・全ゲームの結合テスト）
+grand-prix/              プロンプト・グランプリ（1人用の 3D レース。/grand-prix/ のページ）
+  index.html / src/      ページと本体（Three.js）
+  tests/                 ユニットテスト（npm test で一緒に実行）
+public/grand-prix/       プロンプト・グランプリの画像（OGP・favicon）
+tests/                   Vitest（ルーム・全ゲームの結合テスト、ページ配信）
 e2e/                     Playwright（PC + スマホの複数ブラウザで通しプレイ）
 ```
 
 ## 設計
+
+### ページ構成（入り口は1つ）
+
+| URL | ページ | 中身 |
+|---|---|---|
+| `/` `/play/:id` `/join` `/room/:code` | `index.html` | PartyBox（React の SPA）。トップのゲーム一覧に全ゲームのカードが並ぶ |
+| `/grand-prix/` | `grand-prix/index.html` | プロンプト・グランプリ（Three.js）。トップのカードから通常のリンクで開き、左上の「← PartyBox」で戻る |
+
+- Vite のマルチページビルドで2つのページを一緒にビルドし、1つのサーバー（1つのポート）から配信します。three.js は別ファイルに分かれ、PartyBox のページでは読み込まれません。
+- サーバーは `/grand-prix` などを `/grand-prix/` に転送し、それ以外の URL は SPA（`index.html`）を返します。
+- 1人用のゲームはルームを使わないので、カタログは `shared/games.ts` の `SOLO_GAMES`（`GAMES` とは別）にあります。
 
 ### リアルタイム通信（サーバー権威型）
 
@@ -137,6 +155,8 @@ LOBBY → START → (ROUND → ANSWER → RESULT) × N → GAME_OVER → もう�
 
 ### 新しいゲームを追加する
 
+（以下はルームで遊ぶゲームの場合。1人用のゲームは `shared/games.ts` の `SOLO_GAMES` にカードの情報を足し、ページを `vite.config.ts` の `PAGES` とサーバーの配信に加える）
+
 1. `shared/games.ts` の `GameId` と `GAMES` にメタ情報を追加 → **トップページのカード・ロビーの設定UIに自動で反映**
 2. `shared/games/views.ts` にビュー型を追加
 3. `server/games/<id>/` に `BaseGame` を継承したクラスを作り、`server/games/registry.ts` に1行登録
@@ -156,8 +176,8 @@ LOBBY → START → (ROUND → ANSWER → RESULT) × N → GAME_OVER → もう�
 ## テスト
 
 ```bash
-npm test            # Vitest: ルームシステム + 全5ゲームのソケット結合テスト（29件）
-npm run test:e2e    # Playwright: PCホスト + スマホ参加者の複数ブラウザで全5ゲームを通しプレイ
+npm test            # Vitest: ルームシステム + 全5ゲームのソケット結合テスト、ページ配信、プロンプト・グランプリのユニットテスト（計70件）
+npm run test:e2e    # Playwright: PCホスト + スマホ参加者の複数ブラウザで全5ゲームを通しプレイ + プロンプト・グランプリをトップから開いて遊ぶ
 npm run typecheck   # 型チェック
 ```
 

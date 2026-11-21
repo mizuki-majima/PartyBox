@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { createServer, type Server as HttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
 import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '../shared/protocol';
 import { RoomManager, type RoomManagerOptions } from './rooms/RoomManager';
@@ -59,7 +59,32 @@ export async function startPartyServer(options: PartyServerOptions = {}): Promis
 
   const staticDir = options.staticDir === undefined ? path.resolve(process.cwd(), 'dist/client') : options.staticDir;
   if (staticDir && existsSync(staticDir)) {
+    // プロンプト・グランプリ（1人用の 3D レース）は SPA とは別のページ。/grand-prix/ に寄せて配信する
+    const grandPrixHtml = path.join(staticDir, 'grand-prix', 'index.html');
+    const hasGrandPrix = existsSync(grandPrixHtml);
+    const toGrandPrix = (req: Request, res: Response) => {
+      const q = req.url.indexOf('?');
+      res.redirect(301, `/grand-prix/${q >= 0 ? req.url.slice(q) : ''}`);
+    };
+    // index.html を直接開かれても、ヘッダーを付けて返す /grand-prix/ へ寄せる（静的配信より前に置く）
+    if (hasGrandPrix) app.get('/grand-prix/index.html', toGrandPrix);
     app.use(express.static(staticDir, { index: false, maxAge: '1h' }));
+    if (hasGrandPrix) {
+      app.get(/^\/grand-prix(?:\/.*)?$/, (req, res) => {
+        if (req.path !== '/grand-prix/') {
+          toGrandPrix(req, res);
+          return;
+        }
+        // 独立して公開していたとき（vercel.json）と同じヘッダー
+        res.set({
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'Referrer-Policy': 'strict-origin-when-cross-origin',
+          'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+        });
+        res.sendFile(grandPrixHtml);
+      });
+    }
     // SPA: /room/XXXX などはすべて index.html を返す
     app.get(/^\/(?!api\/|socket\.io\/).*/, (_req, res) => {
       res.sendFile(path.join(staticDir, 'index.html'));
