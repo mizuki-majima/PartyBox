@@ -72,7 +72,9 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, { disabled?: boolea
     if (current.current) drawStroke(c, current.current);
   }, []);
 
-  useEffect(() => redraw(), [redraw]);
+  useEffect(() => {
+    redraw();
+  }, [redraw]);
 
   useImperativeHandle(ref, () => ({
     toDataURL: () => canvasRef.current?.toDataURL('image/png') ?? '',
