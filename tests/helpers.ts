@@ -11,6 +11,7 @@ export function startTestServer(opts: PartyServerOptions = {}): Promise<PartySer
     timeScale: 0.02,
     disconnectGraceMs: 400,
     hostTransferMs: 150,
+    persist: false, // 試験ではディスクに書かない
     ...opts,
   });
 }

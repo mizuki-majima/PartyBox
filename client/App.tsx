@@ -48,6 +48,8 @@ export function App() {
         <Route path="/play/:gameId" element={<CreateRoomPage />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/room/:code" element={<RoomPage />} />
+        {/* 司会用URL。合言葉を知っている人だけが進行できる（懇親会など） */}
+        <Route path="/room/:code/h/:hostToken" element={<RoomPage />} />
         <Route path="/grand-prix/*" element={<GrandPrixRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

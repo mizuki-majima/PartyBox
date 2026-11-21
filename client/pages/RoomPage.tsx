@@ -12,8 +12,8 @@ import { useRoom } from '../lib/useRoom';
 import { Lobby } from './Lobby';
 
 export function RoomPage() {
-  const { code = '' } = useParams();
-  const { state, view, clockOffset, connected, join, leave } = useRoom(code);
+  const { code = '', hostToken } = useParams();
+  const { state, view, clockOffset, connected, join, leave } = useRoom(code, hostToken);
   const navigate = useNavigate();
 
   if (state.kind === 'loading' || (state.kind === 'joined' && !view)) {

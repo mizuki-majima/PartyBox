@@ -1,12 +1,49 @@
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
-import { GAMES, type GameMeta, type GameSettingDef, getGameMeta } from '../../shared/games';
+import { GAMES, type GameMeta, type GameSettingDef, getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS } from '../../shared/protocol';
 import { Avatar, Badge, Button, Card, Modal, SectionTitle, TextInput } from '../components/ui';
 import { useRoomContext } from '../games/RoomContext';
-import { setLastName } from '../lib/session';
+import { loadSession, setLastName } from '../lib/session';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
+
+/**
+ * 司会用URL。懇親会のような催し物のルームを作ったときだけ出る。
+ * これを開いた人が進行役になるので、司会の方だけに渡すこと。
+ */
+function HostUrl() {
+  const { room } = useRoomContext();
+  const toast = useToast();
+  const session = loadSession(room.code);
+  if (!session?.hostToken) return null;
+  const url = `${location.origin}/room/${room.code}/h/${session.hostToken}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('司会用URLをコピーしました', 'success');
+    } catch {
+      toast('コピーできませんでした');
+    }
+  };
+  return (
+    <div className="relative mt-5 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4">
+      <p className="text-xs font-extrabold tracking-[0.2em] text-amber-200 uppercase">👑 司会用URL</p>
+      <p className="mt-1 text-xs text-white/70">
+        これを開いた人が進行できます。<strong className="text-amber-200">司会の方にだけ</strong>渡してください。
+        別の端末で開いても、回線が切れても司会のままです。
+      </p>
+      <div className="mt-2 flex items-center gap-2 rounded-xl bg-black/30 p-1.5 pl-3 ring-1 ring-line">
+        <span className="min-w-0 flex-1 truncate text-xs font-bold text-white/80" data-testid="host-url">
+          {url}
+        </span>
+        <Button size="sm" variant="white" onClick={copy}>
+          コピー
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /** ロビー（ゲーム開始前の待機画面） */
 export function Lobby() {
@@ -117,6 +154,7 @@ function InviteCard() {
           📱 QRコード
         </Button>
       </div>
+      <HostUrl />
       <Modal open={showQr} onClose={() => setShowQr(false)}>
         <div className="flex flex-col items-center gap-4 text-center">
           <h2 className="font-display text-xl">スマホで読み取って参加</h2>
@@ -261,7 +299,8 @@ function GameInfoCard({ meta }: { meta: GameMeta }) {
             👥 {meta.minPlayers}〜{meta.maxPlayers}人 ・ ⏱ {meta.estimatedTime}
           </p>
         </div>
-        {isHost && (
+        {/* 催し物のルームは、他のゲームに変えると進行中の内容が消えるので変更させない */}
+        {isHost && !isEventGame(room.gameId) && (
           <Button variant="white" size="sm" onClick={() => setPicking(true)}>
             変更
           </Button>

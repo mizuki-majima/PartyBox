@@ -55,6 +55,8 @@ export interface RoomView {
   settings: GameSettings;
   maxPlayers: number;
   game: GameViewBase | null;
+  /** この画面の人が進行できるか（作成者、または司会用URLを開いた人） */
+  youAreHost: boolean;
   serverNow: number;
 }
 
@@ -63,6 +65,11 @@ export interface SessionInfo {
   playerId: string;
   token: string;
   name: string;
+  /**
+   * 催し物のルームを作ったときだけ返る、司会用URLの合言葉。
+   * 司会の方にだけ渡すもので、参加者には配らない
+   */
+  hostToken?: string;
 }
 
 export interface RoomSummary {
@@ -95,6 +102,8 @@ export interface ClientToServerEvents {
   'room:start': (p: object, ack: AckFn) => void;
   'room:restart': (p: object, ack: AckFn) => void;
   'room:backToLobby': (p: object, ack: AckFn) => void;
+  /** 司会用URLの合言葉を示す（催し物のルーム） */
+  'room:claimHost': (p: { token: string }, ack: AckFn) => void;
   'game:action': (p: GameAction, ack: AckFn) => void;
 }
 

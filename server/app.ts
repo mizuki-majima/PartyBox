@@ -37,6 +37,7 @@ export async function startPartyServer(options: PartyServerOptions = {}): Promis
     timeScale: options.timeScale ?? 1,
     disconnectGraceMs: options.disconnectGraceMs ?? 3 * 60 * 1000,
     hostTransferMs: options.hostTransferMs ?? 30 * 1000,
+    persist: options.persist ?? true,
   });
 
   app.get('/api/health', (_req, res) => {
@@ -99,6 +100,7 @@ export async function startPartyServer(options: PartyServerOptions = {}): Promis
     http,
     manager,
     close: async () => {
+      manager.flushState(); // 懇親会のルームを書き出してから落とす
       manager.dispose();
       await io.close();
       await new Promise<void>((resolve) => http.close(() => resolve()));

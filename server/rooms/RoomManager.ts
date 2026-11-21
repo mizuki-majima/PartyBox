@@ -1,5 +1,5 @@
 import type { Server, Socket } from 'socket.io';
-import { defaultSettings, getGameMeta, isGameId, sanitizeSettings } from '../../shared/games';
+import { defaultSettings, getGameMeta, isEventGame, isGameId, sanitizeSettings } from '../../shared/games';
 import {
   type Ack,
   type ClientToServerEvents,
@@ -12,6 +12,7 @@ import { getServerGame } from '../games/registry';
 import { UserError } from '../games/types';
 import { generateId, generateRoomCode, generateToken } from '../utils/random';
 import { cleanText } from '../utils/text';
+import { type PersistedRoom, RoomPersister, loadRooms } from './persist';
 import { type Player, Room } from './Room';
 
 export interface RoomManagerOptions {
@@ -21,6 +22,8 @@ export interface RoomManagerOptions {
   disconnectGraceMs: number;
   /** ホストが切断した場合に、ホスト権限を他の人へ移すまでの時間 */
   hostTransferMs: number;
+  /** ディスクへの保存・復元を行うか（試験では false） */
+  persist?: boolean;
 }
 
 interface SocketData {
@@ -28,6 +31,8 @@ interface SocketData {
   playerId?: string;
   /** 簡易レート制限 */
   bucket?: { windowStart: number; count: number };
+  /** 司会用URLの合言葉（催し物のルーム） */
+  hostToken?: string;
 }
 
 type PartySocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
@@ -39,6 +44,7 @@ const RATE_MAX_EVENTS = 60;
 export class RoomManager {
   readonly rooms = new Map<string, Room>();
   private sweepTimer: NodeJS.Timeout;
+  private readonly persister: RoomPersister;
 
   constructor(
     private readonly io: PartyServer,
@@ -48,12 +54,84 @@ export class RoomManager {
     // 念のための掃除: 誰も接続していない古いルームを削除
     this.sweepTimer = setInterval(() => this.sweep(), 5 * 60 * 1000);
     this.sweepTimer.unref();
+    this.persister = new RoomPersister(() => this.collectPersisted());
+    if (opts.persist !== false) this.restoreRooms();
   }
 
   dispose(): void {
     clearInterval(this.sweepTimer);
+    this.persister.stop();
     for (const room of this.rooms.values()) room.dispose();
     this.rooms.clear();
+  }
+
+  /** 終了前に書き出す */
+  flushState(): void {
+    this.persister.flush();
+  }
+
+  /* ---------------- 保存と復元（懇親会のような催し物のルームだけ） ---------------- */
+
+  private collectPersisted(): PersistedRoom[] {
+    const out: PersistedRoom[] = [];
+    for (const room of this.rooms.values()) {
+      if (!room.game?.snapshot) continue;
+      out.push({
+        code: room.code,
+        gameId: room.gameId,
+        settings: room.settings,
+        hostId: room.hostId,
+        hostToken: room.hostToken,
+        hostClaims: [...room.hostClaims],
+        players: [...room.players.values()].map((p) => ({
+          id: p.id,
+          name: p.name,
+          token: p.token,
+          color: p.color,
+          joinedAt: p.joinedAt,
+        })),
+        game: room.game.snapshot(),
+        savedAt: Date.now(),
+      });
+    }
+    return out;
+  }
+
+  private restoreRooms(): void {
+    for (const saved of loadRooms()) {
+      try {
+        const room = new Room(saved.code, saved.gameId as never, {
+          timeScale: this.opts.timeScale,
+          send: (socketId, view) => this.io.to(socketId).emit('room:state', view),
+          onChange: () => this.persister.schedule(),
+        });
+        room.settings = saved.settings;
+        room.hostId = saved.hostId;
+        room.hostToken = saved.hostToken;
+        for (const id of saved.hostClaims) room.hostClaims.add(id);
+        for (const p of saved.players) {
+          room.players.set(p.id, {
+            ...p,
+            connected: false,
+            socketId: null,
+            removeTimer: null,
+            hostTimer: null,
+          });
+          room.setName(p.id, p.name);
+        }
+        const def = getServerGame(saved.gameId as never);
+        if (!def) continue;
+        const game = def.create(room.context, [...room.players.keys()], room.settings);
+        game.restore?.(saved.game);
+        room.game = game;
+        room.status = 'playing';
+        game.start();
+        this.rooms.set(room.code, room);
+        console.log(`[persist] ルーム ${room.code}（${saved.gameId}）を復元しました（参加者 ${saved.players.length} 名）`);
+      } catch (err) {
+        console.error(`[persist] ルーム ${saved.code} の復元に失敗しました`, err);
+      }
+    }
   }
 
   /* ================================================================ */
@@ -96,12 +174,28 @@ export class RoomManager {
       const room = new Room(code, gameId, {
         timeScale: this.opts.timeScale,
         send: (socketId, view) => this.io.to(socketId).emit('room:state', view),
+        onChange: () => this.persister.schedule(),
       });
       this.rooms.set(code, room);
       const player = this.addPlayer(room, cleanName);
       room.hostId = player.id;
+      if (isEventGame(gameId)) {
+        // 催し物は司会が複数人・別端末になるので、URL で司会を見分ける
+        room.hostToken = generateToken(12);
+        room.hostClaims.add(player.id);
+        socket.data.hostToken = room.hostToken;
+      }
       this.attach(socket, room, player);
       return { session: this.session(room, player) };
+    });
+
+    on('room:claimHost', ({ token }) => {
+      const { room, player } = this.requireBinding(socket);
+      if (!room.hostToken) throw new UserError('このルームに司会用のURLはありません');
+      if (typeof token !== 'string' || token !== room.hostToken) throw new UserError('司会用のURLが正しくありません');
+      socket.data.hostToken = token;
+      room.hostClaims.add(player.id);
+      room.requestBroadcast();
     });
 
     on('room:join', ({ code, name }) => {
@@ -201,7 +295,7 @@ export class RoomManager {
       const { room, player } = this.requireBinding(socket);
       if (!room.game || room.status !== 'playing') throw new UserError('ゲームが始まっていません');
       if (!action || typeof action.type !== 'string') throw new UserError('不正な操作です');
-      room.game.handleAction(player.id, action, player.id === room.hostId);
+      room.game.handleAction(player.id, action, room.isHostPlayer(player.id));
       room.lastActivity = Date.now();
     });
 
@@ -335,6 +429,8 @@ export class RoomManager {
 
   /** 接続中のプレイヤーのうち、最も早く入室した人にホストを移す */
   private transferHost(room: Room, force = false): void {
+    // 催し物は司会用URLで司会を決めるので、回線が切れても参加者に移さない
+    if (room.hostToken && !force) return;
     const next = room.connectedPlayers.find((p) => p.id !== room.hostId);
     if (next) room.hostId = next.id;
     else if (force) room.hostId = room.orderedPlayers[0]?.id ?? '';
@@ -385,7 +481,7 @@ export class RoomManager {
 
   private requireHost(socket: PartySocket): { room: Room; player: Player } {
     const binding = this.requireBinding(socket);
-    if (binding.room.hostId !== binding.player.id) throw new UserError('ホストのみ操作できます');
+    if (!binding.room.isHostPlayer(binding.player.id)) throw new UserError('ホストのみ操作できます');
     return binding;
   }
 
@@ -404,7 +500,9 @@ export class RoomManager {
   }
 
   private session(room: Room, player: Player): SessionInfo {
-    return { code: room.code, playerId: player.id, token: player.token, name: player.name };
+    const base = { code: room.code, playerId: player.id, token: player.token, name: player.name };
+    // 合言葉は、すでに司会と分かっている人にだけ返す
+    return room.hostToken && room.hostClaims.has(player.id) ? { ...base, hostToken: room.hostToken } : base;
   }
 
   private rateLimit(socket: PartySocket): void {

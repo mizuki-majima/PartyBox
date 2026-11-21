@@ -207,4 +207,135 @@ export interface TrialView extends GameViewBase {
   result: TrialResult | null;
 }
 
-export type AnyGameView = UnanimousView | WhoseView | LiarView | GrowView | TrialView;
+/* ------------------------------------------------------------------ */
+/* 懇親会（クイズ・座席決め・ビンゴ）                                   */
+/* ------------------------------------------------------------------ */
+
+/** 司会が切り替える、いま全員に出している企画 */
+export type EventSection = 'none' | 'quiz' | 'seats' | 'bingo';
+
+export type QuizPhase = 'idle' | 'question' | 'answering' | 'reveal' | 'result';
+
+export interface QuizQuestionView {
+  question: string;
+  /** 選択肢の問題なら選択肢。自由回答なら null */
+  choices: string[] | null;
+  /** 答えと解説は reveal 以降か、司会にだけ入る。それ以外は null */
+  answer: string | number | null;
+  note: string | null;
+}
+
+/** どのチームが何と答えたか。司会の画面にだけ送る */
+export interface QuizAnswerRow {
+  team: string;
+  text: string;
+  choice: number | null;
+  /** 回答タイム開始からの秒数 */
+  seconds: number | null;
+  correct: boolean | null;
+}
+
+export interface QuizView {
+  title: string;
+  teams: string[];
+  total: number;
+  qno: number;
+  phase: QuizPhase;
+  deadline: number | null;
+  secondsPerQuestion: number;
+  question: QuizQuestionView | null;
+  /** 送信済みのチーム名（中身は送らない） */
+  answeredTeams: string[];
+  answers: QuizAnswerRow[] | null;
+  scores: Record<string, number>;
+  ranking: { team: string; score: number; rank: number }[];
+  /** 自分が選んでいるチーム */
+  myTeam: string | null;
+  myAnswer: { text: string; choice: number | null } | null;
+}
+
+export interface BingoCardView {
+  cardId: string;
+  /** 25マス。まん中（12）は 0 = FREE */
+  cells: number[];
+  marked: boolean[];
+  lines: number;
+  bingo: boolean;
+  reach: number;
+}
+
+export interface BingoClaim {
+  rank: number;
+  name: string;
+  at: number;
+  ok: boolean;
+  /** 景品の対象に入っているか */
+  inPrize: boolean;
+  /** カードIDは司会にだけ */
+  cardId: string | null;
+}
+
+export interface BingoPrizes {
+  assigned: { cardId: string; name: string; prize: string | null }[];
+  leftover: string[];
+  at: number;
+}
+
+export interface BingoView {
+  title: string;
+  called: number[];
+  last: number | null;
+  lastLabel: string | null;
+  remaining: number;
+  winnersCount: number;
+  claims: BingoClaim[];
+  prizes: BingoPrizes | null;
+  prizeList: string[];
+  /** 自分のカード。まだ配られていなければ null */
+  myCard: BingoCardView | null;
+  /** 司会がカードIDを入れて確かめた結果 */
+  inspected: BingoCardView | null;
+}
+
+export interface SeatsPerson {
+  id: string;
+  name: string;
+  group: string;
+}
+
+export interface SeatsRosterEntry extends SeatsPerson {
+  table: number | null;
+  absent: boolean;
+}
+
+export interface SeatsTable {
+  name: string;
+  seats: number;
+  people: SeatsPerson[];
+}
+
+export interface SeatsView {
+  title: string;
+  tables: SeatsTable[];
+  /** 席が足りずに決まらなかった人 */
+  noSeat: SeatsPerson[];
+  roster: SeatsRosterEntry[];
+  remaining: number;
+  drawn: number;
+  last: (SeatsPerson & { table: number | null }) | null;
+  /** 自分が選んだ名簿上の人 */
+  myPersonId: string | null;
+}
+
+export interface PartyEventView extends GameViewBase {
+  gameId: 'party-event';
+  phase: 'EVENT';
+  section: EventSection;
+  /** この画面を見ている人が司会か（司会用URLを開いているか） */
+  isHost: boolean;
+  quiz: QuizView;
+  bingo: BingoView;
+  seats: SeatsView;
+}
+
+export type AnyGameView = UnanimousView | WhoseView | LiarView | GrowView | TrialView | PartyEventView;

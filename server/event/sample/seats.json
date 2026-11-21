@@ -1,0 +1,23 @@
+{
+  "title": "座席決め",
+  "participants": [
+    { "name": "さくら", "group": "あおぞら社" },
+    { "name": "かえで", "group": "あおぞら社" },
+    { "name": "つばき", "group": "あおぞら社" },
+    { "name": "すみれ", "group": "あおぞら社" },
+    { "name": "ひまわり", "group": "みどり社" },
+    { "name": "あじさい", "group": "みどり社" },
+    { "name": "なでしこ", "group": "みどり社" },
+    { "name": "こすもす", "group": "みどり社" },
+    { "name": "もくれん", "group": "ほしぞら社" },
+    { "name": "きんもくせい", "group": "ほしぞら社" },
+    { "name": "やまぶき", "group": "ほしぞら社" },
+    { "name": "りんどう", "group": "ほしぞら社" }
+  ],
+  "tables": [
+    { "name": "テーブル 1", "seats": 4 },
+    { "name": "テーブル 2", "seats": 4 },
+    { "name": "テーブル 3", "seats": 4 }
+  ],
+  "fillOrder": "roundRobin"
+}

@@ -1,0 +1,6 @@
+{
+  "title": "ビンゴ",
+  "seed": "sample-party",
+  "winnersCount": 3,
+  "prizes": ["サンプル景品 A", "サンプル景品 B", "サンプル景品 C"]
+}

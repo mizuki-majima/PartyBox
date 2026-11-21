@@ -22,6 +22,11 @@ export default defineConfig({
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { PORT: String(PORT), PARTYBOX_TIME_SCALE: '0.5' },
+    env: {
+      PORT: String(PORT),
+      PARTYBOX_TIME_SCALE: '0.5',
+      // 試験の保存先は使い捨ての場所にする（本番の /opt/partybox/state を触らない）
+      PARTYBOX_STATE_DIR: '.e2e-state',
+    },
   },
 });
