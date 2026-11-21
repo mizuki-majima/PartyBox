@@ -31,7 +31,11 @@ function NotFound() {
 
 function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  // ブレースは省略しないこと。省くと scrollTo の戻り値がそのまま返り、React 19 はそれを
+  // クリーンアップ関数として次の遷移で呼ぶ。拡張機能が scrollTo を差し替えていると画面が落ちる。
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return null;
 }
 
