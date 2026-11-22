@@ -6,7 +6,7 @@
  * （ゲーム本体は server/games/registry.ts と client/games/registry.tsx に登録）
  */
 
-export type GameId = 'whose-answer' | 'unanimous' | 'liar' | 'grow-answer' | 'ten-sec-trial';
+export type GameId = 'whose-answer' | 'unanimous' | 'liar' | 'grow-answer' | 'ten-sec-trial' | 'party-event';
 
 export interface SettingOption {
   value: number | string;
@@ -182,6 +182,39 @@ export const GAMES: GameMeta[] = [
  * ルームを作らずに1人で遊ぶゲーム。SPA とは別のページで動くので、トップページのカードから通常のリンクで開く。
  * （ルームのゲームではないため GAMES には入れない。サーバーの人数チェックやゲーム変更の対象外）
  */
+/* ------------------------------------------------------------------ */
+/* イベント用（トップページのカードには出さない）                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 懇親会（クイズ・座席決め・ビンゴ）。社内の余興のように、司会が進行して
+ * 数十人が参加する催し物向け。名簿や問題は公開リポジトリに置かず、
+ * サーバー上のデータ置き場から読む（server/event/config.ts）。
+ *
+ * GAMES に入れないので、トップページのカードには並ばない。
+ * 司会が招待URLを配った人だけが入る。
+ */
+export const EVENT_GAMES: GameMeta[] = [
+  {
+    id: 'party-event',
+    title: '懇親会',
+    tagline: 'クイズ・座席決め・ビンゴ',
+    description: '司会が進行する催し物。夕食のクイズ、二次会の座席決めとビンゴを、ひとつのルームで行き来できる。',
+    emoji: '🎊',
+    category: 'イベント',
+    minPlayers: 1,
+    maxPlayers: 120,
+    estimatedTime: '夕食〜二次会',
+    theme: { from: '#f59e0b', to: '#ef4444' },
+    howToPlay: [
+      '司会が「懇親会」のルームを作り、参加者に招待URL（QRコード）を配ります。',
+      '参加者は名前を入れて入るだけ。クイズはチームで答え、ビンゴは1人1枚カードが配られます。',
+      '司会だけが進行できます。司会用のURLは、作成時に表示されるものを司会の方だけで共有してください。',
+    ],
+    settings: [],
+  },
+];
+
 export interface SoloGameMeta {
   id: string;
   title: string;
@@ -212,12 +245,20 @@ export const SOLO_GAMES: SoloGameMeta[] = [
   },
 ];
 
+/** トップページに並ぶゲームと、イベント用のゲームの両方 */
+export const ALL_GAMES: GameMeta[] = [...GAMES, ...EVENT_GAMES];
+
 export function getGameMeta(id: string): GameMeta | undefined {
-  return GAMES.find((g) => g.id === id);
+  return ALL_GAMES.find((g) => g.id === id);
 }
 
 export function isGameId(id: unknown): id is GameId {
-  return typeof id === 'string' && GAMES.some((g) => g.id === id);
+  return typeof id === 'string' && ALL_GAMES.some((g) => g.id === id);
+}
+
+/** 司会が進行する催し物か（ホストの扱い・人数・永続化が通常のゲームと違う） */
+export function isEventGame(id: string): boolean {
+  return EVENT_GAMES.some((g) => g.id === id);
 }
 
 export function defaultSettings(meta: GameMeta): GameSettings {

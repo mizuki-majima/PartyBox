@@ -6,6 +6,7 @@ import type { ComponentType } from 'react';
 import type { GameId } from '../../shared/games';
 import { GrowScreen } from './grow-answer/GrowScreen';
 import { LiarScreen } from './liar/LiarScreen';
+import { PartyEventScreen } from './party-event/PartyEventScreen';
 import { TrialScreen } from './trial/TrialScreen';
 import { UnanimousScreen } from './unanimous/UnanimousScreen';
 import { WhoseScreen } from './whose-answer/WhoseScreen';
@@ -16,4 +17,5 @@ export const GAME_SCREENS: Record<GameId, ComponentType> = {
   liar: LiarScreen,
   'grow-answer': GrowScreen,
   'ten-sec-trial': TrialScreen,
+  'party-event': PartyEventScreen,
 };

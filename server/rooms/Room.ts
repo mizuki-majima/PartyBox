@@ -25,6 +25,8 @@ export interface RoomDeps {
   timeScale: number;
   /** ソケットにビューを送る */
   send(socketId: string, view: RoomView): void;
+  /** 状態が変わった（保存のきっかけ）。保存するかはルーム管理側が決める */
+  onChange?(): void;
 }
 
 interface StoredImage {
@@ -37,6 +39,13 @@ const MAX_IMAGES_PER_ROOM = 200;
 export class Room {
   readonly players = new Map<string, Player>();
   status: RoomStatus = 'lobby';
+  /**
+   * 司会用URL（/room/<CODE>/h/<token>）の合言葉。催し物のルームだけ作る。
+   * これを示した人は、回線が切れても司会のまま。複数人・複数端末で司会できる
+   */
+  hostToken: string | null = null;
+  /** 合言葉を示したプレイヤー */
+  readonly hostClaims = new Set<string>();
   game: GameInstance | null = null;
   settings: GameSettings;
   hostId = '';
@@ -136,6 +145,7 @@ export class Room {
 
   private flush(): void {
     if (this.closed) return;
+    this.deps.onChange?.();
     for (const p of this.players.values()) {
       if (!p.connected || !p.socketId) continue;
       try {
@@ -144,6 +154,11 @@ export class Room {
         console.error(`[room ${this.code}] failed to build view`, err);
       }
     }
+  }
+
+  /** 作成者か、司会用URLを開いた人 */
+  isHostPlayer(id: string): boolean {
+    return this.hostId === id || this.hostClaims.has(id);
   }
 
   buildView(forId: string): RoomView {
@@ -165,9 +180,15 @@ export class Room {
       players,
       settings: this.settings,
       maxPlayers: this.meta.maxPlayers,
-      game: this.status === 'playing' && this.game ? this.game.getView(forId) : null,
+      game: this.status === 'playing' && this.game ? this.gameView(forId) : null,
+      youAreHost: this.isHostPlayer(forId),
       serverNow: Date.now(),
     };
+  }
+
+  private gameView(forId: string) {
+    const game = this.game!;
+    return game.viewFor ? game.viewFor(forId, this.isHostPlayer(forId)) : game.getView(forId);
   }
 
   summary(): RoomSummary {

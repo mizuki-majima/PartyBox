@@ -27,6 +27,14 @@ export interface GameInstance {
   readonly participants: string[];
   start(): void;
   getView(playerId: string): GameViewBase;
+  /**
+   * 司会かどうかでビューの中身が変わるゲーム（懇親会）はこちらを実装する。
+   * 実装していればルームはこちらを使う。
+   */
+  viewFor?(playerId: string, isHost: boolean): GameViewBase;
+  /** 再起動をまたいで残したい中身。実装したゲームだけ保存・復元される */
+  snapshot?(): unknown;
+  restore?(snapshot: unknown): void;
   handleAction(playerId: string, action: GameAction, isHost: boolean): void;
   onPlayerLeave(playerId: string): void;
   onPlayerConnectionChange(playerId: string, connected: boolean): void;

@@ -39,6 +39,23 @@ GitHub の `main` を更新したあと、次のどちらかを実行します�
 
 更新するとサーバーが再起動するため、遊んでいる最中のルームは消えます。
 
+## 懇親会の名簿・問題を置く
+
+懇親会（クイズ・座席決め・ビンゴ）を使う場合、名簿には実名が入るためリポジトリには置かず、
+サーバー上の `/opt/partybox/event-data/` に入れます。置かなければサンプルで動きます。
+
+```bash
+# Session Manager でつないで直接書くか、S3 経由で置く
+sudo tee /opt/partybox/event-data/seats.json > /dev/null <<'JSON'
+{ "title": "座席決め", "participants": [...], "tables": [...] }
+JSON
+sudo docker restart partybox   # 読み直し
+```
+
+進行中の状態（引いた番号・決まった席・クイズの進み）は `/opt/partybox/state/` に保存され、
+再デプロイや再起動をまたいでも残ります。**この2つはコンテナにホストから渡しているので、
+自分で `docker run` を書き換えるときは `-v` を消さないでください。**
+
 ## 独自ドメインを使う場合
 
 1. パラメータ `DomainName` に `party.example.com` などを入力してスタックを作成（既存スタックは「更新」でも可）

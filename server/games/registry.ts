@@ -9,6 +9,7 @@
 import type { GameId } from '../../shared/games';
 import { GrowAnswerGame } from './grow-answer/GrowAnswerGame';
 import { LiarGame } from './liar/LiarGame';
+import { PartyEventGame } from './party-event/PartyEventGame';
 import { TrialGame } from './trial/TrialGame';
 import type { ServerGameDefinition } from './types';
 import { UnanimousGame } from './unanimous/UnanimousGame';
@@ -20,6 +21,7 @@ const definitions: ServerGameDefinition[] = [
   { id: 'liar', create: (ctx, players, settings) => new LiarGame(ctx, players, settings) },
   { id: 'grow-answer', create: (ctx, players, settings) => new GrowAnswerGame(ctx, players, settings) },
   { id: 'ten-sec-trial', create: (ctx, players, settings) => new TrialGame(ctx, players, settings) },
+  { id: 'party-event', create: (ctx, players, settings) => new PartyEventGame(ctx, players, settings) },
 ];
 
 const registry = new Map<GameId, ServerGameDefinition>(definitions.map((d) => [d.id, d]));

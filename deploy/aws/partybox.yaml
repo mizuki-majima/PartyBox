@@ -140,7 +140,7 @@ Resources:
             dnf install -y docker git
             systemctl enable --now docker
 
-            mkdir -p /opt/partybox
+            mkdir -p /opt/partybox /opt/partybox/state /opt/partybox/event-data
             cat > /opt/partybox/env <<'EOF'
             REPO_URL=${GitRepoUrl}
             BRANCH=${GitBranch}
@@ -162,8 +162,15 @@ Resources:
             docker build -t partybox:latest src
             docker network inspect partybox >/dev/null 2>&1 || docker network create partybox
             docker rm -f partybox >/dev/null 2>&1 || true
+            # state   … 懇親会のルームの保存先。これが無いと再デプロイで進行が消える
+            # event-data … 名簿・クイズの問題（リポジトリには置かない。scp などでここに入れる）
+            mkdir -p /opt/partybox/state /opt/partybox/event-data
             docker run -d --name partybox --network partybox --restart unless-stopped \
-              -e NODE_ENV=production -e PORT=3001 partybox:latest
+              -e NODE_ENV=production -e PORT=3001 \
+              -e PARTYBOX_STATE_DIR=/state -e PARTYBOX_EVENT_DATA_DIR=/event-data \
+              -v /opt/partybox/state:/state \
+              -v /opt/partybox/event-data:/event-data:ro \
+              partybox:latest
             cat > /opt/partybox/Caddyfile <<CADDY
             $SITE_HOST {
               encode gzip

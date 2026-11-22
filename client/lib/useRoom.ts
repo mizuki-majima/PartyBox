@@ -15,7 +15,7 @@ export type RoomConnState =
  *  - localStorage のセッションがあれば自動で再参加（リロード・回線切断からの復帰）
  *  - サーバーから届く room:state を保持し、サーバー時刻とのずれを計算
  */
-export function useRoom(rawCode: string) {
+export function useRoom(rawCode: string, hostToken?: string) {
   const code = rawCode.toUpperCase();
   const [state, setState] = useState<RoomConnState>({ kind: 'loading' });
   const [view, setView] = useState<RoomView | null>(null);
@@ -43,6 +43,7 @@ export function useRoom(rawCode: string) {
         if (res.ok) {
           saveSession(res.session);
           setState({ kind: 'joined' });
+          await claimHost();
           return;
         }
         clearSession(code);
@@ -50,6 +51,12 @@ export function useRoom(rawCode: string) {
       const check = await request('room:check', { code });
       if (cancelled) return;
       setState(check.ok ? { kind: 'join', summary: check.room } : { kind: 'notFound' });
+    };
+
+    /** 司会用URLで開いていれば、参加できたあとに合言葉を示す */
+    const claimHost = async () => {
+      if (!hostToken) return;
+      await request('room:claimHost', { token: hostToken });
     };
 
     const onState = (v: RoomView) => {
@@ -89,7 +96,7 @@ export function useRoom(rawCode: string) {
       s.off('session:replaced', onReplaced);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [code]);
+  }, [code, hostToken]);
 
   const join = useCallback(
     async (name: string): Promise<string | null> => {
@@ -97,9 +104,10 @@ export function useRoom(rawCode: string) {
       if (!res.ok) return res.error;
       saveSession(res.session);
       setState({ kind: 'joined' });
+      if (hostToken) await request('room:claimHost', { token: hostToken });
       return null;
     },
-    [code],
+    [code, hostToken],
   );
 
   const leave = useCallback(async () => {
