@@ -261,8 +261,20 @@ E2E のスクリーンショットは `e2e/screenshots/` に保存されます�
 
 ## デプロイ
 
-### AWS（おすすめ）
-`deploy/aws/partybox.yaml` を CloudFormation でアップロードするだけで、EC2 + 自動HTTPS で公開できます。手順は [deploy/aws/README.md](deploy/aws/README.md) を参照してください。
+### AWS Lightsail（おすすめ）
+`deploy/lightsail/partybox.yaml` を CloudFormation でアップロードすると、Lightsail 1台 + 自動HTTPS で公開できます。
+手順は [deploy/lightsail/README.md](deploy/lightsail/README.md)。
+
+| | 月額の目安 | 中身 |
+|---|---|---|
+| **Lightsail `micro_3_0`** | **$7.00** | 2vCPU / 1GB / SSD 40GB / 転送 2TB・固定IP込み |
+| EC2 t4g.micro（旧構成） | 約 $13.5 | EC2 $7.88 + 固定IP $3.65 + EBS 20GB $1.92 |
+
+転送量と固定IPが料金に含まれるぶん Lightsail のほうが安く、構成も単純です。
+
+### AWS EC2（旧構成）
+VPC やセキュリティグループを自分で持ちたい場合は [deploy/aws/README.md](deploy/aws/README.md)。
+機能は同じですが、固定IPと転送量が別料金です。
 
 ### Docker
 ```bash
@@ -276,7 +288,12 @@ docker run -p 3001:3001 partybox
 | `HOST` | （全インターフェース） | 待ち受けアドレス |
 | `PARTYBOX_TIME_SCALE` | `1` | ゲーム内時間の倍率（動作確認用。`0.5` で半分の時間） |
 
-**注意**: ルームの状態はサーバーのメモリに保持しています。サーバー再起動でルームは消え、インスタンスは1台で動かす前提です（複数台にする場合は Socket.IO の Redis Adapter と状態の外部化が必要）。
+| `PARTYBOX_STATE_DIR` | `/opt/partybox/state` | 懇親会のルームの保存先（[懇親会](#懇親会社内の余興など)を参照） |
+| `PARTYBOX_EVENT_DATA_DIR` | `/opt/partybox/event-data` | 懇親会の名簿・問題の置き場 |
+
+**注意**: ルームの状態はサーバーのメモリに持っていて、インスタンスは1台で動かす前提です
+（複数台にする場合は Socket.IO の Redis Adapter と状態の外部化が必要）。
+遊びのルームは再起動で消えます。**懇親会のルームだけ**はディスクに保存して読み戻します。
 
 ## 今後のアイデア
 

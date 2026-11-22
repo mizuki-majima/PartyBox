@@ -1,4 +1,9 @@
-# AWS へのデプロイ（CloudFormation）
+# AWS EC2 へのデプロイ（CloudFormation）
+
+> **こちらは旧構成です。** 通常は [Lightsail 版](../lightsail/README.md) を使ってください。
+> 同じ機能で月 7 USD（EC2 構成は固定IPと転送量が別料金で約 13.5 USD）、構成も単純です。
+> VPC やセキュリティグループを自分で持ちたい場合だけ、こちらを使います。
+
 
 `partybox.yaml` を AWS コンソールでアップロードするだけで、PartyBox が HTTPS 付きで公開されます。
 
