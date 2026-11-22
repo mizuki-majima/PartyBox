@@ -72,9 +72,14 @@ describe('全員一致を目指せ！ 通しプレイ', () => {
     await clients[1].actionOk('answer', { text: 'オニギリ' });
     // 回答は送信者以外には見えない（誰が送信したかだけ見える）
     const mid = await clients[3].waitFor((v) => (v.game as UnanimousView).submitted.length === 2);
-    expect(JSON.stringify(mid)).not.toContain('おにぎり');
-    expect(JSON.stringify(mid)).not.toContain('オニギリ');
-    expect((mid.game as UnanimousView).myAnswer).toBeNull();
+    // お題自体に同じ言葉が入ることがある（「おにぎりの具といえば？」など）ので、
+    // お題を外したうえで「他人の回答がビューのどこにも無いこと」を見る
+    const midGame = mid.game as UnanimousView;
+    const withoutQuestion = JSON.stringify({ ...mid, game: { ...midGame, question: '' } });
+    expect(withoutQuestion).not.toContain('おにぎり');
+    expect(withoutQuestion).not.toContain('オニギリ');
+    expect(midGame.submitted).toEqual([clients[0].id, clients[1].id]); // 誰が送ったかだけ
+    expect(midGame.myAnswer).toBeNull();
 
     await clients[2].actionOk('answer', { text: 'おにぎり ' });
     await clients[3].actionOk('answer', { text: 'サンドイッチ' });

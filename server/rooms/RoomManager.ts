@@ -55,7 +55,8 @@ export class RoomManager {
     this.sweepTimer = setInterval(() => this.sweep(), 5 * 60 * 1000);
     this.sweepTimer.unref();
     this.persister = new RoomPersister(() => this.collectPersisted());
-    if (opts.persist !== false) this.restoreRooms();
+    if (opts.persist === false) this.persister.stop(); // 試験ではディスクを触らない
+    else this.restoreRooms();
   }
 
   dispose(): void {

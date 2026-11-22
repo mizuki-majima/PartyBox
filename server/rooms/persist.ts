@@ -108,6 +108,7 @@ export class RoomPersister {
   flush(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+    if (this.stopped) return;
     write(this.collect());
   }
 

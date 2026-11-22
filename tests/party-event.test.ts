@@ -93,14 +93,18 @@ describe('クイズ（通信の中身）', () => {
   it('答えは reveal まで参加者に届かない', async () => {
     const { host, clients } = await setupEvent();
     const guest = clients[1];
+    const cfg = loadEventConfig();
     await host.actionOk('event:section', { section: 'quiz' });
     await host.actionOk('quiz:next'); // 第1問
     await host.actionOk('quiz:next'); // 回答タイム
     await guest.waitFor((v) => (v.game as unknown as PartyEventView).quiz.phase === 'answering', 3000, '回答タイム');
 
-    // 参加者に届いているビューそのものに答えが入っていないこと
+    // 参加者に届いているビューそのものに答えと解説が入っていないこと
+    const note = cfg.quiz.questions[0].note!;
+    expect(note).toBeTruthy(); // サンプルに解説がある前提の試験
     expect(view(guest).quiz.question?.answer).toBeNull();
-    expect(JSON.stringify(guest.view)).not.toContain('解説');
+    expect(view(guest).quiz.question?.note).toBeNull();
+    expect(JSON.stringify(guest.view)).not.toContain(note);
     expect(view(host).quiz.question?.answer).not.toBeNull();
 
     await host.actionOk('quiz:next'); // 答え
