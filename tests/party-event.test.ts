@@ -173,6 +173,32 @@ describe('座席決め（通信の中身）', () => {
     await clients[2].waitFor((v) => (v.game as unknown as PartyEventView).seats.myPersonId === 'p2', 3000, '名前の確定');
     expect(view(clients[2]).seats.myPersonId).toBe('p2');
   });
+
+  it('名簿に無い人は自分の名前を足してくじに入れ、司会の画面に「くじに入る人」として出る', async () => {
+    const { host, clients } = await setupEvent();
+    await host.actionOk('event:section', { section: 'seats' });
+    const groups = view(clients[1]).seats.groups;
+    expect(groups.length).toBeGreaterThan(0);
+
+    await clients[1].actionOk('seats:addSelf', { name: 'とびいり', group: groups[0] });
+    await clients[1].waitFor((v) => (v.game as unknown as PartyEventView).seats.myPersonId === 'x1', 3000, '自分の名前');
+    await host.waitFor((v) => (v.game as unknown as PartyEventView).seats.remaining === 1, 3000, 'くじに入る人');
+    const added = view(host).seats.roster.find((p) => p.id === 'x1')!;
+    expect(added).toMatchObject({ name: 'とびいり', group: groups[0], chosen: true });
+
+    // 名簿にある名前は足せない
+    const listed = view(clients[2]).seats.roster[0].name;
+    expect((await clients[2].action('seats:addSelf', { name: listed, group: groups[0] })).ok).toBe(false);
+    // くじに入れる操作は司会だけ
+    expect((await clients[2].action('seats:present', { personId: 'p1' })).ok).toBe(false);
+    await host.actionOk('seats:present', { personId: 'p1' });
+    await host.waitFor((v) => (v.game as unknown as PartyEventView).seats.remaining === 2, 3000, '司会がくじに入れた');
+
+    // 名前を選んだ人（足した人）と、司会が入れた人だけが引かれる
+    await host.actionOk('seats:drawAll');
+    await clients[1].waitFor((v) => (v.game as unknown as PartyEventView).seats.drawn === 2, 3000, '全員引いた');
+    expect(view(host).seats.roster.filter((p) => p.table != null).map((p) => p.id).sort()).toEqual(['p1', 'x1']);
+  });
 });
 
 /* ================================================================== */
@@ -194,6 +220,7 @@ describe('再起動をまたぐ保存', () => {
     before.handleAction('p1', { type: 'event:section', section: 'bingo' }, true);
     before.handleAction('p1', { type: 'bingo:draw' }, true);
     before.handleAction('p1', { type: 'bingo:draw' }, true);
+    before.handleAction('p2', { type: 'seats:claim', personId: 'p1' }, false); // 名前を選んだ人だけがくじに入る
     before.handleAction('p1', { type: 'seats:draw' }, true);
     before.handleAction('p1', { type: 'quiz:next' }, true);
     const snap = before.snapshot();
@@ -218,8 +245,24 @@ describe('再起動をまたぐ保存', () => {
       section: 'quiz',
       quiz: { phase: 'answering', qno: 1, startedAt: Date.now() - 60_000, deadline: Date.now() - 30_000, graded: {}, answers: {}, teamOf: {} },
       bingo: { called: [], claims: [], prizes: null, cards: {} },
-      seats: { assign: {}, absent: [], order: [], extras: [], claimed: {} },
+      seats: { assign: {}, absent: [], order: [], extras: [], claimed: {}, present: [], selfAdded: {} },
     });
     expect(game.viewFor('p1', true).quiz.phase).toBe('reveal');
+  });
+
+  it('自分で名前を足す前に保存したファイル（present・selfAdded が無い）からも戻せる', () => {
+    const cfg = loadEventConfig();
+    const before = new PartyEventGame(ctx(), ['p1', 'p2'], {}, cfg);
+    before.start();
+    const old = JSON.parse(JSON.stringify(before.snapshot()));
+    delete old.seats.present;
+    delete old.seats.selfAdded;
+    old.seats.claimed = { p2: 'p1' };
+
+    const after = new PartyEventGame(ctx(), ['p1', 'p2'], {}, cfg);
+    after.restore(old);
+    expect(after.viewFor('p1', true).seats.remaining).toBe(1);
+    after.handleAction('p1', { type: 'seats:addSelf', name: 'とびいり', group: '' }, false);
+    expect(after.viewFor('p1', true).seats.remaining).toBe(2);
   });
 });

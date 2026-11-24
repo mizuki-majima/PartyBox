@@ -306,6 +306,8 @@ export interface SeatsPerson {
 export interface SeatsRosterEntry extends SeatsPerson {
   table: number | null;
   absent: boolean;
+  /** くじに入る人か（自分で名前を選んだ・当日足された・司会がくじに入れた） */
+  chosen: boolean;
 }
 
 export interface SeatsTable {
@@ -320,6 +322,9 @@ export interface SeatsView {
   /** 席が足りずに決まらなかった人 */
   noSeat: SeatsPerson[];
   roster: SeatsRosterEntry[];
+  /** 名簿にある所属（参加者が自分の名前を足すときの選択肢） */
+  groups: string[];
+  /** まだ席が決まっていない、くじに入る人の数 */
   remaining: number;
   drawn: number;
   last: (SeatsPerson & { table: number | null }) | null;
