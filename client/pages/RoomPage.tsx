@@ -67,6 +67,17 @@ export function RoomPage() {
               navigate('/');
             }}
           />
+          {view!.demo && (
+            // ヘッダーはスマホ幅で詰まっているので、デモの目印は下の帯に出す
+            <div className="mx-auto max-w-5xl px-3 pb-3 sm:px-6">
+              <p
+                className="rounded-xl bg-pop-mint/10 px-3 py-1.5 text-center text-xs font-extrabold text-pop-mint ring-1 ring-pop-mint/25"
+                data-testid="demo-badge"
+              >
+                デモのルームです（本番のルームとは別です）
+              </p>
+            </div>
+          )}
           <main className="mx-auto max-w-5xl px-3 sm:px-6">{view!.status === 'lobby' ? <Lobby /> : <GameShell />}</main>
         </div>
       </RoomProvider>

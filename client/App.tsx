@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router';
 import { Button, FullScreenMessage } from './components/ui';
 import { CreateRoomPage } from './pages/CreateRoomPage';
+import { DemoPage } from './pages/DemoPage';
 import { JoinPage } from './pages/JoinPage';
 import { LandingPage } from './pages/LandingPage';
 import { RoomPage } from './pages/RoomPage';
@@ -46,6 +47,8 @@ export function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/play/:gameId" element={<CreateRoomPage />} />
+        {/* 1人で試すデモ（懇親会など、司会が進行する催し物）。司会と参加者の画面を並べる */}
+        <Route path="/demo/:gameId" element={<DemoPage />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/room/:code" element={<RoomPage />} />
         {/* 司会用URL。合言葉を知っている人だけが進行できる（懇親会など） */}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { getGameMeta } from '../../shared/games';
+import { getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS } from '../../shared/protocol';
 import { Button, Card, FullScreenMessage, Logo, TextInput } from '../components/ui';
 import { getLastName, saveSession } from '../lib/session';
@@ -96,6 +96,13 @@ export function CreateRoomPage() {
           <Button size="xl" block className="mt-5" onClick={create} loading={loading} data-testid="create-room">
             🏠 ルームを作る
           </Button>
+          {isEventGame(game.id) && (
+            <Link to={`/demo/${game.id}`} className="mt-3 block">
+              <Button size="lg" block variant="secondary">
+                👀 まずはデモで試す
+              </Button>
+            </Link>
+          )}
           <div className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
             招待された方は{' '}
             <Link to="/join" className="font-bold text-pop-sky underline underline-offset-4">

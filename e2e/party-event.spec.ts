@@ -104,6 +104,43 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   for (const p of [host, guestA, guestB]) await p.context().close();
 });
 
+test('懇親会: トップの欄からデモを開くと、司会と参加者の画面が並んで同時に動く', async ({ browser }) => {
+  const page = await newPage(browser, { viewport: { width: 1440, height: 900 } });
+
+  await page.goto('/');
+  await expect(page.getByTestId('event-card-party-event')).toBeVisible();
+  await page.getByTestId('event-demo-party-event').click();
+  await page.waitForURL(/\/demo\/party-event$/);
+
+  const host = page.frameLocator('iframe[title="司会"]');
+  const guest = (n: number) => page.frameLocator(`iframe[title="参加者 ${n}"]`);
+
+  // 司会の枠だけに進行の操作が出る。どの枠もデモのルームだと分かる
+  await expect(host.getByTestId('section-bingo')).toBeVisible();
+  await expect(host.getByTestId('demo-badge')).toBeVisible();
+  await expect(guest(1).getByTestId('demo-badge')).toBeVisible();
+  await expect(guest(1).getByTestId('section-bingo')).toHaveCount(0);
+
+  // 司会の枠で引いた番号が、参加者の枠すべてに出る
+  await host.getByTestId('section-bingo').click();
+  await expect(guest(1).getByTestId('bingo-card')).toBeVisible();
+  await host.getByTestId('bingo-draw').click();
+  await expect(host.getByTestId('bingo-last')).toBeVisible();
+  const drawn = await host.getByTestId('bingo-last').innerText();
+  for (const n of [1, 2, 3]) await expect(guest(n).getByTestId('bingo-last')).toHaveText(drawn);
+
+  // 枠ごとに別の人として扱われる（同じブラウザでもカードが混ざらない）
+  const card1 = await guest(1).getByTestId('bingo-card').innerText();
+  const card2 = await guest(2).getByTestId('bingo-card').innerText();
+  expect(card1).not.toBe(card2);
+
+  // あとから参加者を増やしても、同じ進行に加わる
+  await page.getByTestId('demo-guests-5').click();
+  await expect(guest(5).getByTestId('bingo-last')).toHaveText(drawn);
+
+  await page.context().close();
+});
+
 test('懇親会: 司会用URLを開いた別の端末も進行できる', async ({ browser }) => {
   const host = await newPage(browser, DESKTOP);
   const mc2 = await newPage(browser, PHONE);

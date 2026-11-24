@@ -46,6 +46,8 @@ export class Room {
   hostToken: string | null = null;
   /** 合言葉を示したプレイヤー */
   readonly hostClaims = new Set<string>();
+  /** 1人で試すためのデモのルーム。ディスクに保存せず、誰もいなくなったら早めに片付ける */
+  demo = false;
   game: GameInstance | null = null;
   settings: GameSettings;
   hostId = '';
@@ -182,6 +184,7 @@ export class Room {
       maxPlayers: this.meta.maxPlayers,
       game: this.status === 'playing' && this.game ? this.gameView(forId) : null,
       youAreHost: this.isHostPlayer(forId),
+      demo: this.demo,
       serverNow: Date.now(),
     };
   }
