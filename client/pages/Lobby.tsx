@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router';
 import { GAMES, type GameMeta, type GameSettingDef, getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS } from '../../shared/protocol';
 import { Avatar, Badge, Button, Card, Modal, SectionTitle, TextInput } from '../components/ui';
@@ -12,12 +13,14 @@ import { useToast } from '../lib/toast';
  * 司会用URL。懇親会のような催し物のルームを作ったときだけ出る。
  * これを開いた人が進行役になるので、司会の方だけに渡すこと。
  */
-function HostUrl() {
-  const { room } = useRoomContext();
+export function HostUrl() {
+  const { room, isHost } = useRoomContext();
+  const { hostToken: urlToken } = useParams();
   const toast = useToast();
-  const session = loadSession(room.code);
-  if (!session?.hostToken) return null;
-  const url = `${location.origin}/room/${room.code}/h/${session.hostToken}`;
+  // 司会用URLから入った直後は、保存した参加情報にまだ合言葉が入っていないので、開いているURLのものを使う
+  const token = loadSession(room.code)?.hostToken ?? (isHost ? urlToken : undefined);
+  if (!token) return null;
+  const url = `${location.origin}/room/${room.code}/h/${token}`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);

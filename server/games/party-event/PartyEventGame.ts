@@ -69,8 +69,12 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
     super.onPlayerConnectionChange(playerId, connected);
   }
 
-  /** 退出しても参加者のまま（戻ってきたら同じカードに戻れる） */
-  override onPlayerLeave(): void {
+  /**
+   * 退出・キックされた人。ゲームの参加者としては残す（ビンゴの受付などの記録はそのまま）が、
+   * 座席決めで選んでいた名前は空ける（くじに入らないように。戻ってきた本人が選び直せるように）
+   */
+  override onPlayerLeave(playerId: string): void {
+    seats.release(this.seatsState, playerId);
     this.ctx.update();
   }
 
@@ -229,19 +233,10 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
         if (res.duplicated) throw new UserError(`すでに ${res.rank} 番目で受け付けています`);
         return;
       }
-      case 'seats:claim': {
-        const personId = String(action.personId ?? '');
-        if (!personId) {
-          delete this.seatsState.claimed[playerId]; // 選び直し
-          return;
-        }
-        const exists = seats.roster(this.seatsState, this.cfg.seats).some((p) => p.id === personId);
-        if (!exists) throw new UserError('その名前は名簿にありません');
-        const takenBy = Object.entries(this.seatsState.claimed).find(([id, pid]) => pid === personId && id !== playerId);
-        if (takenBy) throw new UserError('その名前はすでに他の方が選んでいます');
-        this.seatsState.claimed[playerId] = personId;
+      case 'seats:claim':
+        // personId が空なら選び直し。takeover は「別のスマホで選ばれているが本人です」と確かめたとき
+        seats.claim(this.seatsState, this.cfg.seats, playerId, String(action.personId ?? ''), action.takeover === true);
         return;
-      }
       case 'seats:addSelf':
         // 名簿に無い人が、自分の名前を足してくじに入る
         seats.addSelf(this.seatsState, this.cfg.seats, playerId, String(action.name ?? ''), String(action.group ?? ''));

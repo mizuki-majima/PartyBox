@@ -17,6 +17,12 @@ export type RoomConnState =
  */
 export function useRoom(rawCode: string, hostToken?: string) {
   const code = rawCode.toUpperCase();
+  /** 司会の合言葉を示し、通ったら参加情報にも残す（司会用URLを開き直さなくても司会のままでいられるように） */
+  const claim = async (token: string): Promise<void> => {
+    const res = await request('room:claimHost', { token });
+    const session = loadSession(code);
+    if (res.ok && session && session.hostToken !== token) saveSession({ ...session, hostToken: token });
+  };
   const [state, setState] = useState<RoomConnState>({ kind: 'loading' });
   const [view, setView] = useState<RoomView | null>(null);
   const [clockOffset, setClockOffset] = useState(0);
@@ -56,7 +62,7 @@ export function useRoom(rawCode: string, hostToken?: string) {
     /** 司会用URLで開いていれば、参加できたあとに合言葉を示す */
     const claimHost = async () => {
       if (!hostToken) return;
-      await request('room:claimHost', { token: hostToken });
+      await claim(hostToken);
     };
 
     const onState = (v: RoomView) => {
@@ -104,7 +110,7 @@ export function useRoom(rawCode: string, hostToken?: string) {
       if (!res.ok) return res.error;
       saveSession(res.session);
       setState({ kind: 'joined' });
-      if (hostToken) await request('room:claimHost', { token: hostToken });
+      if (hostToken) await claim(hostToken);
       return null;
     },
     [code, hostToken],

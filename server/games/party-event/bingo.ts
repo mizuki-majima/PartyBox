@@ -138,6 +138,8 @@ export function bingoView(
     prizes: state.prizes,
     prizeList: [...cfg.prizes],
     myCard: myCardId ? cardView(cfg, state, myCardId) : null,
+    // 受付ずみかはカードで見る（名前は同じ人がいることがある）
+    myRank: myCardId ? state.claims.findIndex((c) => c.cardId === myCardId) + 1 || null : null,
     inspected: isHost && inspectedId ? cardView(cfg, state, inspectedId) : null,
   };
 }

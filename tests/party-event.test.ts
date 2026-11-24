@@ -174,6 +174,17 @@ describe('座席決め（通信の中身）', () => {
     expect(view(clients[2]).seats.myPersonId).toBe('p2');
   });
 
+  it('別のスマホで選ばれている名前は、本人だと確かめると、こちらのスマホに移る', async () => {
+    const { host, clients } = await setupEvent();
+    await host.actionOk('event:section', { section: 'seats' });
+    await clients[1].actionOk('seats:claim', { personId: 'p1' });
+    await clients[2].waitFor((v) => (v.game as unknown as PartyEventView).seats.roster.find((p) => p.id === 'p1')!.taken, 3000, '選ばれている印');
+
+    await clients[2].actionOk('seats:claim', { personId: 'p1', takeover: true });
+    await clients[2].waitFor((v) => (v.game as unknown as PartyEventView).seats.myPersonId === 'p1', 3000, 'こちらに移った');
+    await clients[1].waitFor((v) => (v.game as unknown as PartyEventView).seats.myPersonId === null, 3000, '前のスマホは選び直し');
+  });
+
   it('名簿に無い人は自分の名前を足してくじに入れ、司会の画面に「くじに入る人」として出る', async () => {
     const { host, clients } = await setupEvent();
     await host.actionOk('event:section', { section: 'seats' });

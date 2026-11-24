@@ -1,4 +1,5 @@
 import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, forwardRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 
 /* ------------------------------------------------------------------ */
@@ -169,7 +170,9 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // body 直下に出す。登場アニメーション（transform）の付いたカードの中で開くと、
+  // fixed がそのカード基準になり、画面全体を覆えなくなるため
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center" onClick={onClose}>
       <div
         role="dialog"
@@ -179,7 +182,8 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

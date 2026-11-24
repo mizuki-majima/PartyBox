@@ -1,6 +1,10 @@
+import QRCode from 'qrcode';
+import { useEffect, useState } from 'react';
 import type { EventSection, PartyEventView } from '../../../shared/games/views';
-import { Button, Card } from '../../components/ui';
-import { useGame } from '../RoomContext';
+import { Button, Card, Modal } from '../../components/ui';
+import { useToast } from '../../lib/toast';
+import { HostUrl } from '../../pages/Lobby';
+import { useGame, useRoomContext } from '../RoomContext';
 import { BingoSection } from './BingoSection';
 import { QuizSection } from './QuizSection';
 import { SeatsSection } from './SeatsSection';
@@ -50,6 +54,7 @@ export function PartyEventScreen() {
           <p className="mt-2 text-center text-xs font-bold text-muted">
             👑 司会の画面です。ここでの操作が参加者全員の画面に出ます
           </p>
+          <Invite />
         </Card>
       )}
 
@@ -58,6 +63,65 @@ export function PartyEventScreen() {
       {game.section === 'seats' && <SeatsSection />}
       {game.section === 'bingo' && <BingoSection />}
     </div>
+  );
+}
+
+/**
+ * 遅れて来た人に見せる参加用のQR・URLと、ほかの司会に渡す司会用URL。
+ * 始めるとロビー（招待の欄）が消えるので、司会の画面から出せるようにしておく
+ */
+function Invite() {
+  const { room } = useRoomContext();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
+  const url = `${location.origin}/room/${room.code}`;
+
+  useEffect(() => {
+    if (!open) return;
+    QRCode.toDataURL(url, { margin: 1, width: 480, color: { dark: '#0f0c24', light: '#ffffff' } })
+      .then(setQr)
+      .catch(() => setQr(null));
+  }, [open, url]);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('参加用URLをコピーしました', 'success');
+    } catch {
+      toast('コピーできませんでした。長押しで選択してください', 'error');
+    }
+  };
+
+  return (
+    <>
+      <Button size="sm" variant="secondary" block className="mt-3" onClick={() => setOpen(true)} data-testid="event-invite-open">
+        📱 参加用のQR・URL（遅れて来た人に）
+      </Button>
+      <Modal open={open} onClose={() => setOpen(false)}>
+        <div className="flex flex-col items-center gap-3 text-center" data-testid="event-invite">
+          <h2 className="font-display text-xl">スマホで読み取って参加</h2>
+          {qr ? (
+            <img src={qr} alt="参加用QRコード" className="w-72 max-w-full rounded-2xl bg-white p-2" />
+          ) : (
+            <div className="h-72 w-72 max-w-full rounded-2xl bg-white/10" />
+          )}
+          <p className="font-display text-3xl tracking-[0.15em]">{room.code}</p>
+          <div className="flex w-full items-center gap-2 rounded-xl bg-black/30 p-1.5 pl-3 ring-1 ring-line">
+            <span className="min-w-0 flex-1 truncate text-left text-xs font-bold text-white/80" data-testid="event-invite-url">
+              {url}
+            </span>
+            <Button size="sm" variant="white" onClick={copy}>
+              コピー
+            </Button>
+          </div>
+        </div>
+        <HostUrl />
+        <Button variant="secondary" block className="mt-4" onClick={() => setOpen(false)}>
+          閉じる
+        </Button>
+      </Modal>
+    </>
   );
 }
 
