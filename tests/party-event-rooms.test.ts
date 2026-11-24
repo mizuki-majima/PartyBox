@@ -1,7 +1,10 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PartyEventView } from '../shared/games/views';
 import type { PartyServer } from '../server/app';
-import type { PersistedRoom } from '../server/rooms/persist';
+import type { PersistedFile, PersistedRoom } from '../server/rooms/persist';
 import { TestClient, setupRoom, sleep, startGame, startTestServer } from './helpers';
 
 /**
@@ -224,5 +227,83 @@ describe('ゲームの変更', () => {
     expect(res.ok).toBe(false);
     // 通常のゲームどうしは今まで通り変えられる
     await host.ok('room:changeGame', { gameId: 'liar' });
+  });
+});
+
+/* ================================================================== */
+describe('保存ファイル（再起動をまたぐ）', () => {
+  // このファイルの中だけ、保存先を使い捨ての場所にする（本番の /opt/partybox/state を触らない）
+  let dir: string;
+  const before = process.env.PARTYBOX_STATE_DIR;
+  const FLUSHED_MS = 1300; // まとめ書きの間隔（1秒）を超える
+
+  beforeAll(() => {
+    dir = mkdtempSync(path.join(tmpdir(), 'partybox-state-'));
+    process.env.PARTYBOX_STATE_DIR = dir;
+  });
+  afterAll(() => {
+    if (before === undefined) delete process.env.PARTYBOX_STATE_DIR;
+    else process.env.PARTYBOX_STATE_DIR = before;
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const savedCodes = (): string[] => {
+    try {
+      return (JSON.parse(readFileSync(path.join(dir, 'rooms.json'), 'utf8')) as PersistedFile).rooms.map((r) => r.code);
+    } catch {
+      return [];
+    }
+  };
+  const sweepOf = (s: PartyServer) => (s.manager as unknown as { sweep(): void }).sweep();
+
+  async function eventRoomOn(s: PartyServer): Promise<string> {
+    const host = await TestClient.connect(s.port);
+    open.push(host);
+    const code = await host.create('party-event', '司会');
+    await host.ok('room:start');
+    return code;
+  }
+
+  it('片付けたルームはファイルからも消え、再起動しても戻らない', async () => {
+    const s1 = await startTestServer({ persist: true });
+    const code = await eventRoomOn(s1);
+    await sleep(FLUSHED_MS);
+    expect(savedCodes()).toContain(code);
+
+    s1.manager.rooms.get(code)!.lastActivity = Date.now() - 13 * 60 * 60 * 1000;
+    sweepOf(s1);
+    expect(s1.manager.rooms.has(code)).toBe(false);
+    await sleep(FLUSHED_MS);
+    expect(savedCodes()).not.toContain(code);
+    await s1.close();
+
+    const s2 = await startTestServer({ persist: true });
+    expect(s2.manager.rooms.has(code)).toBe(false);
+    await s2.close();
+  });
+
+  it('復元したルームは、再起動した時刻ではなく最後の動きから12時間で片付ける', async () => {
+    const s1 = await startTestServer({ persist: true });
+    const code = await eventRoomOn(s1);
+    const oldActivity = Date.now() - 13 * 60 * 60 * 1000;
+    s1.manager.rooms.get(code)!.lastActivity = oldActivity;
+    await s1.close(); // 終了時に書き出す
+
+    const s2 = await startTestServer({ persist: true });
+    expect(s2.manager.rooms.get(code)?.lastActivity).toBe(oldActivity);
+    sweepOf(s2);
+    expect(s2.manager.rooms.has(code)).toBe(false);
+    await s2.close();
+  });
+
+  it('最後の動きから12時間たっていなければ、再起動しても残る', async () => {
+    const s1 = await startTestServer({ persist: true });
+    const code = await eventRoomOn(s1);
+    await s1.close();
+
+    const s2 = await startTestServer({ persist: true });
+    sweepOf(s2);
+    expect(s2.manager.rooms.has(code)).toBe(true);
+    await s2.close();
   });
 });
