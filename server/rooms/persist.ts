@@ -38,6 +38,11 @@ export interface PersistedRoom {
   /** ゲームの中身（PartyEventSnapshot など） */
   game: unknown;
   savedAt: number;
+  /**
+   * 最後に動きがあった時刻。復元したルームもここから数えて片付ける（再起動で寿命が延びないように）。
+   * これを書く前のファイルには無いので、無ければ savedAt を使う
+   */
+  lastActivity?: number;
 }
 
 export interface PersistedFile {

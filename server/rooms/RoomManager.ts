@@ -108,6 +108,7 @@ export class RoomManager {
         })),
         game: room.game.snapshot(),
         savedAt: Date.now(),
+        lastActivity: room.lastActivity,
       });
     }
     return out;
@@ -122,6 +123,8 @@ export class RoomManager {
           onChange: () => this.persister.schedule(),
         });
         room.settings = saved.settings;
+        // 片付けまでの時間は、再起動した時刻ではなく最後に動きがあった時刻から数える
+        room.lastActivity = saved.lastActivity ?? saved.savedAt ?? Date.now();
         room.hostId = saved.hostId;
         room.hostToken = saved.hostToken;
         for (const id of saved.hostClaims) room.hostClaims.add(id);
@@ -474,8 +477,11 @@ export class RoomManager {
   }
 
   private deleteRoom(room: Room): void {
+    // 保存しているルームなら、ファイルからも消す（残すと再起動のたびに生き返る）
+    const wasPersisted = !!room.game?.snapshot && !room.demo;
     room.dispose();
     this.rooms.delete(room.code);
+    if (wasPersisted) this.persister.schedule();
   }
 
   private sweep(): void {
