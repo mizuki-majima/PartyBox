@@ -65,14 +65,24 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   // 参加者が名簿から自分を選ぶ
   await guestA.getByTestId('seats-roster-pick').getByRole('button').first().click();
   await expect(guestA.getByText('くじを待っています')).toBeVisible();
+  // 名簿に無い人は、自分の名前を足してくじに入る
+  await guestB.getByTestId('seats-add-open').click();
+  await guestB.getByTestId('seats-add-name').fill('とびいり');
+  await guestB.getByTestId('seats-add-self').getByRole('button', { name: 'その他' }).click();
+  await guestB.getByTestId('seats-add-submit').click();
+  await expect(guestB.getByText('くじを待っています')).toBeVisible();
+  // くじに入るのは、名前を選んだ2人だけ（名簿の残りの人は引かれない）
+  await expect(host.getByTestId('seats-draw')).toContainText('残り 2');
 
   await host.getByTestId('seats-draw').click();
   await expect(host.getByTestId('seats-last')).toBeVisible();
   await expect(guestB.getByTestId('seats-tables')).toBeVisible();
 
-  // 残り全員引けば、選んだ人の席が出る
+  // 残り全員引けば、選んだ人・足した人の席が出る
   await host.getByRole('button', { name: '残り全員' }).click();
   await expect(guestA.getByTestId('my-table')).toBeVisible();
+  await expect(guestB.getByTestId('my-table')).toBeVisible();
+  await expect(host.getByTestId('seats-draw')).toContainText('残り 0');
 
   /* ---- クイズ ---- */
   await host.getByTestId('section-quiz').click();

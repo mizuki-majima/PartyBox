@@ -2,11 +2,24 @@
  * 座席決めの規則（party-app-aws backend/src/seats.mjs の移植）
  *
  * 名簿から1人ずつ本当のくじを引き、同じ所属が固まらないようにテーブルへ入れる。
+ *
+ * くじに入るのは「来ている人」だけ。名簿には来ない人も載っているので、
+ *  - 参加者が自分のスマホで名簿から名前を選んだ人
+ *  - 名簿に無く、当日その場で足された人（参加者が自分で足した人・司会が足した人）
+ *  - 司会が「くじに入れる」にした人（スマホが無いなど、自分で選べない人）
+ * だけを対象にする（来ない人で席が埋まらないように）。司会が欠席にした人は、これらに当たっても外す。
  */
 import type { SeatsView } from '../../../shared/games/views';
 import type { RosterPerson, SeatsConfig } from '../../event/config';
 import { rosterFromConfig } from '../../event/config';
+import { cleanText } from '../../utils/text';
+import { UserError } from '../types';
 import { drawIndex } from './cards';
+
+/** 当日足せる人数の上限（いたずらで名簿が膨らまないように） */
+export const MAX_EXTRAS = 200;
+export const NAME_MAX = 20;
+export const GROUP_MAX = 20;
 
 export interface SeatsState {
   /** 名簿の人 → テーブル番号。席が足りなければ null */
@@ -18,14 +31,28 @@ export interface SeatsState {
   extras: RosterPerson[];
   /** プレイヤーID → 名簿の人のID（自分がどれか選んだもの） */
   claimed: Record<string, string>;
+  /** 司会が「くじに入れる」にした名簿の人（自分で名前を選べない人） */
+  present: string[];
+  /** プレイヤーID → その人が自分で足した名簿の人のID（1人1件。打ち間違いを直せるように） */
+  selfAdded: Record<string, string>;
 }
 
 export function emptySeats(): SeatsState {
-  return { assign: {}, absent: [], order: [], extras: [], claimed: {} };
+  return { assign: {}, absent: [], order: [], extras: [], claimed: {}, present: [], selfAdded: {} };
 }
 
 export function roster(state: SeatsState, cfg: SeatsConfig): RosterPerson[] {
   return [...rosterFromConfig(cfg), ...state.extras];
+}
+
+/** くじに入る人（欠席かどうかは見ない） */
+function chosenIds(state: SeatsState): Set<string> {
+  return new Set([...Object.values(state.claimed), ...state.extras.map((p) => p.id), ...state.present]);
+}
+
+/** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす */
+function nameKey(name: string): string {
+  return name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 }
 
 function tablesOf(cfg: SeatsConfig): { name: string; seats: number }[] {
@@ -56,8 +83,10 @@ function chooseTable(state: SeatsState, cfg: SeatsConfig, people: RosterPerson[]
   return best; // 席が無ければ null（「席なし」）
 }
 
+/** まだ席が決まっていない、くじに入る人 */
 function pending(state: SeatsState, people: RosterPerson[]): RosterPerson[] {
-  return people.filter((p) => !(p.id in state.assign) && !state.absent.includes(p.id));
+  const chosen = chosenIds(state);
+  return people.filter((p) => chosen.has(p.id) && !(p.id in state.assign) && !state.absent.includes(p.id));
 }
 
 export type DrawnPerson = RosterPerson & { table: number | null };
@@ -107,14 +136,53 @@ export function markAbsent(state: SeatsState, personId: string, absent: boolean)
   state.absent = [...list];
 }
 
-/** 名簿に無い人を当日その場で足す */
+/** 司会が、自分で名前を選べない人をくじに入れる（外すときは present = false） */
+export function markPresent(state: SeatsState, personId: string, present: boolean): void {
+  const list = new Set(state.present);
+  if (present) list.add(personId);
+  else list.delete(personId);
+  state.present = [...list];
+}
+
+/** 名簿に無い人を当日その場で足す（司会の操作） */
 export function addExtra(state: SeatsState, name: string, group: string): RosterPerson {
+  const cleanName = cleanText(name, NAME_MAX);
+  if (!cleanName) throw new UserError('名前を入力してください');
+  if (state.extras.length >= MAX_EXTRAS) throw new UserError('これ以上は足せません');
   const person: RosterPerson = {
     id: `x${state.extras.length + 1}`,
-    name: name.slice(0, 40),
-    group: group.slice(0, 20),
+    name: cleanName,
+    group: cleanText(group, GROUP_MAX),
   };
   state.extras = [...state.extras, person];
+  return person;
+}
+
+/**
+ * 名簿に無い参加者が、自分の名前を足してくじに入る（参加者の操作）。
+ * 1人1件まで。2回目は打ち間違いの直しとして、前に足した名前を書き換える。
+ * 名簿にある名前は足せない（一覧から選んでもらう）。
+ */
+export function addSelf(state: SeatsState, cfg: SeatsConfig, playerId: string, name: string, group: string): RosterPerson {
+  const cleanName = cleanText(name, NAME_MAX);
+  if (!cleanName) throw new UserError('名前を入力してください');
+  const cleanGroup = cleanText(group, GROUP_MAX);
+  const mineId = state.selfAdded[playerId];
+  const key = nameKey(cleanName);
+  if (roster(state, cfg).some((p) => p.id !== mineId && nameKey(p.name) === key)) {
+    throw new UserError('その名前は名簿にあります。一覧から選んでください');
+  }
+
+  const mine = mineId ? state.extras.find((p) => p.id === mineId) : undefined;
+  let person: RosterPerson;
+  if (mine) {
+    person = { ...mine, name: cleanName, group: cleanGroup };
+    state.extras = state.extras.map((p) => (p.id === mine.id ? person : p));
+  } else {
+    person = addExtra(state, cleanName, cleanGroup);
+    state.selfAdded[playerId] = person.id;
+  }
+  state.claimed[playerId] = person.id;
   return person;
 }
 
@@ -122,7 +190,7 @@ export function resetSeats(state: SeatsState): void {
   state.assign = {};
   state.absent = [];
   state.order = [];
-  // extras と claimed は残す（当日足した人と、各自が選んだ名前はそのまま）
+  // extras・claimed・present・selfAdded は残す（当日足した人、各自が選んだ名前、くじに入れた人はそのまま）
 }
 
 export function seatsView(state: SeatsState, cfg: SeatsConfig, myPersonId: string | null): SeatsView {
@@ -141,12 +209,20 @@ export function seatsView(state: SeatsState, cfg: SeatsConfig, myPersonId: strin
 
   const lastId = state.order.at(-1) ?? null;
   const lastPerson = lastId ? byId.get(lastId) : undefined;
+  const chosen = chosenIds(state);
 
   return {
     title: cfg.title,
     tables,
     noSeat,
-    roster: people.map((p) => ({ ...p, table: state.assign[p.id] ?? null, absent: state.absent.includes(p.id) })),
+    roster: people.map((p) => ({
+      ...p,
+      table: state.assign[p.id] ?? null,
+      absent: state.absent.includes(p.id),
+      chosen: chosen.has(p.id),
+    })),
+    // 自分で名前を足すときの所属の選択肢（名簿にある所属）
+    groups: [...new Set(rosterFromConfig(cfg).map((p) => p.group).filter(Boolean))],
     remaining: pending(state, people).length,
     drawn: state.order.length,
     last: lastPerson ? { ...lastPerson, table: state.assign[lastId!] ?? null } : null,

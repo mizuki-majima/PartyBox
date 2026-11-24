@@ -189,7 +189,7 @@ function Demo({ meta }: { meta: GameMeta }) {
               frameClassName="h-[80dvh] min-h-[520px] lg:h-[calc(100dvh-3.5rem)]"
             />
             {/* 参加者の枠は実際のスマホに近い幅（380px）にそろえる。広い画面では2列 */}
-            <div className="grid gap-4 md:grid-cols-2 lg:w-[380px] lg:shrink-0 lg:grid-cols-1 min-[1440px]:w-[776px] min-[1440px]:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:w-[380px] lg:shrink-0 lg:grid-cols-1 min-[90rem]:w-[776px] min-[90rem]:grid-cols-2">
               {Array.from({ length: shown }, (_, i) => (
                 <Frame
                   key={`guest-${i + 1}-${room.code}-${reloadKey}`}

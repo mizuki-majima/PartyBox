@@ -172,10 +172,16 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       case 'seats:absent':
         seats.markAbsent(this.seatsState, String(action.personId), action.absent !== false);
         return true;
-      case 'seats:addExtra': {
-        const name = String(action.name ?? '').trim();
-        if (!name) throw new UserError('名前を入力してください');
-        seats.addExtra(this.seatsState, name, String(action.group ?? '').trim());
+      case 'seats:addExtra':
+        seats.addExtra(this.seatsState, String(action.name ?? ''), String(action.group ?? ''));
+        return true;
+      case 'seats:present': {
+        // 自分で名前を選べない人（スマホが無いなど）を、司会がくじに入れる
+        const personId = String(action.personId ?? '');
+        if (!seats.roster(this.seatsState, this.cfg.seats).some((p) => p.id === personId)) {
+          throw new UserError('その名前は名簿にありません');
+        }
+        seats.markPresent(this.seatsState, personId, action.present !== false);
         return true;
       }
       case 'seats:reset':
@@ -236,6 +242,10 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
         this.seatsState.claimed[playerId] = personId;
         return;
       }
+      case 'seats:addSelf':
+        // 名簿に無い人が、自分の名前を足してくじに入る
+        seats.addSelf(this.seatsState, this.cfg.seats, playerId, String(action.name ?? ''), String(action.group ?? ''));
+        return;
       default:
         throw new UserError(isHost ? 'その操作はできません' : 'その操作は司会のみです');
     }

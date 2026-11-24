@@ -124,8 +124,15 @@ describe('座席決め', () => {
     fillOrder: 'roundRobin',
   };
 
-  it('全員引くと席が決まり、同じ所属が固まらない', () => {
+  /** 名簿の全員が来ていて、くじに入っている状態（司会が全員をくじに入れた） */
+  const allHere = (): seats.SeatsState => {
     const s = seats.emptySeats();
+    for (const p of seats.roster(s, cfg)) seats.markPresent(s, p.id, true);
+    return s;
+  };
+
+  it('全員引くと席が決まり、同じ所属が固まらない', () => {
+    const s = allHere();
     expect(seats.drawAll(s, cfg)).toHaveLength(8);
     expect(seats.drawOne(s, cfg)).toBeNull();
 
@@ -140,7 +147,7 @@ describe('座席決め', () => {
   });
 
   it('戻すと引き直せる', () => {
-    const s = seats.emptySeats();
+    const s = allHere();
     const first = seats.drawOne(s, cfg)!;
     expect(seats.undoDraw(s)).toBe(first.id);
     expect(s.assign[first.id]).toBeUndefined();
@@ -148,7 +155,7 @@ describe('座席決め', () => {
   });
 
   it('欠席にすると引かれず、戻すと引ける', () => {
-    const s = seats.emptySeats();
+    const s = allHere();
     seats.markAbsent(s, 'p1', true);
     seats.drawAll(s, cfg);
     expect(s.assign.p1).toBeUndefined();
@@ -166,11 +173,88 @@ describe('座席決め', () => {
 
   it('席が足りなければ「席なし」になる', () => {
     const narrow: SeatsConfig = { ...cfg, tables: [{ name: 'T1', seats: 2 }] };
-    const s = seats.emptySeats();
+    const s = allHere();
     seats.drawAll(s, narrow);
     const view = seats.seatsView(s, narrow, null);
     expect(view.tables[0].people).toHaveLength(2);
     expect(view.noSeat).toHaveLength(6);
+  });
+
+  it('くじに入るのは名前を選んだ人だけで、来ていない人は引かれない', () => {
+    const s = seats.emptySeats();
+    s.claimed = { player1: 'p1', player2: 'p5' };
+    expect(seats.seatsView(s, cfg, null).remaining).toBe(2);
+    const drawn = seats.drawAll(s, cfg).map((p) => p.id);
+    expect(drawn.sort()).toEqual(['p1', 'p5']);
+    const view = seats.seatsView(s, cfg, null);
+    expect(view.roster.filter((p) => p.chosen).map((p) => p.id)).toEqual(['p1', 'p5']);
+    expect(view.roster.filter((p) => p.table == null)).toHaveLength(6); // 来ていない6人は席が決まらない
+  });
+
+  it('司会がくじに入れた人と、当日足した人も引かれる', () => {
+    const s = seats.emptySeats();
+    seats.markPresent(s, 'p2', true);
+    const extra = seats.addExtra(s, 'とびいり', 'C社');
+    expect(seats.drawAll(s, cfg).map((p) => p.id).sort()).toEqual(['p2', extra.id].sort());
+    // くじに入れたのを取り消せる
+    const t = seats.emptySeats();
+    seats.markPresent(t, 'p2', true);
+    seats.markPresent(t, 'p2', false);
+    expect(seats.drawOne(t, cfg)).toBeNull();
+  });
+
+  it('欠席にした人は、名前を選んでいても引かれない', () => {
+    const s = seats.emptySeats();
+    s.claimed = { player1: 'p1' };
+    seats.markAbsent(s, 'p1', true);
+    expect(seats.drawOne(s, cfg)).toBeNull();
+  });
+
+  it('参加者が自分の名前を足すと名簿に加わり、その人として、くじに入る', () => {
+    const s = seats.emptySeats();
+    const me = seats.addSelf(s, cfg, 'player9', '  とびいり  太郎 ', 'B社');
+    expect(me).toMatchObject({ id: 'x1', name: 'とびいり 太郎', group: 'B社' });
+    expect(s.claimed.player9).toBe('x1');
+    expect(seats.drawAll(s, cfg).map((p) => p.id)).toEqual(['x1']);
+  });
+
+  it('2回目は打ち間違いの直しとして、前に足した名前を書き換える（名簿は増えない）', () => {
+    const s = seats.emptySeats();
+    seats.addSelf(s, cfg, 'player9', 'とびいり大郎', 'A社');
+    const fixed = seats.addSelf(s, cfg, 'player9', 'とびいり太郎', 'B社');
+    expect(s.extras).toHaveLength(1);
+    expect(fixed).toMatchObject({ id: 'x1', name: 'とびいり太郎', group: 'B社' });
+    // 別の人は別の人として足せる
+    expect(seats.addSelf(s, cfg, 'player10', 'もうひとり', 'A社').id).toBe('x2');
+  });
+
+  it('名簿にある名前は足せない（空白・全角半角の違いも同じとみなす）', () => {
+    const s = seats.emptySeats();
+    expect(() => seats.addSelf(s, cfg, 'player9', 'あ０', 'A社')).toThrow(/名簿にあります/);
+    expect(() => seats.addSelf(s, cfg, 'player9', 'あ 0', 'A社')).toThrow(/名簿にあります/);
+    seats.addSelf(s, cfg, 'player9', 'とびいり', 'A社');
+    expect(() => seats.addSelf(s, cfg, 'player10', 'とびいり', 'A社')).toThrow(/名簿にあります/);
+    expect(s.extras).toHaveLength(1);
+  });
+
+  it('空の名前は足せず、長すぎる名前と所属は切り詰める', () => {
+    const s = seats.emptySeats();
+    expect(() => seats.addSelf(s, cfg, 'player9', '   ', 'A社')).toThrow(/名前を入力/);
+    expect(() => seats.addExtra(s, '', 'A社')).toThrow(/名前を入力/);
+    const p = seats.addSelf(s, cfg, 'player9', 'な'.repeat(50), 'し'.repeat(50));
+    expect(p.name).toHaveLength(seats.NAME_MAX);
+    expect(p.group).toHaveLength(seats.GROUP_MAX);
+  });
+
+  it('当日足せる人数には上限がある', () => {
+    const s = seats.emptySeats();
+    for (let i = 0; i < seats.MAX_EXTRAS; i++) seats.addExtra(s, `人${i}`, '');
+    expect(() => seats.addExtra(s, 'もう1人', '')).toThrow(/これ以上/);
+    expect(() => seats.addSelf(s, cfg, 'player9', 'もう1人', '')).toThrow(/これ以上/);
+  });
+
+  it('自分で足すときの所属の選択肢は、名簿にある所属', () => {
+    expect(seats.seatsView(seats.emptySeats(), cfg, null).groups).toEqual(['A社', 'B社']);
   });
 });
 
