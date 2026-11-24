@@ -57,6 +57,8 @@ export interface RoomView {
   game: GameViewBase | null;
   /** この画面の人が進行できるか（作成者、または司会用URLを開いた人） */
   youAreHost: boolean;
+  /** 1人で試すためのデモのルームか（/demo/<id> で作る使い捨てのルーム） */
+  demo: boolean;
   serverNow: number;
 }
 
@@ -90,7 +92,8 @@ export interface GameAction {
 
 export interface ClientToServerEvents {
   'room:check': (p: { code: string }, ack: AckFn<{ room: RoomSummary }>) => void;
-  'room:create': (p: { gameId: GameId; name: string }, ack: AckFn<{ session: SessionInfo }>) => void;
+  /** demo: 催し物を1人で試すための使い捨てのルームにする（保存せず、誰もいなければ30分で片付ける） */
+  'room:create': (p: { gameId: GameId; name: string; demo?: boolean }, ack: AckFn<{ session: SessionInfo }>) => void;
   'room:join': (p: { code: string; name: string }, ack: AckFn<{ session: SessionInfo }>) => void;
   'room:rejoin': (p: { code: string; playerId: string; token: string }, ack: AckFn<{ session: SessionInfo }>) => void;
   'room:leave': (p: object, ack: AckFn) => void;

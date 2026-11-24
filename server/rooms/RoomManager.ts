@@ -41,6 +41,20 @@ type PartyServer = Server<ClientToServerEvents, ServerToClientEvents, Record<str
 const RATE_WINDOW_MS = 5000;
 const RATE_MAX_EVENTS = 60;
 
+/** 誰も接続していないルームを片付けるまでの時間（懇親会の本番のルームは除く） */
+const IDLE_CLOSE_MS = 30 * 60 * 1000;
+/** 最後の動きからこれだけ経ったルームは、どのルームでも片付ける */
+const STALE_CLOSE_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 催し物（懇親会）のルームか。
+ * 数十人がスマホで参加し、画面を消している間は回線が切れるのが当たり前なので、
+ * 切断した人をルームから外さない（外すと戻ったときに別人扱いになり、ビンゴのカードも変わる）。
+ */
+function isEventRoom(room: Room): boolean {
+  return isEventGame(room.gameId);
+}
+
 export class RoomManager {
   readonly rooms = new Map<string, Room>();
   private sweepTimer: NodeJS.Timeout;
@@ -76,7 +90,8 @@ export class RoomManager {
   private collectPersisted(): PersistedRoom[] {
     const out: PersistedRoom[] = [];
     for (const room of this.rooms.values()) {
-      if (!room.game?.snapshot) continue;
+      // デモは使い捨てなので保存しない
+      if (!room.game?.snapshot || room.demo) continue;
       out.push({
         code: room.code,
         gameId: room.gameId,
@@ -168,7 +183,7 @@ export class RoomManager {
       return { room: room.summary() };
     });
 
-    on('room:create', ({ gameId, name }) => {
+    on('room:create', ({ gameId, name, demo }) => {
       if (!isGameId(gameId)) throw new UserError('ゲームが見つかりません');
       const cleanName = this.validateName(name);
       const code = this.uniqueCode();
@@ -177,6 +192,8 @@ export class RoomManager {
         send: (socketId, view) => this.io.to(socketId).emit('room:state', view),
         onChange: () => this.persister.schedule(),
       });
+      // デモは催し物を1人で試すためのもの（通常のゲームはそのまま遊べるので作らない）
+      room.demo = demo === true && isEventGame(gameId);
       this.rooms.set(code, room);
       const player = this.addPlayer(room, cleanName);
       room.hostId = player.id;
@@ -262,6 +279,8 @@ export class RoomManager {
       const { room } = this.requireHost(socket);
       if (room.status !== 'lobby') throw new UserError('ゲーム中は変更できません');
       if (!isGameId(gameId)) throw new UserError('ゲームが見つかりません');
+      // 催し物は司会用URL・保存・切断の扱いがルームを作るときに決まるので、通常のゲームと行き来させない
+      if (isEventGame(gameId) !== isEventGame(room.gameId)) throw new UserError('このルームでは変更できません');
       const meta = getGameMeta(gameId)!;
       if (room.players.size > meta.maxPlayers) {
         throw new UserError(`「${meta.title}」は最大${meta.maxPlayers}人までです`);
@@ -399,6 +418,13 @@ export class RoomManager {
   private markDisconnected(room: Room, player: Player): void {
     player.connected = false;
     player.socketId = null;
+    if (isEventRoom(room)) {
+      // 催し物は外さない。戻ってきたら同じ人として続きから（ルームは sweep が片付ける）。
+      // 司会も参加者に移さない（transferHost が司会用URLのルームでは移さない）
+      room.game?.onPlayerConnectionChange(player.id, false);
+      room.requestBroadcast();
+      return;
+    }
     player.removeTimer = setTimeout(() => {
       player.removeTimer = null;
       if (!player.connected) this.removePlayer(room, player.id);
@@ -455,8 +481,10 @@ export class RoomManager {
   private sweep(): void {
     const now = Date.now();
     for (const room of this.rooms.values()) {
-      const idle = room.connectedPlayers.length === 0 && now - room.lastActivity > 30 * 60 * 1000;
-      const stale = now - room.lastActivity > 12 * 60 * 60 * 1000;
+      // 懇親会の本番のルームは、夕食と二次会のあいだに全員の画面が消えていても残す（12時間で片付ける）
+      const keepWhileIdle = isEventRoom(room) && !room.demo;
+      const idle = !keepWhileIdle && room.connectedPlayers.length === 0 && now - room.lastActivity > IDLE_CLOSE_MS;
+      const stale = now - room.lastActivity > STALE_CLOSE_MS;
       if (idle || stale) this.closeRoom(room, 'ルームの有効期限が切れました');
     }
   }

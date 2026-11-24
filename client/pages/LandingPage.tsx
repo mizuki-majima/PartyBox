@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
-import { GAMES, SOLO_GAMES } from '../../shared/games';
-import { GameCard, SoloGameCard } from '../components/GameCard';
+import { EVENT_GAMES, GAMES, SOLO_GAMES } from '../../shared/games';
+import { EventGameCard, GameCard, SoloGameCard } from '../components/GameCard';
 import { Button, Logo } from '../components/ui';
 
 const STEPS = [
@@ -75,6 +75,20 @@ export function LandingPage() {
             </Link>
           </div>
           <p className="mt-6 text-sm text-muted">Discordで通話しながら遊ぶのにぴったり 🎧</p>
+        </div>
+      </section>
+
+      {/* Event（司会が進行する催し物） */}
+      <section id="event" className="mx-auto max-w-6xl scroll-mt-4 px-4 pb-16 sm:px-6">
+        <div className="mb-6">
+          <p className="text-xs font-extrabold tracking-[0.3em] text-pop-orange">EVENT</p>
+          <h2 className="font-display text-3xl">懇親会・催し物</h2>
+          <p className="mt-1 text-sm text-muted">司会が進行して、数十人がそれぞれのスマホで参加する催し物向けです。</p>
+        </div>
+        <div className="grid gap-5">
+          {EVENT_GAMES.map((g) => (
+            <EventGameCard key={g.id} game={g} />
+          ))}
         </div>
       </section>
 
