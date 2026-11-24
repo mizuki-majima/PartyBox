@@ -109,26 +109,45 @@ function QuestionArea() {
 function MyTeam() {
   const { game, act } = useGame<PartyEventView>();
   const q = game.quiz;
-  if (q.myTeam) {
+  const [changing, setChanging] = useState(false);
+  if (q.myTeam && !changing) {
     return (
       <Card className="flex items-center justify-between gap-2 !py-3">
         <span className="text-sm text-muted">あなたのチーム</span>
-        <span data-testid="my-team">
-          <Badge className="bg-pop-violet/30 text-base text-white">{q.myTeam}</Badge>
+        <span className="flex items-center gap-3">
+          <span data-testid="my-team">
+            <Badge className="bg-pop-violet/30 text-base text-white">{q.myTeam}</Badge>
+          </span>
+          <button className="text-xs font-bold text-muted underline" onClick={() => setChanging(true)} data-testid="quiz-team-change">
+            変える
+          </button>
         </span>
       </Card>
     );
   }
   return (
     <Card>
-      <SectionTitle>チームを選んでください</SectionTitle>
+      <SectionTitle>{q.myTeam ? 'チームを選び直してください' : 'チームを選んでください'}</SectionTitle>
       <div className="grid grid-cols-2 gap-2" data-testid="quiz-team-pick">
         {q.teams.map((t) => (
-          <Button key={t} size="lg" variant="secondary" onClick={() => act('quiz:team', { team: t })}>
+          <Button
+            key={t}
+            size="lg"
+            variant={t === q.myTeam ? 'success' : 'secondary'}
+            onClick={async () => {
+              await act('quiz:team', { team: t });
+              setChanging(false);
+            }}
+          >
             {t}
           </Button>
         ))}
       </div>
+      {q.myTeam && (
+        <button className="mt-3 w-full text-xs font-bold text-muted underline" onClick={() => setChanging(false)}>
+          やめる（{q.myTeam} のまま）
+        </button>
+      )}
     </Card>
   );
 }
@@ -204,9 +223,24 @@ function HostControls() {
             ? '次の問題へ'
             : '結果発表';
 
+  // 問題・回答タイムの間も、司会にだけ答えを小さく出す（読み上げながら確かめられるように）
+  const question = q.question;
+  const preview =
+    question && (q.phase === 'question' || q.phase === 'answering') && question.answer != null
+      ? question.choices && typeof question.answer === 'number'
+        ? `${question.answer + 1}. ${question.choices[question.answer]}`
+        : String(question.answer)
+      : null;
+
   return (
     <HostPanel title="クイズの進行">
       <div className="flex flex-col gap-3">
+        {preview && (
+          <p className="rounded-xl bg-black/25 px-3 py-2 text-sm" data-testid="quiz-host-answer">
+            <span className="mr-2 text-xs font-extrabold text-amber-200">答え（司会だけに表示）</span>
+            <span className="font-bold">{preview}</span>
+          </p>
+        )}
         <HostButton onClick={() => act('quiz:next')} disabled={q.phase === 'result'} testId="quiz-next">
           ▶ {nextLabel}
         </HostButton>
@@ -286,15 +320,16 @@ function Scores() {
 
 function Ranking() {
   const { game } = useGame<PartyEventView>();
-  const top = game.quiz.ranking[0];
+  // 同点なら並べて出す
+  const winners = game.quiz.ranking.filter((r) => r.rank === 1);
   return (
     <Card className="animate-pop-in bg-gradient-to-br from-pop-yellow/20 to-pop-orange/10 py-10 text-center">
       <div className="text-6xl">🏆</div>
-      <p className="mt-3 text-sm text-muted">優勝</p>
+      <p className="mt-3 text-sm text-muted">{winners.length > 1 ? '同点優勝' : '優勝'}</p>
       <p className="font-display text-4xl text-pop-yellow" data-testid="quiz-winner">
-        {top?.team ?? '—'}
+        {winners.length ? winners.map((r) => r.team).join('・') : '—'}
       </p>
-      <p className="mt-2 font-display text-xl">{top?.score ?? 0} 問正解</p>
+      <p className="mt-2 font-display text-xl">{winners[0]?.score ?? 0} 問正解</p>
     </Card>
   );
 }

@@ -42,13 +42,16 @@ export function saveSession(session: SessionInfo, seat: string | null = SEAT): v
   }, undefined);
 }
 
+const SESSION_MAX_AGE_MS = 8 * 24 * 60 * 60 * 1000;
+
 export function loadSession(code: string, seat: string | null = SEAT): SessionInfo | null {
   return safe(() => {
     const raw = localStorage.getItem(key(code, seat));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SessionInfo & { savedAt?: number };
-    // 1日以上前のセッションは破棄
-    if (parsed.savedAt && Date.now() - parsed.savedAt > 24 * 60 * 60 * 1000) {
+    // 古いセッションは破棄する。懇親会のルームは7日残る（前日に作って QR を配れる）ので、それより長めにとる。
+    // 消えたルームのセッションは、再参加に失敗した時点で消えるので、長くても困らない
+    if (parsed.savedAt && Date.now() - parsed.savedAt > SESSION_MAX_AGE_MS) {
       localStorage.removeItem(key(code, seat));
       return null;
     }

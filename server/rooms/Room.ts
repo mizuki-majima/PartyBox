@@ -89,9 +89,12 @@ export class Room {
     this.names.set(id, name);
   }
 
-  isNameTaken(name: string, exceptId?: string): boolean {
+  /** connectedOnly なら、いま接続している人とだけ比べる */
+  isNameTaken(name: string, exceptId?: string, connectedOnly = false): boolean {
     const n = name.toLowerCase();
-    return [...this.players.values()].some((p) => p.id !== exceptId && p.name.toLowerCase() === n);
+    return [...this.players.values()].some(
+      (p) => p.id !== exceptId && (!connectedOnly || p.connected) && p.name.toLowerCase() === n,
+    );
   }
 
   /* ---------------- ゲームに渡すコンテキスト ---------------- */

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { getGameMeta } from '../../shared/games';
+import { getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS, type RoomSummary } from '../../shared/protocol';
 import { Button, Card, FullScreenMessage, Logo, Modal, Spinner, TextInput } from '../components/ui';
 import { GameShell } from '../games/GameShell';
@@ -116,7 +116,11 @@ function RoomHeader({ onLeave }: { onLeave: () => void }) {
       <Modal open={confirm} onClose={() => setConfirm(false)}>
         <h2 className="font-display text-xl">ルームを退出しますか？</h2>
         <p className="mt-2 text-sm text-muted">
-          {room.status === 'playing' ? 'ゲーム中に退出すると、このゲームには戻れません。' : 'あとでもう一度参加することもできます。'}
+          {isEventGame(room.gameId)
+            ? '画面を閉じるだけなら、退出は要りません（あとで開けば続きから戻れます）。退出すると、ビンゴのカードや選んだ名前は引き継がれません。'
+            : room.status === 'playing'
+              ? 'ゲーム中に退出すると、このゲームには戻れません。'
+              : 'あとでもう一度参加することもできます。'}
         </p>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Button variant="secondary" size="lg" onClick={() => setConfirm(false)}>
@@ -170,11 +174,17 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
             </div>
           </div>
           <div className="p-5 sm:p-6">
-            {summary.status === 'playing' && (
-              <p className="mb-4 rounded-xl bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-200">
-                いまゲーム中です。参加すると観戦しながら、次のゲームから遊べます。
-              </p>
-            )}
+            {summary.status === 'playing' &&
+              (isEventGame(summary.gameId) ? (
+                // 懇親会は途中から来た人もすぐ参加者になる
+                <p className="mb-4 rounded-xl bg-pop-mint/10 px-4 py-2 text-sm font-bold text-pop-mint" data-testid="join-event-note">
+                  もう始まっています。名前を入れると、すぐに参加できます。
+                </p>
+              ) : (
+                <p className="mb-4 rounded-xl bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-200">
+                  いまゲーム中です。参加すると観戦しながら、次のゲームから遊べます。
+                </p>
+              ))}
             {full ? (
               <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-center font-bold text-rose-200">このルームは満員です 🙇</p>
             ) : (

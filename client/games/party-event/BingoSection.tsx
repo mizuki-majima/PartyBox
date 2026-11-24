@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
-import { Badge, Button, Card, SectionTitle, TextInput } from '../../components/ui';
+import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
 import { HostButton, HostPanel } from './PartyEventScreen';
 
@@ -49,7 +49,7 @@ function MyCard() {
       <Card className="text-center text-sm text-muted">カードを準備しています…</Card>
     );
   }
-  const mine = game.bingo.claims.find((c) => c.name === game.players.find((p) => p.id === game.me)?.name);
+  const myRank = game.bingo.myRank;
 
   return (
     <Card>
@@ -80,9 +80,9 @@ function MyCard() {
 
       <div className="mt-4">
         {card.bingo ? (
-          mine ? (
-            <p className="rounded-2xl bg-pop-mint/15 py-3 text-center text-sm font-extrabold text-pop-mint">
-              🎉 受付ずみです（{mine.rank} 番目）
+          myRank ? (
+            <p className="rounded-2xl bg-pop-mint/15 py-3 text-center text-sm font-extrabold text-pop-mint" data-testid="bingo-claimed">
+              🎉 受付ずみです（{myRank} 番目）
             </p>
           ) : (
             <Button size="xl" block onClick={() => act('bingo:claim')} data-testid="bingo-claim">
@@ -109,6 +109,7 @@ function HostControls() {
   const { game, act } = useGame<PartyEventView>();
   const b = game.bingo;
   const [cardId, setCardId] = useState('');
+  const [redraw, setRedraw] = useState(false);
 
   return (
     <HostPanel title="ビンゴの進行">
@@ -124,13 +125,34 @@ function HostControls() {
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => act('bingo:prizes')}
+            // もう抽選してあれば、引き直す前に確かめる（押し間違いで結果が変わらないように）
+            onClick={() => (b.prizes ? setRedraw(true) : act('bingo:prizes'))}
             disabled={!b.claims.length}
             data-testid="bingo-prizes"
           >
-            🎁 景品を抽選
+            {b.prizes ? '🎁 景品を引き直す' : '🎁 景品を抽選'}
           </Button>
         </div>
+        <Modal open={redraw} onClose={() => setRedraw(false)}>
+          <h2 className="font-display text-xl">景品を引き直しますか？</h2>
+          <p className="mt-2 text-sm text-white/80">いま出ている景品の割り当ては消えて、全員の画面が新しい結果に変わります。</p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <Button variant="secondary" size="lg" onClick={() => setRedraw(false)}>
+              やめる
+            </Button>
+            <Button
+              variant="danger"
+              size="lg"
+              data-testid="bingo-prizes-confirm"
+              onClick={async () => {
+                setRedraw(false);
+                await act('bingo:prizes');
+              }}
+            >
+              引き直す
+            </Button>
+          </div>
+        </Modal>
 
         <div>
           <SectionTitle>カードを確かめる</SectionTitle>

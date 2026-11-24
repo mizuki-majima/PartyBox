@@ -293,6 +293,8 @@ export interface BingoView {
   prizeList: string[];
   /** 自分のカード。まだ配られていなければ null */
   myCard: BingoCardView | null;
+  /** 自分のカードが受付ずみなら、その順位 */
+  myRank: number | null;
   /** 司会がカードIDを入れて確かめた結果 */
   inspected: BingoCardView | null;
 }
@@ -306,8 +308,10 @@ export interface SeatsPerson {
 export interface SeatsRosterEntry extends SeatsPerson {
   table: number | null;
   absent: boolean;
-  /** くじに入る人か（自分で名前を選んだ・当日足された・司会がくじに入れた） */
+  /** くじに入る人か（自分で名前を選んだ・司会が足した・司会がくじに入れた） */
   chosen: boolean;
+  /** 自分以外の誰かがこの名前を選んでいるか */
+  taken: boolean;
 }
 
 export interface SeatsTable {

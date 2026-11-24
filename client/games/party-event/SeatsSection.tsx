@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { PartyEventView, SeatsRosterEntry } from '../../../shared/games/views';
-import { Badge, Button, Card, SectionTitle, TextInput } from '../../components/ui';
+import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
 import { HostButton, HostPanel } from './PartyEventScreen';
 
@@ -46,6 +46,18 @@ function MySeat() {
 
   if (!me) return <PickMyName />;
 
+  // くじは引かれたが、席が足りなかった
+  if (s.noSeat.some((p) => p.id === me.id)) {
+    return (
+      <Card className="py-10 text-center" data-testid="my-no-seat">
+        <p className="text-sm text-muted">{me.name} さん</p>
+        <div className="mt-3 text-5xl">🙇</div>
+        <p className="mt-3 font-display text-xl">席が足りませんでした</p>
+        <p className="mt-2 text-sm text-white/75">司会の案内をお待ちください。</p>
+      </Card>
+    );
+  }
+
   if (me.table == null) {
     return (
       <Card className="py-10 text-center">
@@ -83,14 +95,19 @@ function MySeat() {
   );
 }
 
+/** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす（サーバーの nameKey と同じ） */
+const nameKey = (name: string) => name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+
 function PickMyName() {
   const { game, act } = useGame<PartyEventView>();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
-  const taken = new Set(game.seats.roster.filter((p) => p.absent).map((p) => p.id));
-  const list = game.seats.roster.filter((p) => !taken.has(p.id) && p.name.includes(q.trim()));
+  const [confirm, setConfirm] = useState<SeatsRosterEntry | null>(null);
+  const key = nameKey(q);
+  const list = game.seats.roster.filter((p) => !p.absent && nameKey(p.name).includes(key));
   // 絞り込んで見つからなければ、そのまま名前を足せるようにする
-  const showAdd = adding || (q.trim() !== '' && list.length === 0);
+  const showAdd = adding || (key !== '' && list.length === 0);
+  const pick = (p: SeatsRosterEntry) => (p.taken ? setConfirm(p) : act('seats:claim', { personId: p.id }));
 
   return (
     <Card>
@@ -101,11 +118,13 @@ function PickMyName() {
         {list.map((p) => (
           <button
             key={p.id}
-            onClick={() => act('seats:claim', { personId: p.id })}
-            className="rounded-xl bg-white/8 px-3 py-3 text-left text-sm font-bold hover:bg-white/14"
+            onClick={() => pick(p)}
+            className={`rounded-xl px-3 py-3 text-left text-sm font-bold ${p.taken ? 'bg-white/4 text-white/60' : 'bg-white/8 hover:bg-white/14'}`}
           >
             <span className="block truncate">{p.name}</span>
-            {p.group && <span className="block truncate text-xs font-normal text-muted">{p.group}</span>}
+            <span className="block truncate text-xs font-normal text-muted">
+              {p.taken ? '選ばれています' : p.group}
+            </span>
           </button>
         ))}
         {!list.length && <p className="col-span-2 py-6 text-center text-sm text-muted">見つかりません</p>}
@@ -121,6 +140,29 @@ function PickMyName() {
           名簿に名前が無い方はこちら
         </button>
       )}
+      <Modal open={confirm !== null} onClose={() => setConfirm(null)}>
+        <h2 className="font-display text-xl">{confirm?.name} さんですか？</h2>
+        <p className="mt-2 text-sm text-white/80">
+          この名前は、別のスマホですでに選ばれています。ご本人で間違いなければ、このスマホに切り替えます
+          （前のスマホでは名前の選び直しになります）。
+        </p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Button variant="secondary" size="lg" onClick={() => setConfirm(null)}>
+            やめる
+          </Button>
+          <Button
+            size="lg"
+            data-testid="seats-takeover"
+            onClick={async () => {
+              const id = confirm?.id;
+              setConfirm(null);
+              if (id) await act('seats:claim', { personId: id, takeover: true });
+            }}
+          >
+            本人です
+          </Button>
+        </div>
+      </Modal>
     </Card>
   );
 }

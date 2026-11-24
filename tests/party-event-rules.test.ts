@@ -100,6 +100,16 @@ describe('ビンゴの進行', () => {
     expect(s.claims).toHaveLength(2);
   });
 
+  it('受付ずみかは名前ではなくカードで見る（同じ名前の人がいても取り違えない）', () => {
+    const s = bingo.emptyBingo();
+    s.called = Array.from({ length: 75 }, (_, i) => i + 1);
+    bingo.claim(s, cfg, 'ZZZZ', 'たなか');
+    bingo.claim(s, cfg, 'AB23', 'たなか');
+    expect(bingo.bingoView(s, cfg, false, 'AB23', null).myRank).toBe(2);
+    expect(bingo.bingoView(s, cfg, false, 'K7M9', null).myRank).toBeNull();
+    expect(bingo.bingoView(s, cfg, false, null, null).myRank).toBeNull();
+  });
+
   it('参加者にはカードIDを出さない', () => {
     const s = bingo.emptyBingo();
     s.called = Array.from({ length: 75 }, (_, i) => i + 1);
@@ -255,6 +265,73 @@ describe('座席決め', () => {
 
   it('自分で足すときの所属の選択肢は、名簿にある所属', () => {
     expect(seats.seatsView(seats.emptySeats(), cfg, null).groups).toEqual(['A社', 'B社']);
+  });
+
+  it('別のスマホが選んでいる名前は、ふつうに選ぶと断り、本人だと確かめたときだけこちらに移す', () => {
+    const s = seats.emptySeats();
+    seats.claim(s, cfg, 'old', 'p1', false);
+    expect(() => seats.claim(s, cfg, 'new', 'p1', false)).toThrow(/他の方が選んでいます/);
+    seats.claim(s, cfg, 'new', 'p1', true);
+    expect(s.claimed).toEqual({ new: 'p1' });
+    // 移っても、くじに入る人の数は変わらない
+    expect(seats.drawAll(s, cfg).map((p) => p.id)).toEqual(['p1']);
+    // 名簿に無い名前・選び直し
+    expect(() => seats.claim(s, cfg, 'new', 'nope', true)).toThrow(/名簿にありません/);
+    seats.claim(s, cfg, 'new', '', false);
+    expect(s.claimed).toEqual({});
+  });
+
+  it('選ばれている名前には、見ている人以外が選んでいる印（taken）が付く', () => {
+    const s = seats.emptySeats();
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    const forOther = seats.seatsView(s, cfg, null).roster;
+    const forMe = seats.seatsView(s, cfg, 'p1').roster;
+    expect(forOther.find((p) => p.id === 'p1')!.taken).toBe(true);
+    expect(forOther.find((p) => p.id === 'p2')!.taken).toBe(false);
+    expect(forMe.find((p) => p.id === 'p1')!.taken).toBe(false);
+  });
+
+  it('ルームを出た人が選んでいた名前は空き、くじからも外れる', () => {
+    const s = seats.emptySeats();
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    seats.release(s, 'player1');
+    expect(s.claimed).toEqual({});
+    expect(seats.drawOne(s, cfg)).toBeNull();
+  });
+
+  it('自分で足した名前は、選んでいる間だけくじに入る（足したあと名簿の自分を選び直しても、足した名前が残って引かれない）', () => {
+    const s = seats.emptySeats();
+    const typo = seats.addSelf(s, cfg, 'player9', 'あ０ちゃん', 'A社');
+    seats.claim(s, cfg, 'player9', 'p1', false); // 名簿に自分がいた
+    expect(seats.drawAll(s, cfg).map((p) => p.id)).toEqual(['p1']);
+    const view = seats.seatsView(s, cfg, 'p1');
+    expect(view.roster.find((p) => p.id === typo.id)!.chosen).toBe(false);
+    // 司会が足した人は、誰も選んでいなくてもくじに入る
+    const t = seats.emptySeats();
+    const byHost = seats.addExtra(t, 'スマホ無し', 'B社');
+    expect(seats.drawAll(t, cfg).map((p) => p.id)).toEqual([byHost.id]);
+  });
+
+  it('自分で足した名前を、本人が別のスマホで取り戻したあとは、前のスマホから書き換えない', () => {
+    const s = seats.emptySeats();
+    const mine = seats.addSelf(s, cfg, 'phoneA', 'とびいり', 'A社');
+    seats.claim(s, cfg, 'phoneB', mine.id, true);
+    // 前のスマホで「名前を足す」をもう一度押しても、取り戻した名前は変わらない（別の名前として足す）
+    const other = seats.addSelf(s, cfg, 'phoneA', 'べつのひと', 'B社');
+    expect(other.id).not.toBe(mine.id);
+    expect(s.extras.find((p) => p.id === mine.id)!.name).toBe('とびいり');
+    // 同じ名前で足し直すことはできない（一覧から選んでもらう）
+    expect(() => seats.addSelf(s, cfg, 'phoneC', 'とびいり', 'A社')).toThrow(/名簿にあります/);
+  });
+
+  it('参加者に送る名簿・テーブルには、自分で足したかどうかの印を出さない', () => {
+    const s = seats.emptySeats();
+    seats.addSelf(s, cfg, 'player9', 'とびいり', 'A社');
+    seats.drawAll(s, cfg);
+    const view = seats.seatsView(s, cfg, null);
+    expect(view.roster.find((p) => p.name === 'とびいり')).not.toHaveProperty('self');
+    expect(view.tables.flatMap((t) => t.people)[0]).not.toHaveProperty('self');
+    expect(view.last).not.toHaveProperty('self');
   });
 });
 

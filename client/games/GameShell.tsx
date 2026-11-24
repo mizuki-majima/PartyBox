@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getGameMeta } from '../../shared/games';
+import { getGameMeta, isEventGame } from '../../shared/games';
 import { TimerBar } from '../components/game';
 import { Button, Modal } from '../components/ui';
 import { request } from '../lib/socket';
@@ -52,7 +52,8 @@ export function GameShell() {
         {Screen ? <Screen /> : <p>このゲームは準備中です</p>}
       </div>
 
-      {game.phase !== 'GAME_OVER' && <AbortGame />}
+      {/* 懇親会はロビーに戻すと進行が全部消えるので出さない（各企画に「最初から」がある） */}
+      {game.phase !== 'GAME_OVER' && !isEventGame(room.gameId) && <AbortGame />}
     </div>
   );
 }

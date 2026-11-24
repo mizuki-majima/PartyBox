@@ -26,6 +26,7 @@ afterAll(async () => {
 });
 
 const GRACE_PASSED_MS = 900;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function setupEvent(count = 3) {
   const r = await setupRoom(server.port, 'party-event', count);
@@ -97,7 +98,7 @@ describe('切断と復帰（スマホの画面を消している間）', () => {
 
 /* ================================================================== */
 describe('誰もいないルームの片付け', () => {
-  it('本番のルームは誰もいなくても30分では片付けず、12時間で片付ける', async () => {
+  it('本番のルームは誰もいなくても30分・12時間では片付けず（前日に作って QR を配れる）、7日で片付ける', async () => {
     const { clients, code } = await setupEvent(2);
     for (const c of clients) c.close();
     await sleep(100);
@@ -107,7 +108,11 @@ describe('誰もいないルームの片付け', () => {
     manager().sweep();
     expect(server.manager.rooms.has(code)).toBe(true);
 
-    room.lastActivity = Date.now() - 12 * 60 * 60 * 1000 - 1000;
+    room.lastActivity = Date.now() - 2 * DAY_MS;
+    manager().sweep();
+    expect(server.manager.rooms.has(code)).toBe(true);
+
+    room.lastActivity = Date.now() - 7 * DAY_MS - 1000;
     manager().sweep();
     expect(server.manager.rooms.has(code)).toBe(false);
   });
@@ -270,7 +275,7 @@ describe('保存ファイル（再起動をまたぐ）', () => {
     await sleep(FLUSHED_MS);
     expect(savedCodes()).toContain(code);
 
-    s1.manager.rooms.get(code)!.lastActivity = Date.now() - 13 * 60 * 60 * 1000;
+    s1.manager.rooms.get(code)!.lastActivity = Date.now() - 8 * DAY_MS;
     sweepOf(s1);
     expect(s1.manager.rooms.has(code)).toBe(false);
     await sleep(FLUSHED_MS);
@@ -282,10 +287,10 @@ describe('保存ファイル（再起動をまたぐ）', () => {
     await s2.close();
   });
 
-  it('復元したルームは、再起動した時刻ではなく最後の動きから12時間で片付ける', async () => {
+  it('復元したルームは、再起動した時刻ではなく最後の動きから7日で片付ける', async () => {
     const s1 = await startTestServer({ persist: true });
     const code = await eventRoomOn(s1);
-    const oldActivity = Date.now() - 13 * 60 * 60 * 1000;
+    const oldActivity = Date.now() - 8 * DAY_MS;
     s1.manager.rooms.get(code)!.lastActivity = oldActivity;
     await s1.close(); // 終了時に書き出す
 
@@ -296,7 +301,7 @@ describe('保存ファイル（再起動をまたぐ）', () => {
     await s2.close();
   });
 
-  it('最後の動きから12時間たっていなければ、再起動しても残る', async () => {
+  it('最後の動きから7日たっていなければ、再起動しても残る', async () => {
     const s1 = await startTestServer({ persist: true });
     const code = await eventRoomOn(s1);
     await s1.close();
@@ -305,5 +310,87 @@ describe('保存ファイル（再起動をまたぐ）', () => {
     sweepOf(s2);
     expect(s2.manager.rooms.has(code)).toBe(true);
     await s2.close();
+  });
+});
+
+/* ================================================================== */
+describe('当日の事故を防ぐ', () => {
+  it('懇親会のルームはロビーに戻せない（戻すとクイズ・座席・ビンゴの進行が全部消える）', async () => {
+    const { host, code } = await setupEvent();
+    await host.actionOk('event:section', { section: 'bingo' });
+    await host.actionOk('bingo:draw');
+
+    const res = await host.emit('room:backToLobby');
+    expect(res.ok).toBe(false);
+    const room = server.manager.rooms.get(code)!;
+    expect(room.status).toBe('playing');
+    await host.waitFor((v) => (v.game as unknown as PartyEventView)?.bingo.called.length === 1, 3000, '進行が残る');
+  });
+
+  it('ルームを作った人が退出しても、参加者は司会にならない（司会用URLを開いた人に移る）', async () => {
+    const { host, clients, code } = await setupEvent(3);
+    const token = host.session!.hostToken!;
+    // 3人目が司会用URLを開いた（2人目はふつうの参加者）
+    await clients[2].ok('room:claimHost', { token });
+
+    await host.ok('room:leave');
+    const room = server.manager.rooms.get(code)!;
+    expect(room.hostId).toBe(clients[2].id);
+    await clients[1].waitFor((v) => !v.players.some((p) => p.id === host.id), 3000, '作った人が抜ける');
+    expect(clients[1].view!.youAreHost).toBe(false);
+    expect((await clients[1].action('bingo:draw')).ok).toBe(false);
+    // 参加者に答えが届かない
+    await clients[2].actionOk('event:section', { section: 'quiz' });
+    await clients[2].actionOk('quiz:next');
+    await clients[1].waitFor((v) => (v.game as unknown as PartyEventView)?.quiz.phase === 'question', 3000, '第1問');
+    expect(view(clients[1]).quiz.question!.answer).toBeNull();
+  });
+
+  it('司会用URLを開いた人がいないまま作った人が退出しても、誰も司会にならず、あとから司会用URLで戻れる', async () => {
+    const { host, clients, code } = await setupEvent(2);
+    const token = host.session!.hostToken!;
+    await host.ok('room:leave');
+    const room = server.manager.rooms.get(code)!;
+    expect(room.hostId).toBe('');
+    await clients[1].waitFor((v) => v.players.length === 1, 3000, '作った人が抜ける');
+    expect(clients[1].view!.youAreHost).toBe(false);
+
+    const back = await connect();
+    await back.join(code, '司会');
+    await back.ok('room:claimHost', { token });
+    await back.waitFor((v) => v.youAreHost && v.hostId === back.id, 3000, '司会に戻る');
+  });
+
+  it('切断した人と同じ名前で入れる（別のブラウザで開き直した本人）。接続中の人とは重ねられない', async () => {
+    const { clients, code } = await setupEvent(3);
+    const name = clients[1].view!.players.find((p) => p.id === clients[1].id)!.name;
+    const other = clients[2].view!.players.find((p) => p.id === clients[2].id)!.name;
+    clients[1].close();
+    await clients[0].waitFor((v) => v.players.some((p) => p.id === clients[1].id && !p.connected), 3000, '切断');
+
+    const again = await connect();
+    await again.join(code, name);
+    const dup = await connect();
+    expect((await dup.emit('room:join', { code, name: other })).ok).toBe(false);
+  });
+
+  it('通常のゲームは今まで通り、切断した人の名前でも入れない（猶予のうちは本人が戻れるように）', async () => {
+    const { clients, code } = await setupRoom(server.port, 'unanimous', 3);
+    open.push(...clients);
+    clients[1].close();
+    await clients[0].waitFor((v) => v.players.some((p) => p.id === clients[1].id && !p.connected), 3000, '切断');
+    const c = await connect();
+    expect((await c.emit('room:join', { code, name: 'たろう' })).ok).toBe(false);
+  });
+
+  it('退出した人が選んでいた名前は空き、戻ってきた本人が選び直せる', async () => {
+    const { clients, code } = await setupEvent(2);
+    await clients[1].actionOk('seats:claim', { personId: 'p1' });
+    await clients[1].ok('room:leave');
+
+    const back = await connect();
+    await back.join(code, 'たろう');
+    await back.actionOk('seats:claim', { personId: 'p1' });
+    await back.waitFor((v) => (v.game as unknown as PartyEventView)?.seats.myPersonId === 'p1', 3000, '選び直せた');
   });
 });

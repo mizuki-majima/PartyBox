@@ -43,8 +43,10 @@ const RATE_MAX_EVENTS = 60;
 
 /** 誰も接続していないルームを片付けるまでの時間（懇親会の本番のルームは除く） */
 const IDLE_CLOSE_MS = 30 * 60 * 1000;
-/** 最後の動きからこれだけ経ったルームは、どのルームでも片付ける */
+/** 最後の動きからこれだけ経ったルームは片付ける（懇親会の本番のルームは EVENT_KEEP_MS） */
 const STALE_CLOSE_MS = 12 * 60 * 60 * 1000;
+/** 懇親会の本番のルームを残す期間。前日までに作って QR を配っておけるように長めにとる */
+const EVENT_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * 催し物（懇親会）のルームか。
@@ -216,6 +218,8 @@ export class RoomManager {
       if (typeof token !== 'string' || token !== room.hostToken) throw new UserError('司会用のURLが正しくありません');
       socket.data.hostToken = token;
       room.hostClaims.add(player.id);
+      // 作った人が退出して司会の印（👑）が誰にも無ければ、司会用URLを開いた人に付ける
+      if (!room.players.has(room.hostId)) room.hostId = player.id;
       room.requestBroadcast();
     });
 
@@ -223,7 +227,8 @@ export class RoomManager {
       const room = this.getRoom(code);
       const cleanName = this.validateName(name);
       if (room.players.size >= room.meta.maxPlayers) throw new UserError('このルームは満員です');
-      if (room.isNameTaken(cleanName)) throw new UserError('その名前はすでに使われています');
+      // 懇親会は切断した人も外さないので、別のブラウザで開き直した本人が同じ名前で入れるよう、接続中の人とだけ比べる
+      if (room.isNameTaken(cleanName, undefined, isEventRoom(room))) throw new UserError('その名前はすでに使われています');
       const player = this.addPlayer(room, cleanName);
       this.attach(socket, room, player);
       return { session: this.session(room, player) };
@@ -307,6 +312,8 @@ export class RoomManager {
 
     on('room:backToLobby', () => {
       const { room } = this.requireHost(socket);
+      // 懇親会はロビーに戻すと、クイズ・座席・ビンゴの進行が全部消える（各企画に「最初から」がある）
+      if (isEventRoom(room)) throw new UserError('懇親会のルームはロビーに戻せません');
       room.game?.dispose();
       room.game = null;
       room.status = 'lobby';
@@ -448,6 +455,7 @@ export class RoomManager {
     if (player.removeTimer) clearTimeout(player.removeTimer);
     if (player.hostTimer) clearTimeout(player.hostTimer);
     room.players.delete(playerId);
+    room.hostClaims.delete(playerId);
     if (room.players.size === 0) {
       this.deleteRoom(room);
       return;
@@ -459,8 +467,15 @@ export class RoomManager {
 
   /** 接続中のプレイヤーのうち、最も早く入室した人にホストを移す */
   private transferHost(room: Room, force = false): void {
-    // 催し物は司会用URLで司会を決めるので、回線が切れても参加者に移さない
-    if (room.hostToken && !force) return;
+    if (room.hostToken) {
+      // 催し物は司会用URLで司会を決めるので、回線が切れても移さない。
+      // 作った人が退出したときも、参加者には移さない（クイズの答えが見えてしまう）。司会用URLを開いた人にだけ移す
+      if (!force) return;
+      const others = room.orderedPlayers.filter((p) => p.id !== room.hostId && room.hostClaims.has(p.id));
+      room.hostId = (others.find((p) => p.connected) ?? others[0])?.id ?? '';
+      room.requestBroadcast();
+      return;
+    }
     const next = room.connectedPlayers.find((p) => p.id !== room.hostId);
     if (next) room.hostId = next.id;
     else if (force) room.hostId = room.orderedPlayers[0]?.id ?? '';
@@ -487,10 +502,10 @@ export class RoomManager {
   private sweep(): void {
     const now = Date.now();
     for (const room of this.rooms.values()) {
-      // 懇親会の本番のルームは、夕食と二次会のあいだに全員の画面が消えていても残す（12時間で片付ける）
+      // 懇親会の本番のルームは、誰も開いていなくても残す（前日に作って QR を配れるように。最後の動きから7日で片付ける）
       const keepWhileIdle = isEventRoom(room) && !room.demo;
       const idle = !keepWhileIdle && room.connectedPlayers.length === 0 && now - room.lastActivity > IDLE_CLOSE_MS;
-      const stale = now - room.lastActivity > STALE_CLOSE_MS;
+      const stale = now - room.lastActivity > (keepWhileIdle ? EVENT_KEEP_MS : STALE_CLOSE_MS);
       if (idle || stale) this.closeRoom(room, 'ルームの有効期限が切れました');
     }
   }
