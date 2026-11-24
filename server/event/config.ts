@@ -26,14 +26,33 @@ const DEFAULT_DIR = '/opt/partybox/event-data';
 
 const nonEmpty = (max: number) => z.string().trim().min(1).max(max);
 
-const QuizQuestion = z.object({
-  question: nonEmpty(300),
-  /** 選択肢があれば選択問題。無ければ自由回答で、司会が ○ を付ける */
-  choices: z.array(nonEmpty(120)).min(2).max(6).optional(),
-  /** 選択問題なら選択肢の番号（0 始まり）、自由回答なら答えの文章 */
-  answer: z.union([z.number().int().min(0), nonEmpty(300)]),
-  note: z.string().max(500).optional(),
-});
+const QuizQuestion = z
+  .object({
+    question: nonEmpty(300),
+    /** 選択肢があれば選択問題。無ければ自由回答で、司会が ○ を付ける */
+    choices: z.array(nonEmpty(120)).min(2).max(6).optional(),
+    /**
+     * 選択問題なら選択肢の番号（**1 始まり**。party-app-aws の quiz.json と同じ）、自由回答なら答えの文章。
+     * 読み込んだあとは、選択問題の番号を 0 始まりに直して持つ（画面と採点は 0 始まり）
+     */
+    answer: z.union([z.number().int(), nonEmpty(300)]),
+    note: z.string().max(500).optional(),
+  })
+  .superRefine((q, ctx) => {
+    if (!q.choices) return;
+    if (typeof q.answer !== 'number' || q.answer < 1 || q.answer > q.choices.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['answer'],
+        message: `選択問題の answer は選択肢の番号（1〜${q.choices.length}。1 始まり）で書いてください`,
+      });
+    }
+  })
+  .transform((q) => {
+    if (q.choices) return { ...q, answer: (q.answer as number) - 1 };
+    // 自由回答に数字だけ書いてあっても、答えの文章として扱う
+    return { ...q, answer: String(q.answer) };
+  });
 
 const QuizConfig = z.object({
   title: nonEmpty(60).default('クイズ'),

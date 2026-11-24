@@ -174,12 +174,13 @@ scp quiz.json bingo.json seats.json <サーバー>:/opt/partybox/event-data/
 - 置き場にあるのに形式が違う場合は、黙ってサンプルに落とさず**起動を失敗させます**
   （当日「なぜかサンプルの問題が出た」を防ぐため）
 - 形式は party-app-aws の `data/*.json` と同じなので、そのまま持ってこられます
+  （クイズの選択問題の `answer` は**何番目か（1 始まり）**。範囲外の番号は起動時のエラーにします）
 
 ```jsonc
 // quiz.json
 { "title": "懇親会クイズ", "secondsPerQuestion": 30, "teams": ["チーム A", "チーム B"],
   "questions": [
-    { "question": "…", "choices": ["あ", "い"], "answer": 0, "note": "解説" }, // 選択問題（自動採点）
+    { "question": "…", "choices": ["あ", "い"], "answer": 1, "note": "解説" }, // 選択問題（自動採点）。answer は何番目か（1 始まり）
     { "question": "…", "answer": "こたえ" }                                     // 自由回答（司会が ○）
   ] }
 // bingo.json  … seed は当日変えないこと（変えると配ったカードが別物になる）
