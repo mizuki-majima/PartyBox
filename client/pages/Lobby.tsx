@@ -177,6 +177,7 @@ function PlayersCard({ meta }: { meta: GameMeta }) {
   const { room, isHost } = useRoomContext();
   const toast = useToast();
   const [renaming, setRenaming] = useState(false);
+  const [kicking, setKicking] = useState<{ id: string; name: string } | null>(null);
   const [name, setName] = useState('');
 
   const kick = async (id: string) => {
@@ -244,7 +245,9 @@ function PlayersCard({ meta }: { meta: GameMeta }) {
               )}
               {isHost && !isMe && (
                 <button
-                  onClick={() => kick(p.id)}
+                  // 懇親会は数十人が並ぶので、押し間違いで外さないように確かめる
+                  onClick={() => (isEventGame(room.gameId) ? setKicking({ id: p.id, name: p.name }) : kick(p.id))}
+                  data-testid="kick-player"
                   className="rounded-lg px-2 py-1 text-xs font-bold text-muted hover:bg-rose-500/20 hover:text-rose-200"
                   title={`${p.name}さんを退出させる`}
                 >
@@ -261,6 +264,27 @@ function PlayersCard({ meta }: { meta: GameMeta }) {
           </li>
         ))}
       </ul>
+      <Modal open={kicking !== null} onClose={() => setKicking(null)}>
+        <h2 className="font-display text-xl">{kicking?.name} さんをルームから外しますか？</h2>
+        <p className="mt-2 text-sm text-white/80">外された人は、参加用のQR・URLからもう一度入れます。</p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Button variant="secondary" size="lg" onClick={() => setKicking(null)}>
+            やめる
+          </Button>
+          <Button
+            variant="danger"
+            size="lg"
+            data-testid="kick-confirm"
+            onClick={async () => {
+              const id = kicking?.id;
+              setKicking(null);
+              if (id) await kick(id);
+            }}
+          >
+            外す
+          </Button>
+        </div>
+      </Modal>
       <Modal open={renaming} onClose={() => setRenaming(false)}>
         <h2 className="font-display text-xl">名前を変更</h2>
         <div className="mt-4">

@@ -430,6 +430,65 @@ describe('当日の事故を防ぐ', () => {
     expect((await dup.emit('room:join', { code, name: other })).ok).toBe(false);
   });
 
+  it('切断した人と同じ名前で入り直すと、同じ人として戻る（ビンゴのカード・チーム・選んだ名前がそのまま）', async () => {
+    const { host, clients, code } = await setupEvent(3);
+    const guest = clients[1];
+    const name = guest.view!.players.find((p) => p.id === guest.id)!.name;
+    const team = view(guest).quiz.teams[0];
+    const personId = view(guest).seats.roster[0].id;
+    await guest.actionOk('quiz:team', { team });
+    await guest.actionOk('seats:claim', { personId });
+    await guest.waitFor(() => view(guest).seats.myPersonId === personId, 3000, '名前を選ぶ');
+    const cardId = view(guest).bingo.myCard!.cardId;
+    const before = host.view!.players.length;
+    const old = guest.session!;
+
+    guest.close();
+    await host.waitFor((v) => v.players.some((p) => p.id === old.playerId && !p.connected), 3000, '切断');
+
+    // 別のブラウザから、同じ名前で入り直した（大文字小文字の違いは同じとみなす）
+    const again = await connect();
+    await again.join(code, name.toUpperCase());
+    await again.waitFor((v) => v.game !== null, 3000, '進行の画面');
+    expect(again.id).toBe(old.playerId);
+    expect(view(again).bingo.myCard!.cardId).toBe(cardId);
+    expect(view(again).quiz.myTeam).toBe(team);
+    expect(view(again).seats.myPersonId).toBe(personId);
+    expect(host.view!.players.length).toBe(before); // 人数は増えない
+
+    // 前のブラウザに残っている参加情報では、もう戻れない（2つの画面で取り合いにならない）
+    const stale = await connect();
+    expect((await stale.emit('room:rejoin', { code, playerId: old.playerId, token: old.token })).ok).toBe(false);
+    expect(again.replaced).toBe(false);
+  });
+
+  it('切断している司会と同じ名前で入っても、司会にはならない（別の参加者として入る）', async () => {
+    const { host, clients, code } = await setupEvent(3);
+    const hostName = host.view!.players.find((p) => p.id === host.id)!.name;
+    const hostId = host.id;
+    host.close();
+    await clients[1].waitFor((v) => v.players.some((p) => p.id === hostId && !p.connected), 3000, '司会の切断');
+
+    const intruder = await connect();
+    await intruder.join(code, hostName);
+    await intruder.waitFor((v) => v.game !== null, 3000, '進行の画面');
+    expect(intruder.id).not.toBe(hostId);
+    expect(intruder.view!.youAreHost).toBe(false);
+    expect(intruder.session!.hostToken).toBeUndefined();
+    expect((await intruder.action('bingo:draw')).ok).toBe(false);
+    expect(view(intruder).quiz.question?.answer ?? null).toBeNull();
+  });
+
+  it('通常のゲームでは、同じ名前で入っても前の人を引き継がない（今までどおり断る）', async () => {
+    const { clients, code } = await setupRoom(server.port, 'unanimous', 3);
+    open.push(...clients);
+    const name = clients[1].view!.players.find((p) => p.id === clients[1].id)!.name;
+    clients[1].close();
+    await clients[0].waitFor((v) => v.players.some((p) => p.id === clients[1].id && !p.connected), 3000, '切断');
+    const again = await connect();
+    expect((await again.emit('room:join', { code, name })).ok).toBe(false);
+  });
+
   it('通常のゲームは今まで通り、切断した人の名前でも入れない（猶予のうちは本人が戻れるように）', async () => {
     const { clients, code } = await setupRoom(server.port, 'unanimous', 3);
     open.push(...clients);

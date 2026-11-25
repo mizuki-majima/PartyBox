@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
-import { HostButton, HostPanel } from './PartyEventScreen';
+import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
 const letterOf = (n: number) => 'BINGO'[Math.min(4, Math.floor((n - 1) / 15))];
 
@@ -114,9 +114,11 @@ function HostControls() {
   return (
     <HostPanel title="ビンゴの進行">
       <div className="flex flex-col gap-3">
-        <HostButton onClick={() => act('bingo:draw', { at: b.called.length })} disabled={b.remaining === 0} testId="bingo-draw">
-          🎱 番号を引く
-        </HostButton>
+        <HostActionBar>
+          <HostButton onClick={() => act('bingo:draw', { at: b.called.length })} disabled={b.remaining === 0} testId="bingo-draw">
+            🎱 番号を引く
+          </HostButton>
+        </HostActionBar>
 
         <div className="grid grid-cols-2 gap-2">
           <Button size="sm" variant="secondary" onClick={() => act('bingo:undo', { at: b.called.length })} disabled={!b.called.length}>
@@ -172,6 +174,11 @@ function HostControls() {
           </div>
           {b.inspected && <InspectedCard />}
         </div>
+        {b.called.length > 0 && (
+          <ResetButton title="ビンゴを最初からやり直しますか？" onReset={() => act('bingo:reset')} testId="bingo-reset">
+            引いた番号・ビンゴした人の受付・景品の結果が全部消えます。配ったカードはそのままです。
+          </ResetButton>
+        )}
       </div>
     </HostPanel>
   );
@@ -234,6 +241,7 @@ function CalledNumbers({ called }: { called: number[] }) {
 function Claims() {
   const { game, act } = useGame<PartyEventView>();
   const b = game.bingo;
+  const [removing, setRemoving] = useState<{ cardId: string; name: string } | null>(null);
   if (!b.claims.length) return null;
   return (
     <Card>
@@ -252,7 +260,8 @@ function Claims() {
             {game.isHost && c.cardId && (
               <button
                 className="text-xs font-bold text-rose-300 hover:text-rose-200"
-                onClick={() => act('bingo:removeClaim', { cardId: c.cardId })}
+                onClick={() => setRemoving({ cardId: c.cardId!, name: c.name })}
+                data-testid="bingo-claim-remove"
               >
                 取消
               </button>
@@ -260,6 +269,16 @@ function Claims() {
           </li>
         ))}
       </ol>
+      <ConfirmModal
+        open={removing !== null}
+        title={`${removing?.name ?? ''} さんの受付を取り消しますか？`}
+        confirmLabel="取り消す"
+        onConfirm={() => act('bingo:removeClaim', { cardId: removing?.cardId })}
+        onClose={() => setRemoving(null)}
+        testId="bingo-claim-remove-confirm"
+      >
+        順位が繰り上がります。{b.prizes ? '景品の抽選結果も消えるので、抽選はやり直しになります。' : ''}
+      </ConfirmModal>
     </Card>
   );
 }

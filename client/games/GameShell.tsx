@@ -52,7 +52,7 @@ export function GameShell() {
         {Screen ? <Screen /> : <p>このゲームは準備中です</p>}
       </div>
 
-      {/* 懇親会はロビーに戻すと進行が全部消えるので出さない（各企画に「最初から」がある） */}
+      {/* 懇親会はロビーに戻すと進行が全部消えるので出さない（各企画に「最初からやり直す」がある） */}
       {game.phase !== 'GAME_OVER' && !isEventGame(room.gameId) && <AbortGame />}
     </div>
   );

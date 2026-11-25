@@ -1,7 +1,9 @@
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { EventSection, PartyEventView } from '../../../shared/games/views';
 import { Button, Card, Modal } from '../../components/ui';
+import { SEAT } from '../../lib/session';
 import { useToast } from '../../lib/toast';
 import { HostUrl } from '../../pages/Lobby';
 import { useGame, useRoomContext } from '../RoomContext';
@@ -146,6 +148,106 @@ export function HostPanel({ children, title }: { children: React.ReactNode; titl
       <p className="mb-3 text-xs font-extrabold tracking-[0.2em] text-amber-200 uppercase">👑 {title}</p>
       {children}
     </Card>
+  );
+}
+
+/**
+ * 司会の進行ボタンを画面の下に固定する帯。
+ * スマホで司会をすると、進行のボタンが最初の1画面に収まらず、押すたびにスクロールが要るため。
+ * body 直下に出す（登場アニメーションの付いた枠の中だと、fixed がその枠基準になる）
+ */
+export function HostActionBar({ children }: { children: React.ReactNode }) {
+  // デモの枠（iframe）の中では固定しない。枠の下端がブラウザの画面の外に出ていて、固定すると見えなくなるため
+  if (SEAT) return <>{children}</>;
+  return createPortal(
+    <div
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-amber-400/30 bg-ink/90 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg"
+      data-testid="host-action-bar"
+    >
+      <div className="mx-auto max-w-3xl">{children}</div>
+    </div>,
+    document.body,
+  );
+}
+
+/** 取り返しにくい操作の前に、1回確かめる */
+export function ConfirmModal({
+  open,
+  title,
+  children,
+  confirmLabel,
+  onConfirm,
+  onClose,
+  testId,
+}: {
+  open: boolean;
+  title: string;
+  children: React.ReactNode;
+  confirmLabel: string;
+  onConfirm: () => void | Promise<unknown>;
+  onClose: () => void;
+  testId?: string;
+}) {
+  return (
+    <Modal open={open} onClose={onClose}>
+      <h2 className="font-display text-xl">{title}</h2>
+      <p className="mt-2 text-sm text-white/80">{children}</p>
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <Button variant="secondary" size="lg" onClick={onClose}>
+          やめる
+        </Button>
+        <Button
+          variant="danger"
+          size="lg"
+          data-testid={testId}
+          onClick={async () => {
+            onClose();
+            await onConfirm();
+          }}
+        >
+          {confirmLabel}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * 各企画の「最初からやり直す」。試しに進めたあと、本番の前に戻せるように。
+ * 押し間違えると進行が消えるので、小さく置いて、必ず確かめる
+ */
+export function ResetButton({
+  title,
+  children,
+  onReset,
+  testId,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onReset: () => void | Promise<unknown>;
+  testId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        className="mt-2 self-center px-3 py-2 text-xs font-bold text-rose-300/80 underline underline-offset-4 hover:text-rose-200"
+        onClick={() => setOpen(true)}
+        data-testid={testId}
+      >
+        最初からやり直す
+      </button>
+      <ConfirmModal
+        open={open}
+        title={title}
+        confirmLabel="やり直す"
+        onConfirm={onReset}
+        onClose={() => setOpen(false)}
+        testId={`${testId}-confirm`}
+      >
+        {children}
+      </ConfirmModal>
+    </>
   );
 }
 
