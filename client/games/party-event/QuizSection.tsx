@@ -3,7 +3,7 @@ import type { PartyEventView } from '../../../shared/games/views';
 import { BigTimer, QuestionCard } from '../../components/game';
 import { Badge, Button, Card, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
-import { HostButton, HostPanel } from './PartyEventScreen';
+import { HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
 const PHASE_LABEL: Record<string, string> = {
   idle: 'これから',
@@ -241,13 +241,20 @@ function HostControls() {
             <span className="font-bold">{preview}</span>
           </p>
         )}
-        <HostButton onClick={() => act('quiz:next', { at: q.position })} disabled={q.phase === 'result'} testId="quiz-next">
-          ▶ {nextLabel}
-        </HostButton>
+        <HostActionBar>
+          <HostButton onClick={() => act('quiz:next', { at: q.position })} disabled={q.phase === 'result'} testId="quiz-next">
+            ▶ {nextLabel}
+          </HostButton>
+        </HostActionBar>
         <Button size="sm" variant="secondary" onClick={() => act('quiz:prev', { at: q.position })} disabled={q.phase === 'idle'}>
           ↩ 1つ戻す
         </Button>
         {q.answers && q.answers.length > 0 && <AnswerTable />}
+        {q.phase !== 'idle' && (
+          <ResetButton title="クイズを最初からやり直しますか？" onReset={() => act('quiz:reset')} testId="quiz-reset">
+            第1問の前に戻り、これまでの回答と得点が消えます。各自が選んだチームはそのままです。
+          </ResetButton>
+        )}
       </div>
     </HostPanel>
   );

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { PartyEventView, SeatsRosterEntry } from '../../../shared/games/views';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
-import { HostButton, HostPanel } from './PartyEventScreen';
+import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
 export function SeatsSection() {
   const { game } = useGame<PartyEventView>();
@@ -229,15 +229,28 @@ function HostControls() {
   const s = game.seats;
   const [name, setName] = useState('');
   const [group, setGroup] = useState('');
+  const [confirmAll, setConfirmAll] = useState(false);
 
   return (
     <HostPanel title="座席決めの進行">
       <div className="flex flex-col gap-3">
-        <HostButton onClick={() => act('seats:draw', { at: s.drawn })} disabled={s.remaining === 0} testId="seats-draw">
-          🎐 1人引く（残り {s.remaining}）
-        </HostButton>
+        <HostActionBar>
+          <HostButton onClick={() => act('seats:draw', { at: s.drawn })} disabled={s.remaining === 0} testId="seats-draw">
+            🎐 1人引く（残り {s.remaining}）
+          </HostButton>
+        </HostActionBar>
+        <ConfirmModal
+          open={confirmAll}
+          title={`残りの ${s.remaining} 人を、一度に引きますか？`}
+          confirmLabel="全員引く"
+          onConfirm={() => act('seats:drawAll', { at: s.drawn })}
+          onClose={() => setConfirmAll(false)}
+          testId="seats-draw-all-confirm"
+        >
+          1人ずつではなく、残り全員の席がまとめて決まり、全員の画面に出ます。
+        </ConfirmModal>
         <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" onClick={() => act('seats:drawAll', { at: s.drawn })} disabled={s.remaining === 0}>
+          <Button size="sm" variant="secondary" onClick={() => setConfirmAll(true)} disabled={s.remaining === 0} data-testid="seats-draw-all">
             残り全員
           </Button>
           <Button size="sm" variant="secondary" onClick={() => act('seats:undo', { at: s.drawn })} disabled={!s.drawn}>
@@ -266,6 +279,11 @@ function HostControls() {
             </Button>
           </div>
         </div>
+        {(s.drawn > 0 || s.roster.some((p) => p.absent)) && (
+          <ResetButton title="座席決めを最初からやり直しますか？" onReset={() => act('seats:reset')} testId="seats-reset">
+            決まった席と欠席の印が全部消えます。各自が選んだ名前と、当日足した人はそのままです。
+          </ResetButton>
+        )}
       </div>
     </HostPanel>
   );

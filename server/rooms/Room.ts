@@ -97,6 +97,18 @@ export class Room {
     );
   }
 
+  /**
+   * 同じ名前で、いま切断している参加者（懇親会で、別のブラウザから入り直した本人を同じ人として戻すのに使う）。
+   * 司会は対象にしない。名前を入れるだけで司会になれてしまうため（司会は司会用URLで戻る）。
+   * 同じ名前の人が何人もいれば、最後に入った人
+   */
+  findDisconnectedByName(name: string): Player | undefined {
+    const n = name.toLowerCase();
+    return this.orderedPlayers
+      .filter((p) => !p.connected && !this.isHostPlayer(p.id) && p.name.toLowerCase() === n)
+      .at(-1);
+  }
+
   /* ---------------- ゲームに渡すコンテキスト ---------------- */
 
   readonly context: GameContext = {

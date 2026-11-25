@@ -242,9 +242,20 @@ export class RoomManager {
     on('room:join', ({ code, name }) => {
       const room = this.getRoom(code);
       const cleanName = this.validateName(name);
+      // 懇親会: 切断している人と同じ名前で入ってきたら、その人として続きから（別のブラウザで開き直した本人）。
+      // 新しい人にすると、ビンゴのカードが別物になり、チームと選んだ名前も選び直しになる
+      // （接続中の人が同じ名前を使っていれば、下で断る。同じ名前の人が2人つながらないように）
+      const inUse = room.isNameTaken(cleanName, undefined, isEventRoom(room));
+      const previous = isEventRoom(room) && !inUse ? room.findDisconnectedByName(cleanName) : undefined;
+      if (previous) {
+        // 前のブラウザに残っている参加情報では戻れないようにする（2つの画面で取り合いにならないように）
+        previous.token = generateToken();
+        this.attach(socket, room, previous);
+        return { session: this.session(room, previous) };
+      }
       if (room.players.size >= room.meta.maxPlayers) throw new UserError('このルームは満員です');
-      // 懇親会は切断した人も外さないので、別のブラウザで開き直した本人が同じ名前で入れるよう、接続中の人とだけ比べる
-      if (room.isNameTaken(cleanName, undefined, isEventRoom(room))) throw new UserError('その名前はすでに使われています');
+      // 懇親会は切断した人も外さないので、接続中の人とだけ比べる（切断中の司会と同じ名前なら、別の人として入る）
+      if (inUse) throw new UserError('その名前はすでに使われています');
       const player = this.addPlayer(room, cleanName);
       this.attach(socket, room, player);
       return { session: this.session(room, player) };
