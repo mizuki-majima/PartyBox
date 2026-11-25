@@ -82,14 +82,40 @@ const SeatsConfig = z.object({
   fillOrder: z.string().optional(),
 });
 
+/**
+ * 常設のルーム（room.json）。置いてあれば、サーバーが起動時にこのコードの懇親会ルームを用意し、期限で片付けない。
+ * 参加者はトップの「コードで参加」からコードを入れるだけで入れる（誰かがルームを作る必要が無い）。
+ * コードを知らない人に名簿やクイズを見せないよう、このファイルがある間は、懇親会のルームとデモを新しく作れなくする。
+ * 名簿と同じく、リポジトリには置かない（コードと司会用の合言葉が入るため）
+ */
+const FixedRoomConfig = z.object({
+  /** ルームコード。英数字 6〜8 文字（参加者が入力する。大文字と小文字は区別しない） */
+  code: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9]{6,8}$/, 'code は英数字 6〜8 文字で書いてください')
+    .transform((s) => s.toUpperCase()),
+  /**
+   * 司会用URL（/room/<code>/h/<hostToken>）の合言葉。16〜64 文字。司会の方にだけ伝える。
+   * 省くとサーバーが作る（保存ファイルの hostToken で確かめられる）
+   */
+  hostToken: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{16,64}$/, 'hostToken は英数字・-・_ の 16〜64 文字で書いてください')
+    .optional(),
+});
+
 export type QuizConfig = z.infer<typeof QuizConfig>;
 export type BingoConfig = z.infer<typeof BingoConfig>;
 export type SeatsConfig = z.infer<typeof SeatsConfig>;
+export type FixedRoomConfig = z.infer<typeof FixedRoomConfig>;
 
 export interface EventConfig {
   quiz: QuizConfig;
   bingo: BingoConfig;
   seats: SeatsConfig;
+  /** 常設のルーム（room.json が置いてあるときだけ） */
+  room: FixedRoomConfig | null;
   /** 実際に読めた置き場（ログと司会画面の確認用） */
   source: string;
 }
@@ -142,10 +168,22 @@ export function loadEventConfig(): EventConfig {
   const bingo = load(BingoConfig, dir, 'bingo.json');
   const seats = load(SeatsConfig, dir, 'seats.json');
   const fromDir = [quiz, bingo, seats].filter((x) => x.fromDir).length;
+  // 常設のルームにはサンプルが無い（置いていなければ、今までどおり誰かがルームを作る）。
+  // 置いてあるのに形式が違えば、ほかのファイルと同じく起動を失敗させる
+  const rawRoom = readJson(dir, 'room.json');
+  let room: FixedRoomConfig | null = null;
+  if (rawRoom !== null) {
+    const parsed = FixedRoomConfig.safeParse(rawRoom);
+    if (!parsed.success) {
+      throw new Error(`${join(dir, 'room.json')} の形式が正しくありません: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' / ')}`);
+    }
+    room = parsed.data;
+  }
   return {
     quiz: quiz.value,
     bingo: bingo.value,
     seats: seats.value,
+    room,
     source: fromDir === 3 ? dir : fromDir === 0 ? 'サンプル（本番のデータが未設置）' : `${dir}（${3 - fromDir} 件はサンプル）`,
   };
 }

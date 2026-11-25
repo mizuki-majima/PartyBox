@@ -4,6 +4,7 @@ import { getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS } from '../../shared/protocol';
 import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, TextInput } from '../components/ui';
+import { useFixedEventRoom } from '../lib/eventInfo';
 import { getLastName, saveSession } from '../lib/session';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
@@ -16,6 +17,7 @@ export function CreateRoomPage() {
   const toast = useToast();
   const [name, setName] = useState(getLastName);
   const [loading, setLoading] = useState(false);
+  const fixedEvent = useFixedEventRoom() === true && isEventGame(gameId);
 
   if (!game) {
     return (
@@ -81,6 +83,21 @@ export function CreateRoomPage() {
           </div>
         </section>
 
+        {fixedEvent ? (
+          <Card className="animate-slide-up self-start">
+            <h2 className="font-display text-2xl" data-testid="fixed-room-note">
+              ルームは用意してあります
+            </h2>
+            <p className="mt-2 text-base">
+              新しく作る必要はありません。司会から聞いたルームコードを入れると、いつでも参加できます。
+            </p>
+            <Link to="/join" className="mt-5 block">
+              <Button size="xl" block>
+                <Icon name="key" /> コードを入れて参加する
+              </Button>
+            </Link>
+          </Card>
+        ) : (
         <Card className="animate-slide-up self-start">
           <h2 className="font-display text-2xl">ルームを作る</h2>
           <p className="mt-1 text-sm text-muted">ルームを作ったら、招待URLを友達に送りましょう。</p>
@@ -116,6 +133,7 @@ export function CreateRoomPage() {
             </Link>
           </div>
         </Card>
+        )}
       </main>
     </div>
   );

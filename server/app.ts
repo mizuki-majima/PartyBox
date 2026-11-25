@@ -45,6 +45,12 @@ export async function startPartyServer(options: PartyServerOptions = {}): Promis
     res.json({ ok: true, rooms: manager.rooms.size });
   });
 
+  // 懇親会の入口の出し分け用。常設のルームがあるかどうかだけを返す（ルームコードは返さない）
+  app.get('/api/event', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ fixedRoom: manager.hasFixedRoom() });
+  });
+
   // 勝者の記録（/results のページが読む。最後まで遊んだ通常のゲームの結果を、終わった順に）
   app.get('/api/results', (_req, res) => {
     const body: ResultsResponse = { results: manager.results.list(), serverNow: Date.now() };
