@@ -3,6 +3,7 @@ import { getGameMeta, isEventGame } from '../../shared/games';
 import { TimerBar } from '../components/game';
 import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Modal } from '../components/ui';
+import { GameGuide } from '../guides';
 import { request } from '../lib/socket';
 import { themeOfGame, useTheme } from '../themes';
 import { GAME_SCREENS } from './registry';
@@ -23,6 +24,7 @@ export function GameShell() {
   if (!game) return null;
   const Screen = GAME_SCREENS[game.gameId];
   const showRound = game.phase !== 'START' && game.phase !== 'GAME_OVER' && game.round > 0;
+  const [guideOpen, setGuideOpen] = useState(false);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -32,12 +34,29 @@ export function GameShell() {
             <GameEmblem id={meta.id} className="h-8 w-10" />
             <span className="truncate font-extrabold">{meta.title}</span>
           </div>
-          {showRound && (
-            <span className="ui-badge shrink-0 bg-fg px-3 py-1 font-display text-sm text-bg" data-testid="round">
-              {game.gameId === 'grow-answer' ? 'STEP' : 'ROUND'} {game.round}/{game.totalRounds}
-            </span>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {showRound && (
+              <span className="ui-badge shrink-0 bg-fg px-3 py-1 font-display text-sm text-bg" data-testid="round">
+                {game.gameId === 'grow-answer' ? 'STEP' : 'ROUND'} {game.round}/{game.totalRounds}
+              </span>
+            )}
+            {/* ルールを忘れても、いつでも見返せるように（開いている間もゲームは止まらない） */}
+            <button
+              onClick={() => setGuideOpen(true)}
+              className="ui-tile inline-flex min-h-11 shrink-0 items-center gap-1 px-3 text-sm font-extrabold"
+              data-testid="guide-open"
+            >
+              <Icon name="help" /> 遊び方
+            </button>
+          </div>
         </div>
+        <Modal open={guideOpen} onClose={() => setGuideOpen(false)}>
+          <h2 className="mb-4 font-display text-xl">{meta.title}の遊び方</h2>
+          <GameGuide gameId={meta.id} isHost={room.youAreHost} />
+          <Button variant="secondary" block size="lg" className="mt-6" onClick={() => setGuideOpen(false)} data-testid="guide-close">
+            とじる
+          </Button>
+        </Modal>
         <TimerBar deadline={game.deadline} duration={game.duration} />
       </div>
 

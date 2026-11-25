@@ -5,6 +5,7 @@ import type { EventSection, PartyEventView } from '../../../shared/games/views';
 import { GameEmblem, Icon, type IconName } from '../../components/Icon';
 import { Button, Card, Modal } from '../../components/ui';
 import { SEAT } from '../../lib/session';
+import { HowTo } from '../../guides';
 import { useToast } from '../../lib/toast';
 import { HostUrl } from '../../pages/Lobby';
 import { useGame, useRoomContext } from '../RoomContext';
@@ -138,9 +139,22 @@ function Waiting({ isHost }: { isHost: boolean }) {
       <h2 className="mt-4 font-display text-2xl">
         {isHost ? '上から企画を選んでください' : 'もうすぐ始まります'}
       </h2>
-      <p className="mt-2 text-sm text-muted">
+      <p className="mt-2 text-base text-muted">
         {isHost ? '選んだ企画が参加者全員の画面に出ます。' : 'この画面のまま、司会の合図をお待ちください。'}
       </p>
+      {!isHost && (
+        <div className="mt-6">
+          <HowTo
+            title="このあとの流れ"
+            testId="event-howto-waiting"
+            steps={[
+              '司会が始めると、この画面が自動で切り替わります。何も押さずに待っていてください。',
+              '画面が消えても大丈夫です。つけ直すと、同じ画面に戻ります。',
+              'くわしい説明は、右上の「遊び方」でいつでも見られます。',
+            ]}
+          />
+        </div>
+      )}
     </Card>
   );
 }

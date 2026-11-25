@@ -1,0 +1,247 @@
+/**
+ * くわしい遊び方（説明書き）
+ *
+ * 初めての人・スマホに慣れていない人でも迷わないように、「何をするゲームか」「順番にやること」
+ * 「点数」「困ったとき」を、短い文で1つずつ書く。待機画面と、ゲーム中の「遊び方」ボタンから開ける。
+ *
+ * 書くときの約束:
+ * - 1文を短く。「押す」「待つ」など、手を動かす言葉で書く。カタカナ語・略語を避ける
+ * - 画面に出ているボタンの名前は「」で、そのとおりに書く
+ * - 点数や決まりは、サーバーの実装と同じことだけを書く（変えたらここも直す）
+ */
+import type { ReactNode } from 'react';
+import type { GameId } from '../shared/games';
+import { Icon, type IconName } from './components/Icon';
+
+interface GuideStep {
+  /** 何をする段か（短く） */
+  title: string;
+  /** その段でやること */
+  text: string;
+}
+
+interface Guide {
+  /** ひとことで言うと、どんなゲームか */
+  summary: string;
+  /** 順番にやること */
+  steps: GuideStep[];
+  /** 点数の決まり（無ければ出さない） */
+  scoring?: string[];
+  /** 知っておくと楽なこと */
+  tips?: string[];
+}
+
+/** どのゲームにも共通の「困ったとき」 */
+const TROUBLE: { q: string; a: string }[] = [
+  { q: '画面が消えた・暗くなった', a: 'スマホの画面をつけ直してください。同じ画面に自動で戻ります。入り直しは要りません。' },
+  { q: '画面が動かない・「再接続しています…」と出る', a: '少し待つと戻ります。戻らないときは、ページを読み込み直してください（同じ人として続きから遊べます）。' },
+  { q: 'まちがえてページを閉じた', a: '最初に開いた招待のURL（QRコード）をもう一度開いてください。同じスマホなら、続きから戻れます。' },
+  { q: '右上の「退出」は押していい？', a: '押さないでください。途中で抜けることになります。画面を閉じるだけなら「退出」は要りません。' },
+];
+
+const GUIDES: Record<Exclude<GameId, 'party-event'>, Guide> = {
+  'whose-answer': {
+    summary: 'みんなが名前を出さずに書いた答えを見て、「これを書いたのは誰か」を当てるゲームです。',
+    steps: [
+      { title: '答えを書く', text: '全員に同じ質問が出ます。白い入力欄に自分の答えを書いて、「送信する」を押します。誰が書いたかは、ほかの人には見えません。' },
+      { title: '誰の答えか選ぶ', text: '全員の答えが並びます。それぞれの答えの下にある名前を押して、「書いたと思う人」を選びます。自分の答えには選ぶ欄がありません。' },
+      { title: '確定する', text: '全部選んだら、下の「推理を確定する」を押します。押したあとでも、もう一度押せば選び直せます。' },
+      { title: '答え合わせ', text: '全員が確定すると、誰が書いたかが発表されます。これを決まった回数くり返します。' },
+    ],
+    scoring: ['書いた人を当てたら、1つにつき +2点', '自分の答えを当てられたら、当てた人1人につき −1点', '自分の答えを誰にも当てられなかったら +1点'],
+    tips: ['自分らしい答えを書いても、ほかの人のふりをして書いてもかまいません。', '時間が切れると、書きかけの答えはそのまま送られます。'],
+  },
+  unanimous: {
+    summary: 'お題に対して、全員が同じ答えを書けるかに挑戦するゲームです。全員が1つのチームです。',
+    steps: [
+      { title: '答えを書く', text: 'お題が出ます。「みんなが書きそうな答え」を考えて、白い入力欄に書き、「送信する」を押します。相談はしません。' },
+      { title: '待つ', text: '全員が送り終わるまで、ほかの人の答えは見えません。下に、送り終わった人が出ます。' },
+      { title: '答え合わせ', text: '同じ答えを書いた人がまとまって出ます。同じ答えの人が多いほど、チームの点が増えます。' },
+      { title: '次へ', text: 'ホスト（部屋を作った人）が「次のラウンドへ」を押すと、次のお題に進みます。' },
+    ],
+    scoring: ['同じ答えが2人で 1点、3人で 3点、4人で 5点…と増えます', '全員が同じ答えなら 10点', '点はチーム全体の合計です（個人の順位はありません）'],
+    tips: [
+      'ひらがな・カタカナ・全角と半角のちがいは、同じ答えとして自動でまとめます。',
+      '「ラーメン」と「らーめん屋」のように書き方がちがうだけの答えは、ホストが「表記ゆれをまとめる」で1つにできます。',
+    ],
+  },
+  liar: {
+    summary: '全員に同じお題が配られますが、1人だけお題を知らない「嘘つき」がいます。話を聞いて、嘘つきを見つけるゲームです。',
+    steps: [
+      { title: '自分のカードを見る', text: 'お題か、「あなたは嘘つきです」のどちらかが出ます。ほかの人に画面を見せないでください。見たら「確認した！」を押します。' },
+      { title: '順番に話す', text: '上に出た順番で、1人ずつお題について一言話します。自分の番には「あなたの番です！」と大きく出ます。声で話すだけでも、文字で入力してもかまいません。話し終わったらボタンを押して、次の人に回します。' },
+      { title: '投票する', text: '全員が話したら、嘘つきだと思う人の名前を押します。選んだ人には「投票中」と出ます。時間内なら選び直せます。' },
+      { title: '結果', text: 'いちばん票が多かった人が嘘つきなら、ほかの人（市民）の勝ちです。見つかった嘘つきは、最後に「本当のお題」を当てると逆転できます。' },
+    ],
+    tips: [
+      'お題を知っている人は、答えそのものを言いすぎないようにします（嘘つきにお題がばれるため）。',
+      '嘘つきは、ほかの人の話からお題を想像して、知っているふりをします。',
+      '設定が「ワードウルフ」のときは、嘘つきにも別のお題が届きます。自分が嘘つきかどうかは、本人にも分かりません。',
+      '点数は、結果の画面に毎回出ます。',
+    ],
+  },
+  'grow-answer': {
+    summary: '絵と言葉で行う伝言ゲームです。お題を絵にして、その絵を次の人が言葉にして、また次の人が絵にします。',
+    steps: [
+      { title: 'お題を絵にする', text: 'お題が出ます。白い紙の上を指でなぞって絵を描きます。字は書かずに、絵だけで伝えます。描けたら「完成！」を押します。' },
+      { title: '絵を言葉にする', text: '前の人の絵が出ます。何の絵に見えるかを文章で書いて、「決定！」を押します。' },
+      { title: 'くり返す', text: 'その文章を、また次の人が絵にします。人数に合わせて何回かくり返します。' },
+      { title: 'アルバムを見る', text: '最後に、お題がどう変わっていったかを順番に見ます。ホスト（部屋を作った人）がページを進めます。' },
+    ],
+    tips: [
+      '紙の下で、色・線の太さ・消しゴムを選べます。「戻す」で1つ前の線を消せます。',
+      '時間が切れると、描きかけ・書きかけのまま次の人に渡ります。',
+      '設定によっては、最初に自分でお題を書くところから始まります。',
+      '勝ち負けはありません。ずれていくのを楽しむゲームです。',
+    ],
+  },
+  'ten-sec-trial': {
+    summary: '小さな事件の裁判をするゲームです。被告・検察・弁護士・証人の役が配られ、10秒ずつ話して、有罪か無罪かを決めます。',
+    steps: [
+      { title: '事件と自分の役を見る', text: '事件の説明と、自分の役（被・検・弁・証の印）が出ます。自分だけが知っている「証拠」も出ます。見たら「準備OK！」を押します。' },
+      { title: '順番に話す', text: '検察 → 証人 → 弁護士 → 被告の順に、1人10秒ずつ話します。自分の番には「あなたの番です！」と大きく出ます。証拠を使って、自分の役の目標に合う話をします。' },
+      { title: '投票する', text: '被告以外の全員が、「有罪」か「無罪」のどちらかを押します。選んだほうに「投票中」と出ます。被告は投票できません。' },
+      { title: '判決', text: '多かったほうが判決になり、本当はどうだったかが発表されます。' },
+    ],
+    tips: [
+      '本当にやったかどうかを知っているのは、被告だけです。',
+      '自分の役の目標と、もらえる点は、役のカードに書いてあります。',
+      '話す時間は短いので、言いたいことを1つに決めておくと楽です。',
+    ],
+  },
+};
+
+/** 懇親会: 参加者向け */
+const EVENT_GUEST: Guide = {
+  summary: '司会の合図に合わせて、自分のスマホでクイズ・座席決め・ビンゴに参加します。むずかしい操作はありません。',
+  steps: [
+    { title: '待つ', text: '名前を入れて入ったら、あとは待つだけです。司会が企画を始めると、画面が自動で切り替わります。' },
+    { title: 'クイズ', text: '最初に自分のチームを押します。問題が出て「回答タイム」になったら、答えを押します（文字で答える問題は、書いて「送信する」）。時間内なら押し直せます。答えはチームで1つです。' },
+    { title: '座席決め', text: '名簿から自分の名前を押します。名前が無いときは、下の「名簿に名前が無い方はこちら」から足せます。司会がくじを引くと、自分のテーブルが大きく出ます。' },
+    { title: 'ビンゴ', text: '自分のカードが1枚出ます。読み上げられた番号のマスは自動で開くので、何も押さなくて大丈夫です。1列そろうと「ビンゴ！」のボタンが出るので、押してください。' },
+  ],
+  tips: [
+    '画面を消しても大丈夫です。つけ直すと、同じカード・同じ名前のまま戻ります。',
+    '右上の「退出」は押さないでください（カードや選んだ名前が引き継がれなくなります）。',
+    '別のスマホやブラウザで開き直すときは、前と同じ名前を入れると、同じ人として戻れます。',
+  ],
+};
+
+/** 懇親会: 司会向け */
+const EVENT_HOST: Guide = {
+  summary: '司会の画面です。上のボタンで企画を選ぶと、参加者全員の画面がその企画に切り替わります。',
+  steps: [
+    { title: '人を集める', text: '「参加用のQR・URL」を出して、参加者に読み取ってもらいます。あとから来た人にも同じQRを見せれば入れます。' },
+    { title: '企画を選ぶ', text: '上の「クイズ」「座席決め」「ビンゴ」を押します。行き来しても、進み具合は消えません。「待機」は、何も出さずに待ってもらうときに使います。' },
+    { title: '進める', text: '画面のいちばん下の大きなボタン（「回答タイム開始」「1人引く」「番号を引く」など）を押して進めます。まちがえたら「1つ戻す」で戻せます。' },
+    { title: 'やり直す', text: '試しに進めたあとは、各企画の「最初からやり直す」で元に戻せます。チーム・選んだ名前・配ったカードは残ります。' },
+  ],
+  tips: [
+    'クイズの答えは、司会の画面にだけ先に出ます。司会のスマホを会場に映すと答えが見えてしまうので、映す端末は参加者として入れてください。',
+    'ほかの司会の方には、「参加用のQR・URL」の中にある司会用URLを渡します。司会用URLは参加者に見せないでください。',
+    '座席のくじは、名前を選んだ人だけから引きます。全員が名前を選び終わってから引いてください。',
+    'ビンゴした人のカードは、カードの番号（4文字）を「カードを確かめる」に入れると確認できます。',
+  ],
+};
+
+function guideOf(gameId: GameId, isHost: boolean): Guide {
+  if (gameId === 'party-event') return isHost ? EVENT_HOST : EVENT_GUEST;
+  return GUIDES[gameId];
+}
+
+function Heading({ icon, children }: { icon: IconName; children: ReactNode }) {
+  return (
+    <h3 className="mb-2 flex items-center gap-2 text-sm font-extrabold tracking-[0.15em] text-accent-ink">
+      <Icon name={icon} /> {children}
+    </h3>
+  );
+}
+
+/**
+ * くわしい遊び方。待機画面と、ゲーム中の「遊び方」のダイアログに出す。
+ * 文字は読みやすい大きさ（本文は 16px 以上）にして、行の間をあける
+ */
+export function GameGuide({ gameId, isHost = false, trouble = true }: { gameId: GameId; isHost?: boolean; trouble?: boolean }) {
+  const guide = guideOf(gameId, isHost);
+  return (
+    <div className="flex flex-col gap-6 text-left text-base leading-relaxed" data-testid="game-guide">
+      <p className="font-bold">{guide.summary}</p>
+
+      <section>
+        <Heading icon="play">やること（順番に）</Heading>
+        <ol className="flex flex-col gap-3">
+          {guide.steps.map((s, i) => (
+            <li key={s.title} className="flex gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-fg font-display text-base text-bg">{i + 1}</span>
+              <div className="min-w-0">
+                <p className="font-extrabold">{s.title}</p>
+                <p>{s.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {guide.scoring && (
+        <section>
+          <Heading icon="trophy">点数</Heading>
+          <ul className="flex flex-col gap-1.5">
+            {guide.scoring.map((line) => (
+              <li key={line} className="flex gap-2">
+                <span aria-hidden>・</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {guide.tips && (
+        <section>
+          <Heading icon="spark">知っておくと楽なこと</Heading>
+          <ul className="flex flex-col gap-1.5">
+            {guide.tips.map((line) => (
+              <li key={line} className="flex gap-2">
+                <span aria-hidden>・</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {trouble && (
+        <section>
+          <Heading icon="alert">困ったとき</Heading>
+          <dl className="flex flex-col gap-3">
+            {TROUBLE.map((t) => (
+              <div key={t.q}>
+                <dt className="font-extrabold">{t.q}</dt>
+                <dd>{t.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** 画面の上に常に出す、短い「やること」（懇親会の参加者向け。番号つきで1〜3個） */
+export function HowTo({ title, steps, testId }: { title: string; steps: string[]; testId?: string }) {
+  return (
+    <div className="ui-tile p-4 text-left" data-testid={testId}>
+      <p className="mb-2 flex items-center gap-2 text-sm font-extrabold text-accent-ink">
+        <Icon name="help" /> {title}
+      </p>
+      <ol className="flex flex-col gap-2 text-base leading-snug">
+        {steps.map((s, i) => (
+          <li key={s} className="flex gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-fg font-display text-sm text-bg">{i + 1}</span>
+            <span className="min-w-0 pt-0.5">{s}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}

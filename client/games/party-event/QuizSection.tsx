@@ -3,6 +3,7 @@ import type { PartyEventView } from '../../../shared/games/views';
 import { BigTimer, QuestionCard } from '../../components/game';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, SectionTitle, TextInput } from '../../components/ui';
+import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
 import { HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
@@ -32,6 +33,21 @@ export function QuizSection() {
           </div>
         )}
       </Card>
+
+      {!game.isHost && q.phase !== 'result' && (
+        <HowTo
+          title="クイズのやり方"
+          testId="event-howto-quiz"
+          steps={
+            q.myTeam
+              ? [
+                  '問題が出て「回答タイム」になったら、答えを押します（文字で答える問題は、書いて「送信する」）。',
+                  '時間内なら、何回でも押し直せます。答えはチームで1つです。',
+                ]
+              : ['下の「チームを選んでください」から、自分のチームを押します。', '問題が出て「回答タイム」になったら、答えを押します。']
+          }
+        />
+      )}
 
       {q.phase === 'result' ? <Ranking /> : q.question ? <QuestionArea /> : <Idle />}
 

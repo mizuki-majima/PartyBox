@@ -306,8 +306,19 @@ test('懇親会: 2人目の司会がロビーから始められ、二度押し�
   await mc2.getByTestId('start-game').click();
   await expect(host.getByTestId('section-quiz')).toBeVisible();
 
+  /* ---- 説明書き: 参加者には、待っている間の流れと、いつでも開ける「遊び方」が出る ---- */
+  await expect(right.getByTestId('event-howto-waiting')).toBeVisible();
+  await right.getByTestId('guide-open').click();
+  await expect(right.getByTestId('game-guide')).toContainText('何も押さなくて大丈夫です'); // 参加者向けの説明
+  await expect(right.getByTestId('game-guide')).not.toContainText('司会用URL'); // 司会向けの説明は出さない
+  await right.getByTestId('guide-close').click();
+  await host.getByTestId('guide-open').click();
+  await expect(host.getByTestId('game-guide')).toContainText('最初からやり直す'); // 司会には司会向けの説明
+  await host.getByTestId('guide-close').click();
+
   /* ---- クイズ: 二度押ししても、問題を読む段が飛ばない ---- */
   await host.getByTestId('section-quiz').click();
+  await expect(right.getByTestId('event-howto-quiz')).toContainText('自分のチームを押します'); // いまやることが番号つきで出る
   await right.getByTestId('quiz-team-pick').getByRole('button').first().click();
   await wrong.getByTestId('quiz-team-pick').getByRole('button').nth(1).click();
   await expect(wrong.getByTestId('my-team')).toBeVisible();

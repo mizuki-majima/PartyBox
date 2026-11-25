@@ -8,6 +8,7 @@ import { Avatar, Badge, Button, Card, Modal, SectionTitle, TextInput } from '../
 import { useRoomContext } from '../games/RoomContext';
 import { loadSession, setLastName } from '../lib/session';
 import { request } from '../lib/socket';
+import { GameGuide } from '../guides';
 import { useToast } from '../lib/toast';
 import { themeOfGame } from '../themes';
 
@@ -64,7 +65,8 @@ export function Lobby() {
         <div className="order-1 min-w-0">
           <InviteCard />
         </div>
-        <div className="order-4 min-w-0">
+        {/* 懇親会の参加者は待つだけなので、遊び方をいちばん上に出す（招待や設定より先に読めるように） */}
+        <div className={`min-w-0 ${isEventGame(room.gameId) && !room.youAreHost ? "-order-1" : "order-4"}`}>
           <GameInfoCard meta={meta} />
         </div>
       </div>
@@ -346,14 +348,8 @@ function GameInfoCard({ meta }: { meta: GameMeta }) {
       </div>
       <div className="p-5">
         <SectionTitle>遊び方</SectionTitle>
-        <ol className="space-y-2 text-sm text-fg/85">
-          {meta.howToPlay.map((line, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="font-extrabold text-hi-ink">{i + 1}.</span>
-              <span>{line}</span>
-            </li>
-          ))}
-        </ol>
+        {/* 始まる前に読んでおけるように、くわしい説明を出す（懇親会は、司会と参加者で中身を変える） */}
+        <GameGuide gameId={meta.id} isHost={room.youAreHost} />
       </div>
       <Modal open={picking} onClose={() => setPicking(false)}>
         <h2 className="font-display text-xl">ゲームを変更</h2>
