@@ -35,7 +35,12 @@ export interface PersistedRoom {
   hostToken: string | null;
   hostClaims: string[];
   players: PersistedPlayer[];
-  /** ゲームの中身（PartyEventSnapshot など） */
+  /**
+   * 開始前（lobby）か開始後（playing）か。
+   * これを書く前のファイルには無く、そのころは開始後のルームだけを保存していたので、無ければ playing として読む
+   */
+  status?: 'lobby' | 'playing';
+  /** ゲームの中身（PartyEventSnapshot など）。開始前は null */
   game: unknown;
   savedAt: number;
   /**

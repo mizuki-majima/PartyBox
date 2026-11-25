@@ -42,6 +42,14 @@ export async function openSocket(timeoutMs = 8000): Promise<PartySocket> {
   return s;
 }
 
+/** 返事が来なかったときの文言。届かなかっただけで、サーバーが断ったわけではない（isTimeout で見分ける） */
+const TIMEOUT_ERROR = '通信がタイムアウトしました。接続を確認してください';
+
+/** 返事が時間内に来なかったか（サーバーが断ったのとは違い、もう一度送れば通ることがある） */
+export function isTimeout(res: Ack<object>): boolean {
+  return !res.ok && res.error === TIMEOUT_ERROR;
+}
+
 type Payload<E extends keyof ClientToServerEvents> = Parameters<ClientToServerEvents[E]>[0];
 type Result<E extends keyof ClientToServerEvents> = Parameters<Parameters<ClientToServerEvents[E]>[1]>[0];
 
@@ -56,7 +64,7 @@ export async function requestOn<E extends keyof ClientToServerEvents>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (await (s.timeout(timeoutMs) as any).emitWithAck(event, payload)) as Result<E>;
   } catch {
-    return { ok: false, error: '通信がタイムアウトしました。接続を確認してください' } as Ack as Result<E>;
+    return { ok: false, error: TIMEOUT_ERROR } as Ack as Result<E>;
   }
 }
 

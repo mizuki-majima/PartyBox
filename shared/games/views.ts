@@ -252,6 +252,10 @@ export interface QuizView {
   /** 自分が選んでいるチーム */
   myTeam: string | null;
   myAnswer: { text: string; choice: number | null } | null;
+  /** 自分のチームのこの問題の正誤（答えの段から。回答していない・採点前は null） */
+  myCorrect: boolean | null;
+  /** いまの位置（何問目のどの段か）。司会の「次へ」「戻す」に付けて送り、二度押しで段が飛ぶのを防ぐ */
+  position: string;
 }
 
 export interface BingoCardView {

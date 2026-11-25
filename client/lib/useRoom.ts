@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RoomSummary, RoomView } from '../../shared/protocol';
 import { clearSession, loadSession, saveSession } from './session';
-import { getSocket, request } from './socket';
+import { getSocket, isTimeout, request } from './socket';
 
 export type RoomConnState =
   | { kind: 'loading' }
   | { kind: 'join'; summary: RoomSummary }
   | { kind: 'notFound' }
   | { kind: 'joined' }
-  | { kind: 'ended'; reason: string };
+  /** resumable: 退出したのではなく、別のタブに切り替わっただけ（読み込み直せば、この画面で続けられる） */
+  | { kind: 'ended'; reason: string; resumable?: boolean };
 
 /**
  * ルームへの接続を管理するフック
@@ -37,7 +38,18 @@ export function useRoom(rawCode: string, hostToken?: string) {
     const end = (reason: string, forget = true) => {
       endedRef.current = true;
       if (forget) clearSession(code);
-      setState({ kind: 'ended', reason });
+      setState({ kind: 'ended', reason, resumable: !forget });
+    };
+
+    /**
+     * 返事が来なかった（電波が弱い、スマホが眠っていて回線が固まっている）ときは、つなぎ直してやり直す。
+     * サーバーに断られたわけではないので、参加情報は消さない
+     * （消すと別の人として入り直すことになり、ビンゴのカード・選んだ名前・チームを失う）
+     */
+    const reconnect = () => {
+      if (cancelled || endedRef.current) return;
+      s.disconnect();
+      s.connect(); // つながると onConnect → establish がもう一度走る
     };
 
     const establish = async () => {
@@ -52,10 +64,19 @@ export function useRoom(rawCode: string, hostToken?: string) {
           await claimHost();
           return;
         }
+        if (isTimeout(res)) {
+          reconnect();
+          return;
+        }
         clearSession(code);
       }
       const check = await request('room:check', { code });
       if (cancelled) return;
+      if (isTimeout(check)) {
+        // 「ルームが見つかりません」とは出さない（届かなかっただけで、ルームはある）
+        reconnect();
+        return;
+      }
       setState(check.ok ? { kind: 'join', summary: check.room } : { kind: 'notFound' });
     };
 
@@ -77,9 +98,17 @@ export function useRoom(rawCode: string, hostToken?: string) {
     const onDisconnect = () => setConnected(false);
     const onClosed = ({ reason }: { reason: string }) => end(reason);
     const onKicked = () => end('ホストによってルームから退出させられました');
-    const onReplaced = () => end('別のタブ・端末でこのルームに接続したため、この画面は切断されました', false);
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && !s.connected) s.connect();
+    const onReplaced = () => end('別のタブでこのルームを開いたので、この画面は止まっています。続きは、どちらの画面でもできます。', false);
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible' || endedRef.current) return;
+      if (!s.connected) {
+        s.connect();
+        return;
+      }
+      // 画面を消している間に回線が固まり、つながっているように見えるだけのことがある（古い画面のまま止まる）。
+      // 画面を点けたときに一度たずねて、返事が無ければつなぎ直す
+      const res = await request('room:check', { code }, 4000);
+      if (isTimeout(res)) reconnect();
     };
 
     s.on('connect', onConnect);

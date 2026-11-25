@@ -89,11 +89,19 @@ export class RoomManager {
 
   /* ---------------- 保存と復元（懇親会のような催し物のルームだけ） ---------------- */
 
+  /**
+   * ディスクに保存するルームか。懇親会のような催し物の本番のルームだけ（デモは使い捨てなので保存しない）。
+   * まだ始めていない（ロビーの）ルームも保存する。前日に作って QR を配ったあとで
+   * サーバーが再起動（反映・障害）しても、配った QR と司会用URLが使えなくならないように
+   */
+  private isPersisted(room: Room): boolean {
+    return isEventRoom(room) && !room.demo;
+  }
+
   private collectPersisted(): PersistedRoom[] {
     const out: PersistedRoom[] = [];
     for (const room of this.rooms.values()) {
-      // デモは使い捨てなので保存しない
-      if (!room.game?.snapshot || room.demo) continue;
+      if (!this.isPersisted(room)) continue;
       out.push({
         code: room.code,
         gameId: room.gameId,
@@ -108,7 +116,9 @@ export class RoomManager {
           color: p.color,
           joinedAt: p.joinedAt,
         })),
-        game: room.game.snapshot(),
+        // まだ始めていないルームは game が無い（null で書き、status で見分ける）
+        status: room.status,
+        game: room.game?.snapshot?.() ?? null,
         savedAt: Date.now(),
         lastActivity: room.lastActivity,
       });
@@ -140,13 +150,19 @@ export class RoomManager {
           });
           room.setName(p.id, p.name);
         }
-        const def = getServerGame(saved.gameId as never);
-        if (!def) continue;
-        const game = def.create(room.context, [...room.players.keys()], room.settings);
-        game.restore?.(saved.game);
-        room.game = game;
-        room.status = 'playing';
-        game.start();
+        // status が無いのは、始めたルームだけを保存していたころのファイル（どれも開始ずみ）
+        if (saved.status === 'lobby') {
+          // まだ始めていないルーム。ロビーのまま戻す（配った QR・司会用URLがそのまま使える）
+          room.status = 'lobby';
+        } else {
+          const def = getServerGame(saved.gameId as never);
+          if (!def) continue;
+          const game = def.create(room.context, [...room.players.keys()], room.settings);
+          game.restore?.(saved.game);
+          room.game = game;
+          room.status = 'playing';
+          game.start();
+        }
         this.rooms.set(room.code, room);
         console.log(`[persist] ルーム ${room.code}（${saved.gameId}）を復元しました（参加者 ${saved.players.length} 名）`);
       } catch (err) {
@@ -493,7 +509,7 @@ export class RoomManager {
 
   private deleteRoom(room: Room): void {
     // 保存しているルームなら、ファイルからも消す（残すと再起動のたびに生き返る）
-    const wasPersisted = !!room.game?.snapshot && !room.demo;
+    const wasPersisted = this.isPersisted(room);
     room.dispose();
     this.rooms.delete(room.code);
     if (wasPersisted) this.persister.schedule();
