@@ -233,14 +233,14 @@ function HostControls() {
   return (
     <HostPanel title="座席決めの進行">
       <div className="flex flex-col gap-3">
-        <HostButton onClick={() => act('seats:draw')} disabled={s.remaining === 0} testId="seats-draw">
+        <HostButton onClick={() => act('seats:draw', { at: s.drawn })} disabled={s.remaining === 0} testId="seats-draw">
           🎐 1人引く（残り {s.remaining}）
         </HostButton>
         <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" onClick={() => act('seats:drawAll')} disabled={s.remaining === 0}>
+          <Button size="sm" variant="secondary" onClick={() => act('seats:drawAll', { at: s.drawn })} disabled={s.remaining === 0}>
             残り全員
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => act('seats:undo')} disabled={!s.drawn}>
+          <Button size="sm" variant="secondary" onClick={() => act('seats:undo', { at: s.drawn })} disabled={!s.drawn}>
             ↩ 1つ戻す
           </Button>
         </div>

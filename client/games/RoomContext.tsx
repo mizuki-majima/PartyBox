@@ -31,7 +31,8 @@ export function RoomProvider({ room, children }: { room: RoomView; children: Rea
     return {
       room,
       me: players.get(room.youId),
-      isHost: room.hostId === room.youId,
+      // 懇親会では、司会用URLを開いた人も司会（ロビーで開始できる）。通常のゲームでは作成者（ホスト）と同じ
+      isHost: room.youAreHost,
       act,
       nameOf: (id) => (id ? (players.get(id)?.name ?? gamePlayers.get(id)?.name ?? '???') : '???'),
       colorOf: (id) => (id ? (players.get(id)?.color ?? '#64748b') : '#64748b'),

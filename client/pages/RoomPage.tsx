@@ -38,6 +38,17 @@ export function RoomPage() {
       </FullScreenMessage>
     );
   }
+  if (state.kind === 'ended' && state.resumable) {
+    // 退出したわけではない。同じブラウザの別のタブで開いたので、こちらが止まっただけ
+    return (
+      <FullScreenMessage emoji="📱" title="別のタブで開いています">
+        <p className="text-muted">{state.reason}</p>
+        <Button size="lg" onClick={() => window.location.reload()} data-testid="resume-here">
+          この画面で続ける
+        </Button>
+      </FullScreenMessage>
+    );
+  }
   if (state.kind === 'ended') {
     return (
       <FullScreenMessage emoji="👋" title="ルームを退出しました">

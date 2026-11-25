@@ -258,3 +258,91 @@ test('懇親会: 始めたあとも招待QRを出せ、途中参加・名前の�
 
   for (const p of [host, mc2, guestA2]) await p.context().close();
 });
+
+test('懇親会: 2人目の司会がロビーから始められ、二度押しで段が飛ばず、参加者に正誤が出て、別のタブからも続けられる', async ({ browser }) => {
+  const host = await newPage(browser, PHONE); // 司会もスマホ
+  const mc2 = await newPage(browser, PHONE);
+  const right = await newPage(browser, PHONE);
+  const wrong = await newPage(browser, PHONE);
+
+  await host.goto('/play/party-event');
+  await host.getByPlaceholder('例：みずき').fill('司会');
+  await host.getByTestId('create-room').click();
+  await host.waitForURL(/\/room\/[A-Z0-9]{6}$/);
+  const code = await host.getByTestId('room-code').innerText();
+  const hostUrl = await host.getByTestId('host-url').innerText();
+
+  for (const [p, name] of [[right, 'あたり'], [wrong, 'はずれ']] as const) {
+    await p.goto(`/room/${code}`);
+    await p.getByTestId('join-name').fill(name);
+    await p.getByTestId('join-submit').click();
+    await expect(p.getByTestId('player-list')).toContainText(name);
+  }
+  // 参加者のロビーには開始ボタンが出ない
+  await expect(right.getByTestId('start-game')).toHaveCount(0);
+
+  /* ---- 司会用URLを開いた2人目の司会が、ロビーから始める ---- */
+  await mc2.goto(new URL(hostUrl).pathname);
+  await mc2.getByTestId('join-name').fill('司会2');
+  await mc2.getByTestId('join-submit').click();
+  await mc2.getByTestId('start-game').click();
+  await expect(host.getByTestId('section-quiz')).toBeVisible();
+
+  /* ---- クイズ: 二度押ししても、問題を読む段が飛ばない ---- */
+  await host.getByTestId('section-quiz').click();
+  await right.getByTestId('quiz-team-pick').getByRole('button').first().click();
+  await wrong.getByTestId('quiz-team-pick').getByRole('button').nth(1).click();
+  await expect(wrong.getByTestId('my-team')).toBeVisible();
+
+  await host.getByTestId('quiz-next').dblclick(); // 「第1問を出す」を二度押し
+  await expect(right.getByTestId('question')).toBeVisible();
+  await right.waitForTimeout(500);
+  await expect(right.getByTestId('quiz-choices')).toHaveCount(0); // 回答タイムは始まっていない
+  await expect(host.getByTestId('quiz-next')).toContainText('回答タイム開始');
+
+  // 司会2人が同時に押しても、1つしか進まない（答えの段まで飛ばない）
+  await Promise.all([host.getByTestId('quiz-next').click(), mc2.getByTestId('quiz-next').click()]);
+  await expect(right.getByTestId('quiz-choices')).toBeVisible();
+  await right.waitForTimeout(500);
+  await expect(right.getByTestId('quiz-answer')).toHaveCount(0);
+
+  /* ---- 参加者に、自分のチームの正誤が出る ---- */
+  await right.getByTestId('quiz-choices').getByRole('button').first().click(); // 正解
+  await wrong.getByTestId('quiz-choices').getByRole('button').nth(2).click(); // 不正解
+  await expect(host.getByTestId('quiz-answered')).toContainText('✓ チーム B');
+  await expect(right.getByTestId('quiz-my-result')).toHaveCount(0); // 答えの段までは出ない
+  await host.getByTestId('quiz-next').click();
+  await expect(right.getByTestId('quiz-my-result')).toContainText('正解');
+  await expect(wrong.getByTestId('quiz-my-result')).toContainText('ざんねん');
+  await right.screenshot({ path: 'e2e/screenshots/party-event-quiz-correct.png', fullPage: true });
+
+  /* ---- ビンゴ・座席: 二度押ししても1つだけ ---- */
+  await host.getByTestId('section-bingo').click();
+  await host.getByTestId('bingo-draw').dblclick();
+  await expect(host.getByTestId('bingo-count')).toContainText('1 個');
+  await host.waitForTimeout(500);
+  await expect(host.getByTestId('bingo-count')).toContainText('1 個');
+  await host.screenshot({ path: 'e2e/screenshots/party-event-bingo-host-phone.png', fullPage: true });
+
+  await host.getByTestId('section-seats').click();
+  await right.getByTestId('seats-roster-pick').getByRole('button').first().click();
+  await wrong.getByTestId('seats-roster-pick').getByRole('button').nth(1).click();
+  await expect(host.getByTestId('seats-draw')).toContainText('残り 2');
+  await host.getByTestId('seats-draw').dblclick();
+  await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
+  await host.waitForTimeout(500);
+  await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
+
+  /* ---- 同じブラウザの別のタブで開いても、「退出しました」とは出ず、どちらでも続けられる ---- */
+  const tab2 = await right.context().newPage();
+  await tab2.goto(`/room/${code}`);
+  await expect(tab2.getByTestId('seats-tables')).toBeVisible();
+  await expect(right.getByTestId('resume-here')).toBeVisible();
+  await expect(right.getByText('ルームを退出しました')).toHaveCount(0);
+  await right.screenshot({ path: 'e2e/screenshots/party-event-other-tab.png' });
+  await right.getByTestId('resume-here').click();
+  await expect(right.getByTestId('seats-tables')).toBeVisible(); // 同じ人として続きから
+  await expect(tab2.getByTestId('resume-here')).toBeVisible();
+
+  for (const p of [host, mc2, right, wrong]) await p.context().close();
+});

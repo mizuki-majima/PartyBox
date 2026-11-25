@@ -58,7 +58,7 @@ function QuestionArea() {
   const q = game.quiz;
   const question = q.question!;
   const revealed = q.phase === 'reveal';
-  const myCorrect = q.myTeam ? (q.answers?.find((a) => a.team === q.myTeam)?.correct ?? null) : null;
+  const myCorrect = q.myCorrect;
 
   return (
     <div className="flex flex-col gap-3">
@@ -93,7 +93,7 @@ function QuestionArea() {
           </p>
           {question.note && <p className="mt-3 text-sm text-white/80">{question.note}</p>}
           {myCorrect !== null && (
-            <p className="mt-4 font-display text-xl">
+            <p className="mt-4 font-display text-xl" data-testid="quiz-my-result">
               {myCorrect ? '🎉 正解！' : '😢 ざんねん'}
             </p>
           )}
@@ -241,10 +241,10 @@ function HostControls() {
             <span className="font-bold">{preview}</span>
           </p>
         )}
-        <HostButton onClick={() => act('quiz:next')} disabled={q.phase === 'result'} testId="quiz-next">
+        <HostButton onClick={() => act('quiz:next', { at: q.position })} disabled={q.phase === 'result'} testId="quiz-next">
           ▶ {nextLabel}
         </HostButton>
-        <Button size="sm" variant="secondary" onClick={() => act('quiz:prev')} disabled={q.phase === 'idle'}>
+        <Button size="sm" variant="secondary" onClick={() => act('quiz:prev', { at: q.position })} disabled={q.phase === 'idle'}>
           ↩ 1つ戻す
         </Button>
         {q.answers && q.answers.length > 0 && <AnswerTable />}

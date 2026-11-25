@@ -132,6 +132,112 @@ describe('クイズ（通信の中身）', () => {
 });
 
 /* ================================================================== */
+describe('クイズ: 自分のチームの正誤', () => {
+  it('答えの段になってから、正解したチームと外したチームの参加者に届く（回答タイムの間は届かない）', async () => {
+    const { host, clients } = await setupEvent(4);
+    const [, right, wrong, noTeam] = clients;
+    const cfg = loadEventConfig();
+    const correctChoice = cfg.quiz.questions[0].answer as number;
+    await right.actionOk('quiz:team', { team: cfg.quiz.teams[0] });
+    await wrong.actionOk('quiz:team', { team: cfg.quiz.teams[1] });
+    await host.actionOk('quiz:next'); // 第1問
+    await host.actionOk('quiz:next'); // 回答タイム
+    await right.actionOk('quiz:answer', { qno: 1, choice: correctChoice });
+    await wrong.actionOk('quiz:answer', { qno: 1, choice: correctChoice + 1 });
+    await wrong.waitFor((v) => (v.game as unknown as PartyEventView).quiz.myAnswer !== null, 3000, '回答');
+    // 回答タイムの間は、正誤を送らない（答えの手がかりになる）
+    expect(view(right).quiz.myCorrect).toBeNull();
+    expect(view(wrong).quiz.myCorrect).toBeNull();
+
+    await host.actionOk('quiz:next'); // 答え
+    await noTeam.waitFor((v) => (v.game as unknown as PartyEventView).quiz.phase === 'reveal', 3000, '答え');
+    await right.waitFor((v) => (v.game as unknown as PartyEventView).quiz.phase === 'reveal', 3000, '答え');
+    await wrong.waitFor((v) => (v.game as unknown as PartyEventView).quiz.phase === 'reveal', 3000, '答え');
+    expect(view(right).quiz.myCorrect).toBe(true);
+    expect(view(wrong).quiz.myCorrect).toBe(false);
+    expect(view(noTeam).quiz.myCorrect).toBeNull(); // チームを選んでいない人には出さない
+  });
+});
+
+/* ================================================================== */
+describe('司会の二度押し・同時押し', () => {
+  const phaseOf = (c: TestClient) => `${view(c).quiz.qno}:${view(c).quiz.phase}`;
+
+  it('クイズ: 同じ画面から続けて届いた「次へ」は1回ぶんだけ進む（問題を読む前に回答タイムが始まらない）', async () => {
+    const { host } = await setupEvent();
+    await host.actionOk('quiz:next', { at: '0:idle' });
+    // 画面が変わる前にもう一度押した（at は前のまま）。エラーにはせず、何もしない
+    expect((await host.action('quiz:next', { at: '0:idle' })).ok).toBe(true);
+    await host.waitFor(() => phaseOf(host) === '1:question', 3000, '第1問');
+    await sleep(100);
+    expect(phaseOf(host)).toBe('1:question');
+
+    // 画面が変わってから押したものは進む
+    await host.actionOk('quiz:next', { at: view(host).quiz.position });
+    await host.waitFor(() => phaseOf(host) === '1:answering', 3000, '回答タイム');
+  });
+
+  it('クイズ: 司会2人が同じ段で同時に「次へ」を押しても、1つしか進まない。「戻す」も同じ', async () => {
+    const { host, clients } = await setupEvent();
+    const host2 = clients[1];
+    await host2.ok('room:claimHost', { token: host.session!.hostToken });
+    await host.actionOk('quiz:next', { at: '0:idle' });
+    await host2.waitFor(() => phaseOf(host2) === '1:question', 3000, '第1問');
+    await host.waitFor(() => phaseOf(host) === '1:question', 3000, '第1問');
+
+    await Promise.all([
+      host.actionOk('quiz:next', { at: '1:question' }),
+      host2.actionOk('quiz:next', { at: '1:question' }),
+    ]);
+    await host.waitFor(() => phaseOf(host) === '1:answering', 3000, '回答タイム');
+    await sleep(100);
+    expect(phaseOf(host)).toBe('1:answering'); // 答えの段まで飛んでいない
+
+    await Promise.all([
+      host.actionOk('quiz:prev', { at: '1:answering' }),
+      host2.actionOk('quiz:prev', { at: '1:answering' }),
+    ]);
+    await host.waitFor(() => phaseOf(host) === '1:question', 3000, '第1問に戻る');
+    await sleep(100);
+    expect(phaseOf(host)).toBe('1:question');
+  });
+
+  it('ビンゴ: 続けて届いた「番号を引く」「戻す」は1回ぶんだけ', async () => {
+    const { host } = await setupEvent();
+    await Promise.all([host.actionOk('bingo:draw', { at: 0 }), host.actionOk('bingo:draw', { at: 0 })]);
+    await host.waitFor(() => view(host).bingo.called.length >= 1, 3000, '1個');
+    await sleep(100);
+    expect(view(host).bingo.called).toHaveLength(1);
+
+    await host.actionOk('bingo:draw', { at: 1 });
+    await host.waitFor(() => view(host).bingo.called.length === 2, 3000, '2個');
+    await Promise.all([host.actionOk('bingo:undo', { at: 2 }), host.actionOk('bingo:undo', { at: 2 })]);
+    await host.waitFor(() => view(host).bingo.called.length === 1, 3000, '戻す');
+    await sleep(100);
+    expect(view(host).bingo.called).toHaveLength(1);
+  });
+
+  it('座席: 続けて届いた「1人引く」は1人ぶんだけ', async () => {
+    const { host, clients } = await setupEvent();
+    const ids = view(host).seats.roster.map((p) => p.id);
+    await clients[1].actionOk('seats:claim', { personId: ids[0] });
+    await clients[2].actionOk('seats:claim', { personId: ids[1] });
+    await Promise.all([host.actionOk('seats:draw', { at: 0 }), host.actionOk('seats:draw', { at: 0 })]);
+    await host.waitFor(() => view(host).seats.drawn >= 1, 3000, '1人');
+    await sleep(100);
+    expect(view(host).seats.drawn).toBe(1);
+    expect(view(host).seats.remaining).toBe(1);
+  });
+
+  it('at を付けない操作（反映の前から開いたままの画面）は、今までどおり受け付ける', async () => {
+    const { host } = await setupEvent();
+    await host.actionOk('bingo:draw');
+    await host.actionOk('bingo:draw');
+    await host.waitFor(() => view(host).bingo.called.length === 2, 3000, '2個');
+  });
+});
+
+/* ================================================================== */
 describe('ビンゴ（通信の中身）', () => {
   it('参加者ごとに違うカードが配られ、他人のカードは送られない', async () => {
     const { host, clients } = await setupEvent();

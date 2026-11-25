@@ -24,7 +24,7 @@ export function BingoSection() {
             </div>
           </div>
         )}
-        <p className="mt-3 text-sm font-bold text-muted">
+        <p className="mt-3 text-sm font-bold text-muted" data-testid="bingo-count">
           {b.called.length} 個 / 残り {b.remaining}
         </p>
       </Card>
@@ -114,12 +114,12 @@ function HostControls() {
   return (
     <HostPanel title="ビンゴの進行">
       <div className="flex flex-col gap-3">
-        <HostButton onClick={() => act('bingo:draw')} disabled={b.remaining === 0} testId="bingo-draw">
+        <HostButton onClick={() => act('bingo:draw', { at: b.called.length })} disabled={b.remaining === 0} testId="bingo-draw">
           🎱 番号を引く
         </HostButton>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" onClick={() => act('bingo:undo')} disabled={!b.called.length}>
+          <Button size="sm" variant="secondary" onClick={() => act('bingo:undo', { at: b.called.length })} disabled={!b.called.length}>
             ↩ 1つ戻す
           </Button>
           <Button
@@ -166,7 +166,7 @@ function HostControls() {
               placeholder="A1B2"
               className="uppercase"
             />
-            <Button variant="secondary" onClick={() => act('bingo:inspect', { cardId })}>
+            <Button variant="secondary" className="shrink-0 whitespace-nowrap" onClick={() => act('bingo:inspect', { cardId })}>
               確認
             </Button>
           </div>

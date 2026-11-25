@@ -22,6 +22,14 @@ import { isCardId, normalizeCardId } from './cards';
 
 const SECTIONS: EventSection[] = ['none', 'quiz', 'seats', 'bingo'];
 
+/**
+ * 進める・引く・戻すの操作には、画面が押した時点で見ていた状態（at）が付いてくる。
+ * それが今の状態と違えば、もう進んだあとに届いた古い操作（二度押し、司会2人が同時に押した）なので、何もしない。
+ * でないと、問題を読む前に回答タイムが始まったり、番号・席が一度に2つ出たりする。
+ * at が無い操作（反映の前から開いたままの画面）は、今までどおり受け付ける
+ */
+const isStale = (at: unknown, now: string | number): boolean => at !== undefined && at !== null && String(at) !== String(now);
+
 /** 再起動をまたいで残す中身 */
 export interface PartyEventSnapshot {
   section: EventSection;
@@ -121,9 +129,11 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
 
       /* ---- クイズ ---- */
       case 'quiz:next':
+        if (isStale(action.at, quiz.positionOf(this.quizState))) return true;
         if (!quiz.next(this.quizState, this.cfg.quiz)) throw new UserError('これ以上は進めません');
         return true;
       case 'quiz:prev':
+        if (isStale(action.at, quiz.positionOf(this.quizState))) return true;
         if (!quiz.prev(this.quizState, this.cfg.quiz)) throw new UserError('これ以上は戻れません');
         return true;
       case 'quiz:phase':
@@ -141,9 +151,11 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
 
       /* ---- ビンゴ ---- */
       case 'bingo:draw':
+        if (isStale(action.at, this.bingoState.called.length)) return true;
         if (bingo.draw(this.bingoState) === null) throw new UserError('引ける番号がもうありません');
         return true;
       case 'bingo:undo':
+        if (isStale(action.at, this.bingoState.called.length)) return true;
         if (bingo.undoDraw(this.bingoState) === null) throw new UserError('戻せる番号がありません');
         return true;
       case 'bingo:inspect': {
@@ -165,12 +177,15 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
 
       /* ---- 座席決め ---- */
       case 'seats:draw':
+        if (isStale(action.at, this.seatsState.order.length)) return true;
         if (!seats.drawOne(this.seatsState, this.cfg.seats)) throw new UserError('引く人がもういません');
         return true;
       case 'seats:drawAll':
+        if (isStale(action.at, this.seatsState.order.length)) return true;
         if (!seats.drawAll(this.seatsState, this.cfg.seats).length) throw new UserError('引く人がもういません');
         return true;
       case 'seats:undo':
+        if (isStale(action.at, this.seatsState.order.length)) return true;
         if (!seats.undoDraw(this.seatsState)) throw new UserError('戻せる人がいません');
         return true;
       case 'seats:absent':

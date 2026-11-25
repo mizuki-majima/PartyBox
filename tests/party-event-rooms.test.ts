@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -284,6 +284,62 @@ describe('保存ファイル（再起動をまたぐ）', () => {
 
     const s2 = await startTestServer({ persist: true });
     expect(s2.manager.rooms.has(code)).toBe(false);
+    await s2.close();
+  });
+
+  it('まだ始めていないルームも再起動で残る（前日に作って配った QR と司会用URLが、そのまま使える）', async () => {
+    const s1 = await startTestServer({ persist: true });
+    const host = await TestClient.connect(s1.port);
+    const code = await host.create('party-event', '司会');
+    const hostToken = host.session!.hostToken!;
+    const guest = await TestClient.connect(s1.port);
+    await guest.join(code, 'たろう');
+    host.close();
+    guest.close();
+    await s1.close(); // 終了時に書き出す
+
+    const s2 = await startTestServer({ persist: true });
+    const restored = s2.manager.rooms.get(code);
+    expect(restored?.status).toBe('lobby'); // 開始ずみにはしない
+    expect(restored?.game).toBeNull();
+
+    // 参加者は同じ人として戻れる。新しい人も同じ QR（コード）で入れる
+    const guest2 = await TestClient.connect(s2.port);
+    open.push(guest2);
+    await guest2.ok('room:rejoin', { code, playerId: guest.session!.playerId, token: guest.session!.token });
+    const late = await TestClient.connect(s2.port);
+    open.push(late);
+    await late.join(code, 'はな');
+
+    // 司会用URLもそのまま使えて、開始できる
+    const host2 = await TestClient.connect(s2.port);
+    open.push(host2);
+    await host2.join(code, '司会2');
+    await host2.ok('room:claimHost', { token: hostToken });
+    await host2.ok('room:start');
+    await late.waitPhase('EVENT');
+    expect((late.view!.game as unknown as PartyEventView).bingo.myCard).not.toBeNull();
+    await s2.close();
+  });
+
+  it('開始前かどうかの印（status）が無い古い保存ファイルは、開始ずみのルームとして戻す', async () => {
+    const s1 = await startTestServer({ persist: true });
+    const code = await eventRoomOn(s1);
+    const host = open.at(-1)!;
+    await host.actionOk('bingo:draw');
+    await s1.close();
+
+    // 古い形式にする（status を書く前のファイル）
+    const file = path.join(dir, 'rooms.json');
+    const saved = JSON.parse(readFileSync(file, 'utf8')) as PersistedFile;
+    expect(saved.version).toBe(1);
+    for (const r of saved.rooms) delete r.status;
+    writeFileSync(file, JSON.stringify(saved), 'utf8');
+
+    const s2 = await startTestServer({ persist: true });
+    const restored = s2.manager.rooms.get(code);
+    expect(restored?.status).toBe('playing');
+    expect((restored!.game!.snapshot!() as { bingo: { called: number[] } }).bingo.called).toHaveLength(1);
     await s2.close();
   });
 

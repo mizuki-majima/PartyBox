@@ -35,6 +35,9 @@ export function emptyQuiz(): QuizState {
   return { phase: 'idle', qno: 0, startedAt: null, deadline: null, graded: {}, answers: {}, teamOf: {} };
 }
 
+/** いまの位置（何問目のどの段か）。司会の操作が古くないかを見分けるのに使う */
+export const positionOf = (state: QuizState): string => `${state.qno}:${state.phase}`;
+
 export const currentQuestion = (state: QuizState, cfg: QuizConfig) =>
   state.qno >= 1 ? (cfg.questions[state.qno - 1] ?? null) : null;
 
@@ -216,5 +219,8 @@ export function quizView(state: QuizState, cfg: QuizConfig, isHost: boolean, myT
     ranking,
     myTeam,
     myAnswer: mine ? { text: mine.text, choice: mine.choice } : null,
+    // 自分のチームの正誤。答えと同じく、答えの段までは送らない（先に送ると答えの手がかりになる）
+    myCorrect: revealed && myTeam ? (state.graded[state.qno]?.[myTeam] ?? null) : null,
+    position: positionOf(state),
   };
 }
