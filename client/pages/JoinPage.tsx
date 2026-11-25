@@ -37,7 +37,7 @@ export function JoinPage() {
         <Card className="animate-pop-in">
           <Icon name="key" className="h-10 w-10" />
           <h1 className="mt-3 font-display text-3xl">ルームに参加</h1>
-          <p className="mt-1 text-sm text-muted">友達から教えてもらった6桁のコードを入力</p>
+          <p className="mt-1 text-base text-muted">教えてもらったルームコード（英数字 6〜8 文字）を入れて、「参加する」を押してください。大文字・小文字はどちらでもかまいません。</p>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}

@@ -50,6 +50,11 @@ export class Room {
   readonly hostClaims = new Set<string>();
   /** 1人で試すためのデモのルーム。ディスクに保存せず、誰もいなくなったら早めに片付ける */
   demo = false;
+  /**
+   * 常設のルーム（設定の room.json で用意した懇親会のルーム）。
+   * 期限で片付けず、誰もいなくなっても、司会が削除しようとしても、消さない
+   */
+  permanent = false;
   game: GameInstance | null = null;
   settings: GameSettings;
   hostId = '';

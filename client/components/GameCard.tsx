@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 import type { GameMeta, SoloGameMeta } from '../../shared/games';
+import { useFixedEventRoom } from '../lib/eventInfo';
 import { loadThemeFonts, themeOfGame } from '../themes';
 import { GameEmblem, Icon } from './Icon';
 import { Button } from './ui';
@@ -92,6 +93,8 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
  * 「ルームを作る（司会）」と「デモで試す」の2つの入り口を並べる。
  */
 export function EventGameCard({ game }: { game: GameMeta }) {
+  // 常設のルームがあるときは、ルームを作る入口を出さない（コードを入れて参加するだけ）
+  const fixed = useFixedEventRoom();
   return (
     <div
       className="animate-slide-up relative border-t-4 border-b border-line bg-panel sm:grid sm:grid-cols-[minmax(0,18rem)_1fr]"
@@ -104,21 +107,38 @@ export function EventGameCard({ game }: { game: GameMeta }) {
         <p className="text-sm font-bold text-accent-ink">{game.tagline}</p>
         <p className="text-sm opacity-80">{game.description}</p>
         <Facts players={`${game.minPlayers}〜${game.maxPlayers}人`} time={game.estimatedTime} />
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-          <Link to={`/play/${game.id}`} className="sm:flex-1" data-testid={`event-create-${game.id}`}>
-            <Button block>
-              <Icon name="home" /> ルームを作る（司会）
-            </Button>
-          </Link>
-          <Link to={`/demo/${game.id}`} className="sm:flex-1" data-testid={`event-demo-${game.id}`}>
-            <Button block variant="secondary">
-              <Icon name="eye" /> デモで試す
-            </Button>
-          </Link>
-        </div>
-        <p className="text-xs text-muted">
-          デモでは、司会と参加者の画面を並べて1人で進行を試せます（PC向け）。使い捨てのルームなので、本番のルームには影響しません。
-        </p>
+        {fixed ? (
+          <>
+            <div className="mt-3">
+              <Link to="/join" data-testid={`event-join-${game.id}`}>
+                <Button block size="lg">
+                  <Icon name="key" /> コードを入れて参加する
+                </Button>
+              </Link>
+            </div>
+            <p className="text-sm text-muted">
+              ルームはもう用意してあります。司会から聞いたルームコードを入れると、いつでも入れます（何度入り直しても大丈夫です）。
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Link to={`/play/${game.id}`} className="sm:flex-1" data-testid={`event-create-${game.id}`}>
+                <Button block>
+                  <Icon name="home" /> ルームを作る（司会）
+                </Button>
+              </Link>
+              <Link to={`/demo/${game.id}`} className="sm:flex-1" data-testid={`event-demo-${game.id}`}>
+                <Button block variant="secondary">
+                  <Icon name="eye" /> デモで試す
+                </Button>
+              </Link>
+            </div>
+            <p className="text-xs text-muted">
+              デモでは、司会と参加者の画面を並べて1人で進行を試せます（PC向け）。使い捨てのルームなので、本番のルームには影響しません。
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import {
   type ServerToClientEvents,
   type SessionInfo,
 } from '../../shared/protocol';
+import { getEventConfig } from '../event/config';
 import { getServerGame } from '../games/registry';
 import { ResultLog } from '../results';
 import { UserError } from '../games/types';
@@ -77,6 +78,47 @@ export class RoomManager {
     this.persister = new RoomPersister(() => this.collectPersisted());
     if (opts.persist === false) this.persister.stop(); // 試験ではディスクを触らない
     else this.restoreRooms();
+    this.ensureFixedRoom();
+  }
+
+  /**
+   * 常設の懇親会ルームを用意する（設定の room.json があるときだけ）。
+   * 保存ファイルから戻っていれば、進み具合はそのまま使う。無ければ、もう始まっている状態で新しく作る
+   * （参加者はコードを入れて名前を入れるだけ。誰かが「ゲーム開始」を押すのを待たなくてよい）
+   */
+  private ensureFixedRoom(): void {
+    const fixed = getEventConfig().room;
+    if (!fixed) return;
+    const def = getServerGame('party-event');
+    if (!def) return;
+    let room = this.rooms.get(fixed.code);
+    if (!room) {
+      room = new Room(fixed.code, 'party-event', {
+        timeScale: this.opts.timeScale,
+        send: (socketId, view) => this.io.to(socketId).emit('room:state', view),
+        onChange: () => this.persister.schedule(),
+      });
+      room.hostToken = fixed.hostToken ?? generateToken(12);
+      this.rooms.set(room.code, room);
+    } else if (fixed.hostToken && room.hostToken !== fixed.hostToken) {
+      // 合言葉を変えたら、前の合言葉で司会になっていた人は司会でなくなる
+      room.hostToken = fixed.hostToken;
+      room.hostClaims.clear();
+      room.hostId = '';
+    }
+    if (!room.game) {
+      room.game = def.create(room.context, [...room.players.keys()], room.settings);
+      room.status = 'playing';
+      room.game.start();
+    }
+    room.permanent = true;
+    this.persister.schedule();
+    console.log('[event] 常設の懇親会ルームを用意しました');
+  }
+
+  /** 常設の懇親会ルームがあるか（あるときは、懇親会のルームとデモを新しく作らせない） */
+  hasFixedRoom(): boolean {
+    return getEventConfig().room !== null;
   }
 
   dispose(): void {
@@ -210,6 +252,11 @@ export class RoomManager {
 
     on('room:create', ({ gameId, name, demo }) => {
       if (!isGameId(gameId)) throw new UserError('ゲームが見つかりません');
+      // 常設のルームがあるときは、懇親会のルーム・デモを新しく作らせない。
+      // 作れると、コードを知らない人でも名簿とクイズ（答え）を見られてしまう
+      if (isEventGame(gameId) && this.hasFixedRoom()) {
+        throw new UserError('懇親会のルームは用意してあります。トップの「コードで参加」から、ルームコードを入れて参加してください');
+      }
       const cleanName = this.validateName(name);
       const code = this.uniqueCode();
       const room = new Room(code, gameId, {
@@ -305,6 +352,7 @@ export class RoomManager {
 
     on('room:close', () => {
       const { room } = this.requireHost(socket);
+      if (room.permanent) throw new UserError('このルームは常設のため、削除できません');
       this.closeRoom(room, 'ホストがルームを削除しました');
     });
 
@@ -512,7 +560,8 @@ export class RoomManager {
     if (player.hostTimer) clearTimeout(player.hostTimer);
     room.players.delete(playerId);
     room.hostClaims.delete(playerId);
-    if (room.players.size === 0) {
+    // 常設のルームは、最後の1人が退出しても残す
+    if (room.players.size === 0 && !room.permanent) {
       this.deleteRoom(room);
       return;
     }
@@ -559,6 +608,7 @@ export class RoomManager {
     const now = Date.now();
     for (const room of this.rooms.values()) {
       // 懇親会の本番のルームは、誰も開いていなくても残す（前日に作って QR を配れるように。最後の動きから7日で片付ける）
+      if (room.permanent) continue; // 常設のルームは片付けない
       const keepWhileIdle = isEventRoom(room) && !room.demo;
       const idle = !keepWhileIdle && room.connectedPlayers.length === 0 && now - room.lastActivity > IDLE_CLOSE_MS;
       const stale = now - room.lastActivity > (keepWhileIdle ? EVENT_KEEP_MS : STALE_CLOSE_MS);
