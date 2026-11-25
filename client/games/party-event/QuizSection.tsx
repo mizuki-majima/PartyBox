@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
 import { BigTimer, QuestionCard } from '../../components/game';
+import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
 import { HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
@@ -23,7 +24,7 @@ export function QuizSection() {
         <p className="text-xs font-extrabold tracking-[0.2em] text-muted uppercase">{q.title}</p>
         <p className="mt-1 font-display text-xl">
           {q.qno > 0 ? `第 ${q.qno} 問 / ${q.total}` : `全 ${q.total} 問`}
-          <span className="ml-2 text-sm text-pop-yellow">{PHASE_LABEL[q.phase]}</span>
+          <span className="ml-2 text-sm text-hi-ink">{PHASE_LABEL[q.phase]}</span>
         </p>
         {q.phase === 'answering' && q.deadline && (
           <div className="mt-3 flex justify-center">
@@ -44,7 +45,7 @@ function Idle() {
   const { game } = useGame<PartyEventView>();
   return (
     <Card className="py-12 text-center">
-      <div className="animate-float text-5xl">📝</div>
+      <Icon name="quiz" className="animate-float mx-auto !block h-14 w-14" />
       <p className="mt-3 font-display text-xl">
         {game.isHost ? '「次へ」で第1問を出します' : 'まもなくクイズが始まります'}
       </p>
@@ -73,7 +74,7 @@ function QuestionArea() {
             {q.teams.map((t) => (
               <Badge
                 key={t}
-                className={q.answeredTeams.includes(t) ? 'bg-pop-mint text-ink' : 'bg-white/8 text-white/60'}
+                className={q.answeredTeams.includes(t) ? 'bg-ok text-on-ok' : 'bg-panel text-muted'}
               >
                 {q.answeredTeams.includes(t) ? '✓ ' : ''}
                 {t}
@@ -84,17 +85,26 @@ function QuestionArea() {
       )}
 
       {revealed && (
-        <Card className="animate-pop-in bg-gradient-to-br from-pop-mint/20 to-pop-sky/10 text-center">
+        <Card className="animate-pop-in bg-ok/15 text-center">
           <p className="text-xs font-extrabold tracking-[0.2em] text-muted uppercase">答え</p>
-          <p className="mt-2 font-display text-3xl text-pop-mint" data-testid="quiz-answer">
+          <p className="mt-2 font-display text-3xl" data-testid="quiz-answer">
             {question.choices && typeof question.answer === 'number'
               ? question.choices[question.answer]
               : String(question.answer ?? '')}
           </p>
-          {question.note && <p className="mt-3 text-sm text-white/80">{question.note}</p>}
+          {question.note && <p className="mt-3 text-sm text-fg/80">{question.note}</p>}
           {myCorrect !== null && (
             <p className="mt-4 font-display text-xl" data-testid="quiz-my-result">
-              {myCorrect ? '🎉 正解！' : '😢 ざんねん'}
+              {/* 正誤は色だけでなく、印と言葉で */}
+              {myCorrect ? (
+                <span className="ui-badge inline-flex items-center gap-2 bg-ok px-4 py-1 text-on-ok">
+                  <Icon name="check" /> 正解！
+                </span>
+              ) : (
+                <span className="ui-badge inline-flex items-center gap-2 bg-panel px-4 py-1">
+                  <Icon name="close" /> ざんねん
+                </span>
+              )}
             </p>
           )}
         </Card>
@@ -116,9 +126,9 @@ function MyTeam() {
         <span className="text-sm text-muted">あなたのチーム</span>
         <span className="flex items-center gap-3">
           <span data-testid="my-team">
-            <Badge className="bg-pop-violet/30 text-base text-white">{q.myTeam}</Badge>
+            <Badge className="bg-hi text-base text-on-hi">{q.myTeam}</Badge>
           </span>
-          <button className="text-xs font-bold text-muted underline" onClick={() => setChanging(true)} data-testid="quiz-team-change">
+          <button className="min-h-11 px-2 text-xs font-bold text-muted underline" onClick={() => setChanging(true)} data-testid="quiz-team-change">
             変える
           </button>
         </span>
@@ -201,7 +211,7 @@ function AnswerArea() {
       >
         {q.myAnswer ? '送信しなおす' : '送信する'}
       </Button>
-      {q.myAnswer && <p className="mt-2 text-center text-xs text-pop-mint">送信ずみ: {q.myAnswer.text}</p>}
+      {q.myAnswer && <p className="mt-2 text-center text-xs text-ok-ink">送信ずみ: {q.myAnswer.text}</p>}
     </Card>
   );
 }
@@ -236,14 +246,14 @@ function HostControls() {
     <HostPanel title="クイズの進行">
       <div className="flex flex-col gap-3">
         {preview && (
-          <p className="rounded-xl bg-black/25 px-3 py-2 text-sm" data-testid="quiz-host-answer">
-            <span className="mr-2 text-xs font-extrabold text-amber-200">答え（司会だけに表示）</span>
+          <p className="ui-tile px-3 py-2 text-sm" data-testid="quiz-host-answer">
+            <span className="mr-2 text-xs font-extrabold text-warn-ink">答え（司会だけに表示）</span>
             <span className="font-bold">{preview}</span>
           </p>
         )}
         <HostActionBar>
           <HostButton onClick={() => act('quiz:next', { at: q.position })} disabled={q.phase === 'result'} testId="quiz-next">
-            ▶ {nextLabel}
+            {nextLabel} <Icon name="play" className="h-4 w-4" />
           </HostButton>
         </HostActionBar>
         <Button size="sm" variant="secondary" onClick={() => act('quiz:prev', { at: q.position })} disabled={q.phase === 'idle'}>
@@ -271,27 +281,33 @@ function AnswerTable() {
       </SectionTitle>
       <ul className="flex flex-col gap-1.5" data-testid="quiz-host-answers">
         {q.answers!.map((a) => (
-          <li key={a.team} className="flex items-center gap-2 rounded-xl bg-black/20 px-3 py-2">
+          <li key={a.team} className="ui-tile flex items-center gap-2 px-3 py-2">
             <span className="w-20 shrink-0 truncate text-xs font-extrabold text-muted">{a.team}</span>
             <span className="min-w-0 flex-1 truncate font-bold">{a.text}</span>
             {a.seconds != null && <span className="shrink-0 text-xs text-muted">{a.seconds}s</span>}
             {free ? (
               <div className="flex shrink-0 gap-1">
                 <button
-                  className={`rounded-lg px-2 py-1 text-sm font-extrabold ${a.correct === true ? 'bg-pop-mint text-ink' : 'bg-white/10'}`}
+                  aria-label="正解にする"
+                  aria-pressed={a.correct === true}
+                  className={`h-11 w-11 rounded-lg text-lg font-extrabold ring-2 ring-line ${a.correct === true ? 'bg-ok text-on-ok' : 'bg-panel'}`}
                   onClick={() => act('quiz:grade', { qno: q.qno, team: a.team, correct: true })}
                 >
                   ○
                 </button>
                 <button
-                  className={`rounded-lg px-2 py-1 text-sm font-extrabold ${a.correct === false ? 'bg-rose-400 text-ink' : 'bg-white/10'}`}
+                  aria-label="不正解にする"
+                  aria-pressed={a.correct === false}
+                  className={`h-11 w-11 rounded-lg text-lg font-extrabold ring-2 ring-line ${a.correct === false ? 'bg-danger text-on-danger' : 'bg-panel'}`}
                   onClick={() => act('quiz:grade', { qno: q.qno, team: a.team, correct: false })}
                 >
                   ×
                 </button>
               </div>
             ) : (
-              <span className="shrink-0 text-lg">{a.correct === true ? '⭕' : a.correct === false ? '❌' : ''}</span>
+              <span className="shrink-0 text-lg font-black" aria-label={a.correct === true ? '正解' : a.correct === false ? '不正解' : undefined}>
+                {a.correct === true ? '○' : a.correct === false ? '×' : ''}
+              </span>
             )}
           </li>
         ))}
@@ -313,9 +329,9 @@ function Scores() {
         {q.ranking.map((r) => (
           <li
             key={r.team}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2 ${r.team === q.myTeam ? 'bg-pop-violet/25' : 'bg-white/5'}`}
+            className={`ui-tile flex items-center gap-3 px-3 py-2 ${r.team === q.myTeam ? 'bg-hi' : ''}`}
           >
-            <span className="font-display text-lg text-pop-yellow">{r.rank}</span>
+            <span className="font-display text-lg">{r.rank}</span>
             <span className="min-w-0 flex-1 truncate font-bold">{r.team}</span>
             <span className="font-display text-xl">{r.score}</span>
           </li>
@@ -330,10 +346,10 @@ function Ranking() {
   // 同点なら並べて出す
   const winners = game.quiz.ranking.filter((r) => r.rank === 1);
   return (
-    <Card className="animate-pop-in bg-gradient-to-br from-pop-yellow/20 to-pop-orange/10 py-10 text-center">
-      <div className="text-6xl">🏆</div>
+    <Card className="animate-pop-in bg-hi/40 py-10 text-center">
+      <Icon name="trophy" className="mx-auto !block h-16 w-16" />
       <p className="mt-3 text-sm text-muted">{winners.length > 1 ? '同点優勝' : '優勝'}</p>
-      <p className="font-display text-4xl text-pop-yellow" data-testid="quiz-winner">
+      <p className="font-display text-4xl" data-testid="quiz-winner">
         {winners.length ? winners.map((r) => r.team).join('・') : '—'}
       </p>
       <p className="mt-2 font-display text-xl">{winners[0]?.score ?? 0} 問正解</p>

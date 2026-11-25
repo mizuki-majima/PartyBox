@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
+import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
@@ -16,11 +17,11 @@ export function BingoSection() {
       <Card className="text-center">
         <p className="text-xs font-extrabold tracking-[0.2em] text-muted uppercase">{b.title}</p>
         {b.last == null ? (
-          <p className="mt-4 mb-2 font-display text-2xl text-white/60">まだ引いていません</p>
+          <p className="mt-4 mb-2 font-display text-2xl text-fg/60">まだ引いていません</p>
         ) : (
           <div key={b.last} className="animate-pop-in mt-3">
             <div className="font-display text-7xl leading-none sm:text-8xl" data-testid="bingo-last">
-              <span className="text-pop-yellow">{letterOf(b.last)}</span> {b.last}
+              <span className="text-accent-ink">{letterOf(b.last)}</span> {b.last}
             </div>
           </div>
         )}
@@ -53,24 +54,21 @@ function MyCard() {
 
   return (
     <Card>
-      <SectionTitle right={<Badge className="bg-white/10 text-white/80">カード {card.cardId}</Badge>}>
+      <SectionTitle right={<Badge className="bg-panel">カード {card.cardId}</Badge>}>
         あなたのカード
       </SectionTitle>
       <div className="grid grid-cols-5 gap-1.5" data-testid="bingo-card">
         {['B', 'I', 'N', 'G', 'O'].map((l) => (
-          <div key={l} className="pb-1 text-center font-display text-sm text-pop-yellow">
+          <div key={l} className="pb-1 text-center font-display text-sm text-accent-ink">
             {l}
           </div>
         ))}
         {card.cells.map((n, i) => (
           <div
             key={i}
-            className={`flex aspect-square items-center justify-center rounded-lg text-base font-extrabold transition sm:text-lg ${
-              n === 0
-                ? 'bg-pop-violet/40 text-white/80'
-                : card.marked[i]
-                  ? 'bg-pop-mint text-ink'
-                  : 'bg-white/8 text-white/85'
+            // 開いたマスは、色だけでなく形でも分かるようにする（開いた = 丸、まだ = 四角）
+            className={`flex aspect-square items-center justify-center text-base font-extrabold ring-2 ring-line transition sm:text-lg ${
+              n === 0 ? 'rounded-full bg-hi text-on-hi' : card.marked[i] ? 'rounded-full bg-ok text-on-ok' : 'rounded-lg bg-panel'
             }`}
           >
             {n === 0 ? '★' : n}
@@ -81,12 +79,13 @@ function MyCard() {
       <div className="mt-4">
         {card.bingo ? (
           myRank ? (
-            <p className="rounded-2xl bg-pop-mint/15 py-3 text-center text-sm font-extrabold text-pop-mint" data-testid="bingo-claimed">
-              🎉 受付ずみです（{myRank} 番目）
+            <p className="ui-tile bg-ok py-3 text-center text-sm font-extrabold text-on-ok" data-testid="bingo-claimed">
+              <Icon name="check" className="mr-1 inline-block h-[1.1em] w-[1.1em] align-[-0.15em]" />
+              受付ずみです（{myRank} 番目）
             </p>
           ) : (
             <Button size="xl" block onClick={() => act('bingo:claim')} data-testid="bingo-claim">
-              🎉 ビンゴ！
+              <Icon name="spark" /> ビンゴ！
             </Button>
           )
         ) : (
@@ -116,7 +115,7 @@ function HostControls() {
       <div className="flex flex-col gap-3">
         <HostActionBar>
           <HostButton onClick={() => act('bingo:draw', { at: b.called.length })} disabled={b.remaining === 0} testId="bingo-draw">
-            🎱 番号を引く
+            <Icon name="bingo" /> 番号を引く
           </HostButton>
         </HostActionBar>
 
@@ -132,12 +131,12 @@ function HostControls() {
             disabled={!b.claims.length}
             data-testid="bingo-prizes"
           >
-            {b.prizes ? '🎁 景品を引き直す' : '🎁 景品を抽選'}
+            <Icon name="gift" /> {b.prizes ? '景品を引き直す' : '景品を抽選'}
           </Button>
         </div>
         <Modal open={redraw} onClose={() => setRedraw(false)}>
           <h2 className="font-display text-xl">景品を引き直しますか？</h2>
-          <p className="mt-2 text-sm text-white/80">いま出ている景品の割り当ては消えて、全員の画面が新しい結果に変わります。</p>
+          <p className="mt-2 text-sm text-fg/80">いま出ている景品の割り当ては消えて、全員の画面が新しい結果に変わります。</p>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Button variant="secondary" size="lg" onClick={() => setRedraw(false)}>
               やめる
@@ -188,21 +187,21 @@ function InspectedCard() {
   const { game } = useGame<PartyEventView>();
   const card = game.bingo.inspected!;
   return (
-    <div className="mt-3 rounded-2xl bg-black/20 p-3">
+    <div className="ui-tile mt-3 p-3">
       <p className="mb-2 text-center text-sm font-extrabold">
         {card.cardId}:{' '}
         {card.bingo ? (
-          <span className="text-pop-mint">ビンゴ（{card.lines} 列）</span>
+          <span className="text-ok-ink">ビンゴ（{card.lines} 列）</span>
         ) : (
-          <span className="text-rose-300">まだ揃っていません（リーチ {card.reach}）</span>
+          <span className="text-danger-ink">まだ揃っていません（リーチ {card.reach}）</span>
         )}
       </p>
       <div className="grid grid-cols-5 gap-1">
         {card.cells.map((n, i) => (
           <div
             key={i}
-            className={`flex aspect-square items-center justify-center rounded text-xs font-extrabold ${
-              n === 0 ? 'bg-pop-violet/40' : card.marked[i] ? 'bg-pop-mint text-ink' : 'bg-white/10'
+            className={`flex aspect-square items-center justify-center text-xs font-extrabold ring-1 ring-line ${
+              n === 0 ? 'rounded-full bg-hi text-on-hi' : card.marked[i] ? 'rounded-full bg-ok text-on-ok' : 'rounded bg-panel'
             }`}
           >
             {n === 0 ? '★' : n}
@@ -225,9 +224,7 @@ function CalledNumbers({ called }: { called: number[] }) {
         {called.map((n, i) => (
           <span
             key={n}
-            className={`rounded-lg px-2 py-1 text-sm font-extrabold ${
-              i === called.length - 1 ? 'bg-pop-yellow text-ink' : 'bg-white/8 text-white/80'
-            }`}
+            className={`ui-badge px-2 py-1 text-sm font-extrabold ${i === called.length - 1 ? 'bg-hi text-on-hi' : 'bg-panel'}`}
           >
             {letterOf(n)}
             {n}
@@ -252,14 +249,14 @@ function Claims() {
         {b.claims.map((c) => (
           <li
             key={c.rank}
-            className={`flex items-center gap-2 rounded-xl px-3 py-2 ${c.inPrize ? 'bg-pop-yellow/15' : 'bg-white/5'}`}
+            className={`ui-tile flex items-center gap-2 px-3 py-2 ${c.inPrize ? 'bg-hi' : ''}`}
           >
-            <span className="font-display text-lg text-pop-yellow">{c.rank}</span>
+            <span className="font-display text-lg">{c.rank}</span>
             <span className="min-w-0 flex-1 truncate font-bold">{c.name}</span>
             {c.cardId && <span className="text-xs text-muted">{c.cardId}</span>}
             {game.isHost && c.cardId && (
               <button
-                className="text-xs font-bold text-rose-300 hover:text-rose-200"
+                className="min-h-11 px-2 text-xs font-bold text-danger-ink underline"
                 onClick={() => setRemoving({ cardId: c.cardId!, name: c.name })}
                 data-testid="bingo-claim-remove"
               >
@@ -287,14 +284,14 @@ function Prizes() {
   const { game } = useGame<PartyEventView>();
   const prizes = game.bingo.prizes!;
   return (
-    <Card className="bg-gradient-to-br from-pop-yellow/15 to-pop-orange/10">
-      <SectionTitle>🎁 景品</SectionTitle>
+    <Card className="bg-hi/30">
+      <SectionTitle>景品</SectionTitle>
       <ul className="flex flex-col gap-2" data-testid="bingo-prize-result">
         {prizes.assigned.map((p, i) => (
-          <li key={p.cardId} className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5">
-            <span className="font-display text-lg text-pop-yellow">{i + 1}</span>
+          <li key={p.cardId} className="ui-tile flex items-center gap-3 px-3 py-2.5">
+            <span className="font-display text-lg">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate font-extrabold">{p.name}</span>
-            <span className="text-sm font-bold text-pop-mint">{p.prize ?? '—'}</span>
+            <span className="text-sm font-bold">{p.prize ?? '—'}</span>
           </li>
         ))}
       </ul>

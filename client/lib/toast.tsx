@@ -24,12 +24,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             role="status"
-            className={`animate-slide-up pointer-events-auto max-w-md rounded-2xl px-5 py-3 text-center text-sm font-bold shadow-2xl ${
+            className={`animate-slide-up pointer-events-auto max-w-md rounded-2xl px-5 py-3 text-center text-sm font-bold shadow-xl ring-1 ring-line ${
               t.kind === 'error'
-                ? 'bg-rose-500 text-white'
+                ? 'bg-danger text-on-danger'
                 : t.kind === 'success'
-                  ? 'bg-emerald-400 text-emerald-950'
-                  : 'bg-white text-ink'
+                  ? 'bg-ok text-on-ok'
+                  : 'bg-fg text-bg'
             }`}
           >
             {t.message}

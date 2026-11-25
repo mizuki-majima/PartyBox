@@ -14,6 +14,7 @@ import {
   StartSplash,
   SubmissionStatus,
 } from '../../components/game';
+import { Icon, type IconName } from '../../components/Icon';
 import { Avatar, Button, Card } from '../../components/ui';
 import { useGame } from '../RoomContext';
 
@@ -42,12 +43,12 @@ export function UnanimousScreen() {
 function TeamScore({ extra }: { extra?: number }) {
   const { game } = useGame<UnanimousView>();
   return (
-    <div className="flex items-center justify-center gap-3 rounded-2xl bg-white/5 px-4 py-2 ring-1 ring-line">
+    <div className="ui-tile flex items-center justify-center gap-3 px-4 py-2">
       <span className="text-sm font-bold text-muted">チーム得点</span>
       <span className="font-display text-2xl" data-testid="team-score">
         {game.teamScore}
       </span>
-      {extra ? <span className="animate-pop-in font-display text-xl text-pop-mint">+{extra}</span> : null}
+      {extra ? <span className="animate-pop-in font-display text-xl text-ok-ink">+{extra}</span> : null}
     </div>
   );
 }
@@ -57,7 +58,7 @@ function AnswerPhase() {
   const targets = game.players.filter((p) => !p.left).map((p) => p.id);
   return (
     <div className="flex flex-col gap-4">
-      <PhaseHeader emoji="🤝" title="みんなと同じ答えを書こう！" sub="みんなが書きそうな答えを予想して入力しよう" />
+      <PhaseHeader icon="users" title="みんなと同じ答えを書こう！" sub="みんなが書きそうな答えを予想して入力しよう" />
       <QuestionCard text={game.question ?? ''} accent={meta.theme.to} />
       {game.me ? (
         <AnswerForm
@@ -71,8 +72,8 @@ function AnswerPhase() {
       <SubmissionStatus targets={targets} done={game.submitted} />
       <div className="flex flex-wrap justify-center gap-2 text-xs text-muted">
         {game.pointTable.map((p) => (
-          <span key={p.size} className="rounded-full bg-white/5 px-2.5 py-1">
-            {p.size}一致 <b className="text-white">{p.points}点</b>
+          <span key={p.size} className="ui-badge bg-panel px-2.5 py-1">
+            {p.size}一致 <b className="text-fg">{p.points}点</b>
           </span>
         ))}
       </div>
@@ -102,23 +103,35 @@ function GroupCard({
       type="button"
       disabled={!selectable}
       onClick={onToggle}
-      className={`animate-pop-in flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-2 transition sm:p-4 ${
-        selected ? 'bg-pop-violet/25 ring-pop-violet' : matched ? 'bg-white/10 ring-transparent' : 'bg-white/4 ring-transparent'
-      } ${selectable ? 'cursor-pointer hover:bg-white/15' : 'cursor-default'}`}
+      className={`ui-tile animate-pop-in flex w-full items-center gap-3 p-3 text-left transition sm:p-4 ${
+        selected ? 'outline-4 outline-info' : ''
+      } ${selectable ? 'cursor-pointer' : 'cursor-default'}`}
       style={{ animationDelay: `${index * 90}ms` }}
       data-testid="answer-group"
     >
       {selectable && (
-        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ring-2 ${selected ? 'bg-pop-violet ring-pop-violet' : 'ring-white/30'}`}>
-          {selected && '✓'}
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ring-2 ring-fg ${selected ? 'bg-info text-on-ok' : 'bg-panel'}`}>
+          {selected && <Icon name="check" className="h-4 w-4" />}
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className={`font-display break-all ${matched ? 'text-2xl' : 'text-lg text-white/75'}`}>{group.label}</p>
+        {/* そろったかどうかは、色だけでなく印と言葉でも示す */}
+        <p className="mb-1">
+          {matched ? (
+            <span className="ui-badge inline-flex items-center gap-1 bg-ok px-2 py-0.5 text-xs font-extrabold text-on-ok">
+              <Icon name="check" className="h-3 w-3" /> そろった
+            </span>
+          ) : (
+            <span className="ui-badge inline-flex items-center gap-1 bg-danger px-2 py-0.5 text-xs font-extrabold text-on-danger">
+              <Icon name="close" className="h-3 w-3" /> ひとりだけ
+            </span>
+          )}
+        </p>
+        <p className={`font-display break-all ${matched ? 'text-2xl' : 'text-lg'}`}>{group.label}</p>
         {group.variants.length > 1 && <p className="text-xs text-muted">表記: {group.variants.join(' / ')}</p>}
         <div className="mt-2 flex flex-wrap gap-1.5">
           {group.playerIds.map((id) => (
-            <span key={id} className="inline-flex items-center gap-1 rounded-full bg-black/25 py-0.5 pr-2.5 pl-0.5 text-xs font-bold">
+            <span key={id} className="ui-badge inline-flex items-center gap-1 bg-panel py-0.5 pr-2.5 pl-0.5 text-xs font-bold">
               <Avatar name={nameOf(id)} color={colorOf(id)} size="xs" />
               {nameOf(id)}
             </span>
@@ -127,7 +140,7 @@ function GroupCard({
       </div>
       <div className="shrink-0 text-right">
         <p className="font-display text-3xl">{group.playerIds.length}<span className="text-base">人</span></p>
-        {group.points > 0 ? <p className="font-extrabold text-pop-mint">+{group.points}点</p> : <p className="text-xs text-muted">0点</p>}
+        {group.points > 0 ? <p className="font-extrabold text-ok-ink">+{group.points}点</p> : <p className="text-xs text-muted">0点</p>}
       </div>
     </button>
   );
@@ -152,7 +165,7 @@ function RevealPhase() {
     <div className="flex flex-col gap-4">
       {result.unanimous && <Confetti />}
       <PhaseHeader
-        emoji={result.unanimous ? '🎉' : '📣'}
+        icon={result.unanimous ? 'spark' : 'check'}
         title={result.unanimous ? '全員一致！！' : '答え合わせ'}
         sub={result.question}
       />
@@ -174,7 +187,7 @@ function RevealPhase() {
         <Card className="!p-4">
           {merging ? (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <p className="flex-1 text-sm font-bold text-white/80">同じ意味の答えを2つ以上選んでください</p>
+              <p className="flex-1 text-sm font-bold text-fg/80">同じ意味の答えを2つ以上選んでください</p>
               <Button size="sm" variant="secondary" onClick={() => setMerging(false)}>
                 やめる
               </Button>
@@ -186,7 +199,7 @@ function RevealPhase() {
             <div className="flex flex-wrap items-center justify-center gap-2">
               {result.groups.length > 1 && (
                 <Button size="sm" variant="secondary" onClick={() => setMerging(true)}>
-                  🔗 表記ゆれをまとめる
+                  <Icon name="link" /> 表記ゆれをまとめる
                 </Button>
               )}
               {result.merged && (
@@ -205,10 +218,11 @@ function RevealPhase() {
 }
 
 function rating(ratio: number) {
-  if (ratio >= 0.8) return { emoji: '🏆', title: '以心伝心マスター', text: '心が完全につながっています！' };
-  if (ratio >= 0.5) return { emoji: '💞', title: '息ぴったりチーム', text: 'かなり通じ合っています！' };
-  if (ratio >= 0.25) return { emoji: '😊', title: 'なかなかの仲良し', text: 'もう一回やればもっと揃うかも？' };
-  return { emoji: '🌈', title: '個性派ぞろい', text: 'バラバラなのもまた楽しい！' };
+  const r = (icon: IconName, title: string, text: string) => ({ icon, title, text });
+  if (ratio >= 0.8) return r('trophy', '以心伝心マスター', '心が完全につながっています！');
+  if (ratio >= 0.5) return r('users', '息ぴったりチーム', 'かなり通じ合っています！');
+  if (ratio >= 0.25) return r('check', 'なかなかの仲良し', 'もう一回やればもっと揃うかも？');
+  return r('spark', '個性派ぞろい', 'バラバラなのもまた楽しい！');
 }
 
 function GameOver() {
@@ -223,9 +237,9 @@ function GameOver() {
           {game.teamScore}
         </p>
         <p className="text-sm text-muted">/ 最大 {game.maxScore} 点</p>
-        <div className="mt-4 text-5xl">{r.emoji}</div>
+        <Icon name={r.icon} className="mx-auto mt-4 !block h-12 w-12" />
         <p className="mt-1 font-display text-2xl">{r.title}</p>
-        <p className="text-sm text-white/75">{r.text}</p>
+        <p className="text-sm text-fg/75">{r.text}</p>
       </Card>
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="!p-4">
@@ -235,7 +249,9 @@ function GameOver() {
               <li key={h.round} className="flex items-center gap-2">
                 <span className="w-6 font-display text-muted">{h.round}</span>
                 <span className="flex-1 truncate">{h.question}</span>
-                <span className="font-extrabold">{h.unanimous ? '🎉 ' : ''}+{h.roundScore}</span>
+                <span className="font-extrabold">
+                  {h.unanimous && <span className="ui-badge mr-1 bg-ok px-1.5 py-0.5 text-[10px] text-on-ok">全員一致</span>}+{h.roundScore}
+                </span>
               </li>
             ))}
           </ol>

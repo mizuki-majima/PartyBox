@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router';
 import { App } from './App';
 import './index.css';
 import { ToastProvider } from './lib/toast';
+import { initTheme } from './themes';
+
+initTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

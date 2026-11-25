@@ -12,7 +12,7 @@ test('全員一致を目指せ！: PCホスト + スマホ2台で作成→参加
 
   // ホストが設定を変更 → 参加者にもリアルタイム反映
   await host.page.getByRole('button', { name: '3ラウンド' }).click();
-  await expect(taro.page.getByRole('button', { name: '3ラウンド' })).toHaveClass(/bg-white/);
+  await expect(taro.page.getByRole('button', { name: '3ラウンド' })).toHaveAttribute('aria-pressed', 'true');
 
   // 参加者がリロードしても同じプレイヤーとして復帰（人数は3人のまま）
   await hana.page.reload();

@@ -124,7 +124,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, { disabled?: boolea
 
   return (
     <div className="relative z-[1] flex flex-col gap-3">
-      <div className="overflow-hidden rounded-2xl bg-white shadow-2xl ring-4 ring-white/10">
+      <div className="overflow-hidden rounded-2xl bg-fg shadow-2xl ring-4 ring-fg/10">
         <canvas
           ref={canvasRef}
           width={W}
@@ -148,7 +148,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, { disabled?: boolea
                 setColor(c);
                 setEraser(false);
               }}
-              className={`h-8 w-8 rounded-full ring-2 transition ${!eraser && color === c ? 'scale-110 ring-white' : 'ring-white/15'}`}
+              className={`h-8 w-8 rounded-full ring-2 transition ${!eraser && color === c ? 'scale-110 ring-fg' : 'ring-fg/15'}`}
               style={{ background: c }}
             />
           ))}
@@ -159,7 +159,7 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, { disabled?: boolea
             <button
               key={s.value}
               onClick={() => setSize(s.value)}
-              className={`flex h-9 w-9 items-center justify-center rounded-xl ${size === s.value ? 'bg-white text-ink' : 'bg-white/8'}`}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl ${size === s.value ? 'bg-fg text-bg' : 'bg-fg/8'}`}
               aria-label={`太さ ${s.label}`}
             >
               <span className="rounded-full bg-current" style={{ width: Math.min(22, s.value), height: Math.min(22, s.value) }} />
@@ -167,16 +167,16 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, { disabled?: boolea
           ))}
           <button
             onClick={() => setEraser((v) => !v)}
-            className={`h-9 rounded-xl px-3 text-sm font-extrabold ${eraser ? 'bg-white text-ink' : 'bg-white/8'}`}
+            className={`h-9 rounded-xl px-3 text-sm font-extrabold ${eraser ? 'bg-fg text-bg' : 'bg-fg/8'}`}
           >
             消しゴム
           </button>
         </div>
         <div className="ml-auto flex gap-1.5">
-          <button onClick={undo} disabled={count === 0} className="h-9 rounded-xl bg-white/8 px-3 text-sm font-extrabold disabled:opacity-30">
+          <button onClick={undo} disabled={count === 0} className="h-9 rounded-xl bg-fg/8 px-3 text-sm font-extrabold disabled:opacity-30">
             ↩ 戻す
           </button>
-          <button onClick={clear} disabled={count === 0} className="h-9 rounded-xl bg-white/8 px-3 text-sm font-extrabold disabled:opacity-30">
+          <button onClick={clear} disabled={count === 0} className="h-9 rounded-xl bg-fg/8 px-3 text-sm font-extrabold disabled:opacity-30">
             全消し
           </button>
         </div>

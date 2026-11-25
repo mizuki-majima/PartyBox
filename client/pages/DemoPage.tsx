@@ -17,7 +17,7 @@ export function DemoPage() {
   const meta = getGameMeta(gameId);
   if (!meta || !isEventGame(meta.id)) {
     return (
-      <FullScreenMessage emoji="🤔" title="デモが見つかりません">
+      <FullScreenMessage icon="search" title="デモが見つかりません">
         <Link to="/">
           <Button size="lg">トップへ</Button>
         </Link>
@@ -109,7 +109,7 @@ function Demo({ meta }: { meta: GameMeta }) {
     <div className="min-h-dvh pb-12">
       <header className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Logo />
-        <Link to="/" className="text-sm font-bold text-muted hover:text-white">
+        <Link to="/" className="text-sm font-bold text-muted hover:text-fg">
           ← トップ
         </Link>
       </header>
@@ -118,7 +118,7 @@ function Demo({ meta }: { meta: GameMeta }) {
         <Card className="!p-4 sm:!p-5">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div className="mr-auto">
-              <p className="text-xs font-extrabold tracking-[0.3em] text-pop-mint">DEMO</p>
+              <p className="text-xs font-extrabold tracking-[0.3em] text-ok-ink">DEMO</p>
               <h1 className="font-display text-2xl">
                 {meta.emoji} {meta.title}を試す
               </h1>
@@ -133,7 +133,7 @@ function Demo({ meta }: { meta: GameMeta }) {
                   aria-pressed={count === n}
                   data-testid={`demo-guests-${n}`}
                   className={`h-9 rounded-xl px-3 text-sm font-extrabold ring-1 transition disabled:opacity-50 ${
-                    count === n ? 'bg-white text-ink ring-white' : 'bg-panel-2 text-white ring-line hover:bg-panel-3'
+                    count === n ? 'bg-fg text-bg ring-fg' : 'bg-panel-2 text-fg ring-line hover:bg-panel-3'
                   }`}
                 >
                   {n}台
@@ -152,7 +152,7 @@ function Demo({ meta }: { meta: GameMeta }) {
               </Button>
             </div>
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-white/75">
+          <p className="mt-3 text-sm leading-relaxed text-fg/75">
             <span className="hidden lg:inline">左が司会、右が参加者のスマホの画面です。</span>
             <span className="lg:hidden">上が司会、下が参加者のスマホの画面です。</span>司会の枠で企画を選んで「引く」「次へ」などを押すと、参加者の枠が同時に変わります。
             どの枠も本物の画面で、それぞれ別のスマホとして動きます。
@@ -175,7 +175,7 @@ function Demo({ meta }: { meta: GameMeta }) {
           </Card>
         ) : !room ? (
           <Card className="flex flex-col items-center gap-3 py-16 text-center">
-            <Spinner className="h-8 w-8 text-pop-pink" />
+            <Spinner className="h-8 w-8 text-accent-ink" />
             <p className="font-bold">デモのルームを用意しています…</p>
           </Card>
         ) : (
@@ -229,11 +229,11 @@ function Frame({
 }) {
   return (
     <figure className={`min-w-0 ${className}`}>
-      <figcaption className="mb-1.5 px-1 text-sm font-extrabold text-white/85">{label}</figcaption>
+      <figcaption className="mb-1.5 px-1 text-sm font-extrabold text-fg/85">{label}</figcaption>
       <iframe
         src={src}
         title={title}
-        className={`block w-full rounded-3xl bg-ink ring-1 ring-line ${frameClassName}`}
+        className={`block w-full rounded-3xl bg-bg ring-1 ring-line ${frameClassName}`}
         data-testid={`demo-frame-${title}`}
       />
     </figure>
@@ -265,7 +265,7 @@ function JoinQr({ open, onClose, code }: { open: boolean; onClose: () => void; c
     <Modal open={open} onClose={onClose}>
       <h2 className="font-display text-xl">スマホで参加する</h2>
       <p className="mt-1 text-sm text-muted">読み取ると、このデモに参加者として加わります。</p>
-      {qr && <img src={qr} alt="デモのルームの招待QRコード" className="mx-auto mt-4 w-56 rounded-2xl bg-white p-2" />}
+      {qr && <img src={qr} alt="デモのルームの招待QRコード" className="mx-auto mt-4 w-56 border border-line bg-[#fff] p-2" />}
       <p className="mt-3 text-center font-display text-2xl tracking-[0.15em]">{code}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Button variant="secondary" onClick={copy}>

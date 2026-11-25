@@ -10,8 +10,8 @@ const meta = getGameMeta('ten-sec-trial')!;
 
 export const ROLE_INFO: Record<TrialRole, { label: string; emoji: string; color: string }> = {
   defendant: { label: '被告', emoji: '🙇', color: 'from-slate-500 to-slate-700' },
-  prosecutor: { label: '検察', emoji: '🔍', color: 'from-rose-500 to-red-700' },
-  defense: { label: '弁護士', emoji: '🛡️', color: 'from-sky-500 to-blue-700' },
+  prosecutor: { label: '検察', emoji: '🔍', color: 'from-danger to-red-700' },
+  defense: { label: '弁護士', emoji: '🛡️', color: 'from-info to-blue-700' },
   witness: { label: '証人', emoji: '👀', color: 'from-amber-500 to-orange-600' },
 };
 
@@ -37,14 +37,14 @@ function CaseCard() {
   const { game } = useGame<TrialView>();
   if (!game.caseInfo) return null;
   return (
-    <div className="animate-pop-in overflow-hidden rounded-3xl bg-[#fdf6e3] text-ink shadow-2xl">
+    <div className="animate-pop-in overflow-hidden rounded-3xl bg-[#fdf6e3] text-bg shadow-2xl">
       <div className="flex items-center gap-2 bg-amber-700 px-5 py-2 text-sm font-extrabold text-amber-50">
         ⚖️ 事件ファイル No.{game.round}
       </div>
       <div className="p-5">
         <p className="font-display text-2xl">{game.caseInfo.title}</p>
         <p className="mt-2 text-slate-700">{game.caseInfo.summary}</p>
-        <p className="mt-3 rounded-xl bg-amber-100 px-4 py-2 text-center font-display text-lg text-amber-900">{game.caseInfo.question}</p>
+        <p className="mt-3 rounded-xl bg-amber-100 px-4 py-2 text-center font-display text-lg text-on-warn">{game.caseInfo.question}</p>
       </div>
     </div>
   );
@@ -59,16 +59,16 @@ function MyRoleCard() {
       <div className="flex items-center gap-3">
         <span className="text-5xl">{info.emoji}</span>
         <div>
-          <p className="text-xs font-extrabold text-white/80">あなたの役</p>
+          <p className="text-xs font-extrabold text-fg/80">あなたの役</p>
           <p className="font-display text-3xl">{info.label}</p>
         </div>
       </div>
-      {game.myGoal && <p className="mt-3 rounded-xl bg-black/20 px-4 py-2 text-sm font-bold">{game.myGoal}</p>}
+      {game.myGoal && <p className="mt-3 rounded-xl bg-shade/20 px-4 py-2 text-sm font-bold">{game.myGoal}</p>}
       {game.myCards.length > 0 && (
         <div className="mt-3 space-y-2">
-          <p className="text-xs font-extrabold text-white/80">🗂 あなただけが知っている証拠</p>
+          <p className="text-xs font-extrabold text-fg/80">🗂 あなただけが知っている証拠</p>
           {game.myCards.map((c) => (
-            <p key={c} className="rounded-xl bg-white px-4 py-3 font-bold text-ink shadow" data-testid="evidence">
+            <p key={c} className="rounded-xl bg-fg px-4 py-3 font-bold text-bg shadow" data-testid="evidence">
               {c}
             </p>
           ))}
@@ -83,11 +83,11 @@ function Court() {
   const order: TrialRole[] = ['defendant', 'prosecutor', 'defense', 'witness'];
   const members = Object.entries(game.roles).sort((a, b) => order.indexOf(a[1]) - order.indexOf(b[1]));
   return (
-    <div className="rounded-3xl bg-white/4 p-4 ring-1 ring-line">
+    <div className="rounded-3xl bg-fg/4 p-4 ring-1 ring-line">
       <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">法廷メンバー</p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {members.map(([id, role]) => (
-          <div key={id} className="flex items-center gap-2 rounded-2xl bg-white/5 p-2">
+          <div key={id} className="flex items-center gap-2 rounded-2xl bg-fg/5 p-2">
             <Avatar name={nameOf(id)} color={colorOf(id)} size="sm" />
             <div className="min-w-0">
               <p className="truncate text-sm font-extrabold">{nameOf(id)}</p>
@@ -166,7 +166,7 @@ function VotePhase() {
           <button
             onClick={() => act('vote', { verdict: 'guilty' })}
             className={`flex flex-col items-center gap-1 rounded-3xl p-6 font-display text-3xl ring-4 transition active:scale-95 ${
-              game.myVote === 'guilty' ? 'bg-rose-500 ring-white' : 'bg-rose-500/20 ring-transparent hover:bg-rose-500/35'
+              game.myVote === 'guilty' ? 'bg-danger ring-fg' : 'bg-danger/20 ring-transparent hover:bg-danger/35'
             }`}
             data-testid="vote-guilty"
           >
@@ -175,7 +175,7 @@ function VotePhase() {
           <button
             onClick={() => act('vote', { verdict: 'innocent' })}
             className={`flex flex-col items-center gap-1 rounded-3xl p-6 font-display text-3xl ring-4 transition active:scale-95 ${
-              game.myVote === 'innocent' ? 'bg-sky-500 ring-white' : 'bg-sky-500/20 ring-transparent hover:bg-sky-500/35'
+              game.myVote === 'innocent' ? 'bg-info ring-fg' : 'bg-info/20 ring-transparent hover:bg-info/35'
             }`}
             data-testid="vote-innocent"
           >
@@ -184,7 +184,7 @@ function VotePhase() {
         </div>
       ) : (
         game.myRole === 'defendant' && (
-          <p className="rounded-3xl bg-white/5 p-6 text-center font-bold text-white/80">🙇 被告は投票できません。判決を待ちましょう…</p>
+          <p className="rounded-3xl bg-fg/5 p-6 text-center font-bold text-fg/80">🙇 被告は投票できません。判決を待ちましょう…</p>
         )
       )}
       <StatementLog statements={game.statements} labelOf={roleLabel} title="法廷の記録" />
@@ -210,23 +210,23 @@ function VerdictPhase() {
           <p className="font-display text-4xl">裁判中止</p>
         ) : (
           <p
-            className={`animate-stamp rounded-2xl border-8 px-8 py-2 font-display text-6xl ${r.verdict === 'guilty' ? 'border-rose-400 text-rose-300' : 'border-sky-400 text-sky-300'}`}
+            className={`animate-stamp rounded-2xl border-8 px-8 py-2 font-display text-6xl ${r.verdict === 'guilty' ? 'border-danger text-danger-ink' : 'border-info text-info-ink'}`}
             data-testid="verdict"
           >
             {r.verdict === 'guilty' ? '有罪' : '無罪'}
           </p>
         )}
-        {r.note && <p className="mt-2 rounded-xl bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-200">{r.note}</p>}
+        {r.note && <p className="mt-2 rounded-xl bg-warn/15 px-4 py-2 text-sm font-bold text-warn-ink">{r.note}</p>}
       </div>
-      <div className={`animate-slide-up rounded-3xl p-5 text-center shadow-2xl [animation-delay:600ms] ${r.truth === 'guilty' ? 'bg-rose-600' : 'bg-sky-600'}`}>
-        <p className="text-sm font-extrabold text-white/80">真相は…</p>
+      <div className={`animate-slide-up rounded-3xl p-5 text-center shadow-2xl [animation-delay:600ms] ${r.truth === 'guilty' ? 'bg-danger' : 'bg-info'}`}>
+        <p className="text-sm font-extrabold text-fg/80">真相は…</p>
         <p className="mt-1 font-display text-2xl">{r.truthText}</p>
         {!r.aborted && <p className="mt-2 font-bold">{correct ? '⚖️ 正しい判決でした！' : '😱 誤審です！'}</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         {[
-          { label: '🔨 有罪', ids: guiltyVoters, cls: 'bg-rose-500/15' },
-          { label: '🕊️ 無罪', ids: innocentVoters, cls: 'bg-sky-500/15' },
+          { label: '🔨 有罪', ids: guiltyVoters, cls: 'bg-danger/15' },
+          { label: '🕊️ 無罪', ids: innocentVoters, cls: 'bg-info/15' },
         ].map((col) => (
           <div key={col.label} className={`rounded-3xl p-4 ${col.cls}`}>
             <p className="mb-2 font-extrabold">
@@ -234,7 +234,7 @@ function VerdictPhase() {
             </p>
             <div className="flex flex-wrap gap-1.5">
               {col.ids.map((id) => (
-                <span key={id} className="inline-flex items-center gap-1 rounded-full bg-black/25 py-0.5 pr-2.5 pl-0.5 text-xs font-bold">
+                <span key={id} className="inline-flex items-center gap-1 rounded-full bg-shade/25 py-0.5 pr-2.5 pl-0.5 text-xs font-bold">
                   <Avatar name={nameOf(id)} color={colorOf(id)} size="xs" />
                   {nameOf(id)}
                 </span>
@@ -243,7 +243,7 @@ function VerdictPhase() {
           </div>
         ))}
       </div>
-      <div className="rounded-3xl bg-white/4 p-4 ring-1 ring-line">
+      <div className="rounded-3xl bg-fg/4 p-4 ring-1 ring-line">
         <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">全員の証拠カード</p>
         <ul className="space-y-2">
           {Object.entries(r.cards).map(([id, cards]) =>

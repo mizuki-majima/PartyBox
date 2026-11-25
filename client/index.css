@@ -2,29 +2,65 @@
 /* プロンプト・グランプリ（別ページ・Tailwind 不使用）の文字列からクラスを拾わない */
 @source not '../grand-prix';
 
+/*
+ * デザインの切り替え
+ *
+ * 見た目は「デザイントークン」（--t-* と、Tailwind の --font-* / --radius-*）で決まる。
+ * トークンの1セット = client/themes/<名前>.css。<html data-theme="名前"> で切り替わる
+ * （client/themes/index.ts。ゲームに入るとそのゲームのもの、ロビーに戻ると共通画面のものになる）。
+ * 画面と部品は、下の「意味の名前」の色（bg-panel・text-fg・bg-ok …）と .ui-* の部品クラスだけを使い、
+ * 色・角丸・影・枠線・フォントを直接書かない。説明は docs/design.md。
+ */
+@import './themes/platform.css';
+@import './themes/classic.css';
+@import './themes/unanimous.css';
+@import './themes/whose-answer.css';
+@import './themes/party-event.css';
+
+/* 意味の名前 → トークン。inline なので、その要素の位置のトークンで決まる（入れ子の data-theme でも効く） */
+@theme inline {
+  --font-sans: var(--t-font-body);
+  --font-display: var(--t-font-display);
+
+  --color-bg: var(--t-bg);
+  --color-fg: var(--t-fg);
+  --color-muted: var(--t-muted);
+  --color-panel: var(--t-panel);
+  --color-panel-2: var(--t-panel-2);
+  --color-panel-3: var(--t-panel-3);
+  --color-line: var(--t-line);
+  --color-shade: var(--t-shade);
+
+  /* 塗り（bg-ok）・文字として使う色（text-ok-ink）・塗りの上の文字（text-on-ok）の3つで1組 */
+  --color-accent: var(--t-accent);
+  --color-accent-ink: var(--t-accent-ink);
+  --color-on-accent: var(--t-on-accent);
+  --color-accent2: var(--t-accent2);
+  --color-accent2-ink: var(--t-accent2-ink);
+  --color-ok: var(--t-ok);
+  --color-ok-ink: var(--t-ok-ink);
+  --color-on-ok: var(--t-on-ok);
+  --color-hi: var(--t-hi);
+  --color-hi-ink: var(--t-hi-ink);
+  --color-on-hi: var(--t-on-hi);
+  --color-info: var(--t-info);
+  --color-info-ink: var(--t-info-ink);
+  --color-sub: var(--t-sub);
+  --color-sub-ink: var(--t-sub-ink);
+  --color-danger: var(--t-danger);
+  --color-danger-ink: var(--t-danger-ink);
+  --color-on-danger: var(--t-on-danger);
+  --color-warn: var(--t-warn);
+  --color-warn-ink: var(--t-warn-ink);
+  --color-on-warn: var(--t-on-warn);
+}
+
 @theme {
-  --font-sans: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
-  --font-display: 'Dela Gothic One', 'M PLUS Rounded 1c', system-ui, sans-serif;
-
-  --color-ink: #0f0c24;
-  --color-panel: #1b1740;
-  --color-panel-2: #26215a;
-  --color-panel-3: #332c73;
-  --color-line: rgb(255 255 255 / 0.09);
-  --color-muted: #a7a3d6;
-  --color-pop-pink: #ff5fa2;
-  --color-pop-orange: #ffb13d;
-  --color-pop-mint: #3ee6b5;
-  --color-pop-sky: #4cc9ff;
-  --color-pop-yellow: #ffe066;
-  --color-pop-violet: #9b7bff;
-
   --animate-pop-in: pop-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   --animate-slide-up: slide-up 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both;
   --animate-float: float 6s ease-in-out infinite;
   --animate-wiggle: wiggle 0.6s ease-in-out;
   --animate-stamp: stamp 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) both;
-  --animate-shine: shine 2.4s linear infinite;
 }
 
 @keyframes pop-in {
@@ -48,61 +84,230 @@
   0% { opacity: 0; transform: scale(2.2) rotate(-12deg); }
   100% { opacity: 1; transform: scale(1) rotate(-6deg); }
 }
-@keyframes shine {
-  from { background-position: 200% center; }
-  to { background-position: -200% center; }
-}
 @keyframes confetti-fall {
   0% { transform: translate3d(0, -10vh, 0) rotate(0); opacity: 1; }
   100% { transform: translate3d(var(--dx, 0), 110vh, 0) rotate(720deg); opacity: 0.8; }
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  -webkit-tap-highlight-color: transparent;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--t-page-bg);
+    background-attachment: fixed;
+    color: var(--t-fg);
+    font-family: var(--t-font-body);
+    font-weight: var(--t-body-weight);
+    overscroll-behavior-y: none;
+  }
+
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  ::selection {
+    background: var(--t-accent);
+    color: var(--t-on-accent);
+  }
+
+  /* キーボードで操作する人に、今どこにいるかを必ず見せる */
+  :focus-visible {
+    outline: 3px solid var(--t-focus);
+    outline-offset: 2px;
+  }
 }
 
-body {
-  margin: 0;
-  min-height: 100dvh;
-  background-color: var(--color-ink);
-  background-image:
-    radial-gradient(60rem 40rem at 10% -10%, rgb(155 123 255 / 0.28), transparent 60%),
-    radial-gradient(50rem 35rem at 110% 10%, rgb(255 95 162 / 0.2), transparent 60%),
-    radial-gradient(40rem 30rem at 50% 120%, rgb(76 201 255 / 0.14), transparent 60%);
-  background-attachment: fixed;
-  color: #fff;
-  font-family: var(--font-sans);
-  font-weight: 500;
-  overscroll-behavior-y: none;
-}
+/* ------------------------------------------------------------------ */
+/* 部品。見た目はすべてトークンから取る（テーマが変われば、作り直さずに見た目が変わる） */
+/* ------------------------------------------------------------------ */
+@layer components {
+  .font-display {
+    font-weight: var(--t-display-weight);
+    letter-spacing: var(--t-display-tracking);
+  }
 
-button {
-  cursor: pointer;
-  touch-action: manipulation;
-}
-button:disabled {
-  cursor: not-allowed;
-}
+  /* 強調したい言葉（トップの見出しなど） */
+  .text-gradient {
+    color: var(--t-accent-ink);
+  }
 
-::selection {
-  background: rgb(255 95 162 / 0.5);
-}
+  .ui-card {
+    background: var(--t-card-bg);
+    border: var(--t-card-border);
+    border-radius: var(--t-card-radius);
+    box-shadow: var(--t-card-shadow);
+    padding: 1.25rem;
+  }
+  @media (min-width: 40rem) {
+    .ui-card {
+      padding: 1.5rem;
+    }
+  }
 
-.text-gradient {
-  background: linear-gradient(90deg, #ff5fa2, #ffb13d, #ffe066, #3ee6b5, #4cc9ff, #9b7bff, #ff5fa2);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: var(--animate-shine);
-}
+  /* 少し沈んだ面（一覧の行、状況の枠など） */
+  .ui-tile {
+    background: var(--t-tile-bg);
+    border: var(--t-tile-border);
+    border-radius: var(--t-tile-radius);
+  }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  scrollbar-width: none;
+  /* 司会だけに出る操作のまとまり（参加者の画面と取り違えないよう、注意の色を薄く敷く） */
+  .host-panel {
+    background: color-mix(in oklab, var(--t-warn) 22%, var(--t-card-bg));
+  }
+
+  .ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    user-select: none;
+    border: var(--t-btn-border);
+    border-radius: var(--t-btn-radius);
+    box-shadow: var(--t-btn-shadow);
+    font-family: var(--t-btn-font);
+    font-weight: var(--t-btn-weight);
+    letter-spacing: var(--t-btn-tracking);
+    transition:
+      transform 0.12s,
+      box-shadow 0.12s,
+      background-color 0.12s,
+      filter 0.12s;
+  }
+  .ui-btn:active:not(:disabled) {
+    transform: var(--t-btn-press);
+    box-shadow: var(--t-btn-shadow-press);
+  }
+  .ui-btn:disabled {
+    opacity: 0.45;
+  }
+  .ui-btn-primary {
+    background: var(--t-btn-primary-bg);
+    color: var(--t-btn-primary-fg);
+  }
+  .ui-btn-secondary {
+    background: var(--t-btn-secondary-bg);
+    color: var(--t-btn-secondary-fg);
+  }
+  .ui-btn-success {
+    background: var(--t-ok);
+    color: var(--t-on-ok);
+  }
+  .ui-btn-danger {
+    background: var(--t-btn-danger-bg);
+    color: var(--t-btn-danger-fg);
+  }
+  .ui-btn-white {
+    background: var(--t-fg);
+    color: var(--t-bg);
+  }
+  .ui-btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--t-muted);
+  }
+  @media (hover: hover) {
+    .ui-btn:hover:not(:disabled) {
+      filter: var(--t-btn-hover);
+    }
+    .ui-btn-ghost:hover:not(:disabled) {
+      color: var(--t-fg);
+      filter: none;
+    }
+  }
+
+  .ui-input {
+    background: var(--t-input-bg);
+    color: var(--t-input-fg);
+    border: var(--t-input-border);
+    border-radius: var(--t-input-radius);
+    box-shadow: var(--t-input-shadow);
+    outline: none;
+  }
+  .ui-input::placeholder {
+    color: var(--t-input-placeholder);
+    font-weight: 500;
+  }
+  .ui-input:focus {
+    outline: 3px solid var(--t-focus);
+    outline-offset: 1px;
+  }
+
+  .ui-badge {
+    border-radius: var(--t-badge-radius);
+    border: var(--t-badge-border);
+  }
+
+  .ui-overlay {
+    background: var(--t-overlay);
+  }
+  .ui-modal {
+    background: var(--t-modal-bg);
+    border: var(--t-card-border);
+    border-radius: var(--t-card-radius);
+    box-shadow: var(--t-modal-shadow);
+  }
+
+  /* お題のカード（いま何について答えるのか。画面でいちばん目立たせる） */
+  .ui-question {
+    position: relative;
+    overflow: hidden;
+    background: var(--t-q-bg);
+    color: var(--t-q-fg);
+    border: var(--t-q-border);
+    border-radius: var(--t-card-radius);
+    box-shadow: var(--t-q-shadow);
+  }
+  .ui-question-bar {
+    background: var(--t-q-accent);
+  }
+  .ui-question-label {
+    color: var(--t-q-label);
+  }
+
+  /* 画面の上下に固定する帯（ゲーム名とタイマー、開始ボタン、司会の進行ボタン） */
+  .ui-bar {
+    background: var(--t-bar-bg);
+    border-color: var(--t-bar-border);
+    backdrop-filter: var(--t-bar-filter);
+  }
+
+  .ui-timer-track {
+    background: var(--t-timer-track);
+    border: var(--t-timer-border);
+    border-radius: var(--t-timer-radius);
+  }
+  .ui-timer-fill {
+    background: var(--t-timer-fill);
+    border-radius: var(--t-timer-radius);
+  }
+  .ui-timer-fill[data-urgent='true'] {
+    background: var(--t-danger);
+  }
+
+  /* トップのカードに出す、そのゲームのデザインの見本（入れ子の data-theme でそのゲームのトークンになる） */
+  .theme-swatch {
+    background: var(--t-page-bg);
+    color: var(--t-fg);
+    font-family: var(--t-font-body);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -111,4 +316,12 @@ button:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * 画面に直接書かれた影（shadow-lg など）も、テーマの影（--t-elev）にそろえる。
+ * 層に入れないのは、Tailwind のユーティリティ（層の中）より優先させるため
+ */
+:is(.shadow, .shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) {
+  --tw-shadow: var(--t-elev);
 }

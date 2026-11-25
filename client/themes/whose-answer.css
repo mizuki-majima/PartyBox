@@ -1,0 +1,146 @@
+/*
+ * 誰の答えでしょう？: 手書き風
+ *
+ * 罫線入りのノートに、鉛筆の線と手書きの文字。枠はわざとガタつかせ、少し傾ける。
+ * 匿名の回答を「誰が書いたか」当てる遊びなので、回答はメモ用紙に書いた字のように見せる。
+ * 色は紙・鉛筆・赤ペン・青ペン・黄色の蛍光ペンだけ。正解 = 青ペンの丸、はずれ = 赤ペン。
+ */
+@layer base {
+  [data-theme='whose-answer'] {
+    --t-font-body: 'Yusei Magic', 'Zen Kurenaido', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+    --t-font-display: 'Yusei Magic', 'Zen Kurenaido', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+    --t-body-weight: 400;
+    --t-display-weight: 400;
+    --t-display-tracking: 0.02em;
+
+    /* ノートの罫線と、左の赤い縦線 */
+    --t-page-bg:
+      linear-gradient(90deg, transparent 1.6rem, rgb(217 67 47 / 0.35) 1.6rem, rgb(217 67 47 / 0.35) calc(1.6rem + 1px), transparent calc(1.6rem + 1px)),
+      repeating-linear-gradient(#fdf8ec 0, #fdf8ec 1.9rem, rgb(47 95 208 / 0.22) 1.9rem, rgb(47 95 208 / 0.22) calc(1.9rem + 1px)) #fdf8ec;
+    --t-bg: #fdf8ec;
+    --t-fg: #2b2b2b;
+    --t-muted: #6a6253;
+    --t-panel: #fffdf6;
+    --t-panel-2: #fffdf6;
+    --t-panel-3: #f4ecd8;
+    --t-line: rgb(43 43 43 / 0.55);
+    --t-shade: #2b2b2b;
+
+    --t-accent: #d9432f;
+    --t-accent-ink: #b9301f;
+    --t-on-accent: #ffffff;
+    --t-accent2: #2f5fd0;
+    --t-accent2-ink: #244bab;
+    --t-ok: #2f5fd0;
+    --t-ok-ink: #244bab;
+    --t-on-ok: #ffffff;
+    --t-hi: #ffe36e;
+    --t-hi-ink: #b9301f;
+    --t-on-hi: #2b2b2b;
+    --t-info: #2f5fd0;
+    --t-info-ink: #244bab;
+    --t-sub: #2b2b2b;
+    --t-sub-ink: #2b2b2b;
+    --t-danger: #d9432f;
+    --t-danger-ink: #b9301f;
+    --t-on-danger: #ffffff;
+    --t-warn: #ffe36e;
+    --t-warn-ink: #6b4d00;
+    --t-on-warn: #2b2b2b;
+    --t-focus: #2f5fd0;
+
+    /* フリーハンドで引いたような、左右で違う丸み */
+    --radius-sm: 6px 3px 5px 2px / 3px 5px 2px 6px;
+    --radius-md: 9px 4px 8px 3px / 4px 8px 3px 9px;
+    --radius-lg: 14px 5px 12px 4px / 5px 12px 4px 14px;
+    --radius-xl: 18px 6px 16px 5px / 6px 16px 5px 18px;
+    --radius-2xl: 255px 18px 225px 18px / 18px 225px 18px 255px;
+    --radius-3xl: 255px 22px 225px 22px / 22px 225px 22px 255px;
+    --t-elev: 3px 4px 0 rgb(43 43 43 / 0.18);
+
+    --t-card-bg: #fffdf6;
+    --t-card-border: 2px solid #2b2b2b;
+    --t-card-radius: 255px 22px 225px 22px / 22px 225px 22px 255px;
+    --t-card-shadow: 3px 4px 0 rgb(43 43 43 / 0.18);
+    --t-tile-bg: rgb(255 253 246 / 0.7);
+    --t-tile-border: 1.5px dashed rgb(43 43 43 / 0.6);
+    --t-tile-radius: 18px 6px 16px 5px / 6px 16px 5px 18px;
+
+    --t-btn-border: 2px solid #2b2b2b;
+    --t-btn-radius: 255px 16px 225px 16px / 16px 225px 16px 255px;
+    --t-btn-shadow: 2px 3px 0 #2b2b2b;
+    --t-btn-shadow-press: 0 0 0 #2b2b2b;
+    --t-btn-press: translate(2px, 3px);
+    --t-btn-font: var(--t-font-display);
+    --t-btn-weight: 400;
+    --t-btn-tracking: 0.04em;
+    --t-btn-hover: none;
+    --t-btn-primary-bg: #d9432f;
+    --t-btn-primary-fg: #ffffff;
+    --t-btn-secondary-bg: #fffdf6;
+    --t-btn-secondary-fg: #2b2b2b;
+    --t-btn-danger-bg: #fffdf6;
+    --t-btn-danger-fg: #b9301f;
+
+    --t-input-bg: #fffdf6;
+    --t-input-fg: #2b2b2b;
+    --t-input-border: 2px solid #2b2b2b;
+    --t-input-radius: 18px 6px 16px 5px / 6px 16px 5px 18px;
+    --t-input-shadow: none;
+    --t-input-placeholder: #8c8472;
+
+    --t-badge-radius: 14px 5px 12px 4px / 5px 12px 4px 14px;
+    --t-badge-border: 1.5px solid currentColor;
+
+    --t-overlay: rgb(43 43 43 / 0.55);
+    --t-modal-bg: #fffdf6;
+    --t-modal-shadow: 4px 6px 0 rgb(43 43 43 / 0.25);
+
+    /* お題は、黄色い付箋 */
+    --t-q-bg: #ffe36e;
+    --t-q-fg: #2b2b2b;
+    --t-q-border: 0;
+    --t-q-shadow: 3px 5px 0 rgb(43 43 43 / 0.2);
+    --t-q-accent: transparent;
+    --t-q-label: #b9301f;
+
+    --t-bar-bg: #fdf8ec;
+    --t-bar-border: rgb(43 43 43 / 0.55);
+    --t-bar-filter: none;
+
+    --t-timer-track: #fffdf6;
+    --t-timer-border: 2px solid #2b2b2b;
+    --t-timer-radius: 255px 16px 225px 16px / 16px 225px 16px 255px;
+    --t-timer-fill: repeating-linear-gradient(115deg, #2f5fd0 0 6px, #5a82e0 6px 9px);
+  }
+}
+
+/* 紙を貼ったように、ひとつおきに少し傾ける（中身の読みやすさが落ちない角度まで） */
+[data-theme='whose-answer'] .ui-card:nth-of-type(odd) {
+  transform: rotate(-0.4deg);
+}
+[data-theme='whose-answer'] .ui-card:nth-of-type(even) {
+  transform: rotate(0.35deg);
+}
+[data-theme='whose-answer'] .ui-question {
+  transform: rotate(-1deg);
+  border-radius: 2px 2px 40px 2px / 2px 2px 14px 2px;
+}
+/* 見出しには、蛍光ペンで引いた線 */
+[data-theme='whose-answer'] h2.font-display {
+  background: linear-gradient(transparent 62%, #ffe36e 62%, #ffe36e 92%, transparent 92%);
+  display: inline;
+  padding: 0 0.2em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+[data-theme='whose-answer'] .ui-question h2.font-display,
+[data-theme='whose-answer'] .ui-question .font-display {
+  background: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='whose-answer'] .ui-card,
+  [data-theme='whose-answer'] .ui-question {
+    transform: none;
+  }
+}

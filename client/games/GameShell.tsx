@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getGameMeta, isEventGame } from '../../shared/games';
 import { TimerBar } from '../components/game';
+import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Modal } from '../components/ui';
 import { request } from '../lib/socket';
+import { themeOfGame, useTheme } from '../themes';
 import { GAME_SCREENS } from './registry';
 import { useRoomContext } from './RoomContext';
 
@@ -12,6 +14,8 @@ export function GameShell() {
   const game = room.game;
   const meta = getGameMeta(room.gameId)!;
   const phaseKey = game ? `${game.phase}-${game.round}` : '';
+  // ゲーム中は、ページ全体をそのゲームのデザインにする。ロビーに戻る・退出すると共通画面のデザインに戻る
+  useTheme(themeOfGame(room.gameId));
   // フェーズが変わったら画面の先頭へ（前の画面のスクロール位置を引き継がない）
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -22,19 +26,14 @@ export function GameShell() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <div className="sticky top-0 z-10 -mx-3 flex flex-col gap-2 bg-ink/80 px-3 py-2 backdrop-blur-lg sm:mx-0 sm:rounded-2xl sm:px-4">
+      <div className="ui-bar sticky top-0 z-10 -mx-3 flex flex-col gap-2 px-3 py-2 sm:mx-0 sm:px-4" data-edge="top">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg"
-              style={{ background: `linear-gradient(135deg, ${meta.theme.from}, ${meta.theme.to})` }}
-            >
-              {meta.emoji}
-            </span>
+            <GameEmblem id={meta.id} className="h-8 w-10" />
             <span className="truncate font-extrabold">{meta.title}</span>
           </div>
           {showRound && (
-            <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 font-display text-sm" data-testid="round">
+            <span className="ui-badge shrink-0 bg-fg px-3 py-1 font-display text-sm text-bg" data-testid="round">
               {game.gameId === 'grow-answer' ? 'STEP' : 'ROUND'} {game.round}/{game.totalRounds}
             </span>
           )}
@@ -43,8 +42,9 @@ export function GameShell() {
       </div>
 
       {game.me === null && (
-        <div className="rounded-2xl bg-sky-400/15 px-4 py-3 text-center text-sm font-bold text-sky-200 ring-1 ring-sky-300/30">
-          👀 観戦中です。次のゲームから参加できます。
+        <div className="ui-tile px-4 py-3 text-center text-sm font-bold text-info-ink">
+          <Icon name="eye" className="mr-1 inline-block h-[1.1em] w-[1.1em] align-[-0.15em]" />
+          観戦中です。次のゲームから参加できます。
         </div>
       )}
 
@@ -65,8 +65,8 @@ function AbortGame() {
   if (!isHost) return null;
   return (
     <div className="pt-6 text-center">
-      <button className="text-xs font-bold text-muted/70 hover:text-white" onClick={() => setOpen(true)}>
-        ⏹ ゲームを中断してロビーに戻る
+      <button className="min-h-11 px-3 text-xs font-bold text-muted underline underline-offset-4 hover:text-fg" onClick={() => setOpen(true)}>
+        ゲームを中断してロビーに戻る
       </button>
       <Modal open={open} onClose={() => setOpen(false)}>
         <h2 className="font-display text-xl">ゲームを中断しますか？</h2>

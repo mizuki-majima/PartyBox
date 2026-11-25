@@ -8,6 +8,7 @@ PartyBox の開発を引き継ぐエージェント（Claude Code ほか）向�
 - [README.md](README.md): ゲーム一覧・設計・**懇親会（社内の余興など）**・テスト・デプロイ
 - [deploy/lightsail/README.md](deploy/lightsail/README.md): 本番（AWS Lightsail）の作り方と反映
 - [grand-prix/README.md](grand-prix/README.md): 1人用の 3D レース（別ページ）
+- [docs/design.md](docs/design.md): 見た目（デザインの切り替えの仕組み、各ゲームのデザイン方針、新しいゲームへの当て方）
 
 ## このリポジトリは公開（Public）
 
@@ -55,6 +56,7 @@ npx playwright test e2e/party-event.spec.ts   # 懇親会だけ
 - 操作の中身は各ゲームで `String()` / `Number()` などで確かめてから使う。懇親会の名簿・問題のファイルは Zod（`server/event/config.ts`）で確かめ、形式が違えば**起動を失敗させる**（黙ってサンプルに落とさない）
 - ログは `console`（Winston は入れていない）。**名前や回答の中身はログに出さない**（今も出していない）
 - 画面の文言は日本語。参加者はスマホで初めて開くので、短く平易に
+- 見た目はデザイントークンで決まる（`docs/design.md`）。画面には色・角丸・影を直接書かず、意味の名前の色（`bg-ok` `text-on-ok` `text-muted` …）と共通の部品（`Button` `Card` `.ui-tile` …）を使う。絵文字をアイコンに使わない（`Icon` / `GameEmblem`）。フォントは同梱して自前で配信する（外から読まない）
 - E2E は `data-testid` で要素を掴んでいる。消す・名前を変えるときは `e2e/` も直す
 - コメントは日本語で「なぜそうしたか」を書く（既存のコードに合わせる）
 

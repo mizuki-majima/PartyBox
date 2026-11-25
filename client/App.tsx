@@ -22,7 +22,7 @@ function GrandPrixRedirect() {
 
 function NotFound() {
   return (
-    <FullScreenMessage emoji="🧭" title="ページが見つかりません">
+    <FullScreenMessage icon="compass" title="ページが見つかりません">
       <Link to="/">
         <Button size="lg">トップへ戻る</Button>
       </Link>

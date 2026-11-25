@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS } from '../../shared/protocol';
+import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, TextInput } from '../components/ui';
 import { getLastName, saveSession } from '../lib/session';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
+import { themeOfGame } from '../themes';
 
 export function CreateRoomPage() {
   const { gameId = '' } = useParams();
@@ -17,7 +19,7 @@ export function CreateRoomPage() {
 
   if (!game) {
     return (
-      <FullScreenMessage emoji="🤔" title="ゲームが見つかりません">
+      <FullScreenMessage icon="search" title="ゲームが見つかりません">
         <Link to="/">
           <Button size="lg">ゲーム一覧へ</Button>
         </Link>
@@ -43,31 +45,35 @@ export function CreateRoomPage() {
 
   return (
     <div className="min-h-dvh">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+      <header className="mx-auto mb-5 flex max-w-5xl items-center justify-between border-b border-line px-4 py-3 sm:px-6">
         <Logo />
-        <Link to="/" className="text-sm font-bold text-muted hover:text-white">
-          ← ゲーム一覧
+        <Link to="/" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold underline underline-offset-4 hover:text-accent-ink">
+          <Icon name="undo" /> ゲーム一覧
         </Link>
       </header>
       <main className="mx-auto grid max-w-5xl gap-5 px-4 pb-16 sm:px-6 lg:grid-cols-[1.1fr_1fr]">
+        {/* ゲームの紹介は、そのゲームのデザインで見せる（入れ子の data-theme。中だけがそのゲームのトークンになる） */}
         <section
-          className="animate-pop-in relative overflow-hidden rounded-3xl p-6 sm:p-8"
-          style={{ background: `linear-gradient(135deg, ${game.theme.from}, ${game.theme.to})` }}
+          data-theme={themeOfGame(game.id)}
+          className="theme-swatch animate-pop-in relative overflow-hidden border border-line p-6 sm:p-8"
         >
-          <div className="absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/15" />
           <div className="relative">
-            <span className="rounded-full bg-black/25 px-3 py-1 text-xs font-extrabold">{game.category}</span>
-            <div className="mt-4 text-7xl drop-shadow-lg">{game.emoji}</div>
+            <span className="ui-badge inline-block bg-fg px-3 py-1 text-xs font-extrabold text-bg">{game.category}</span>
+            <GameEmblem id={game.id} className="mt-4 h-24 w-32" />
             <h1 className="mt-3 font-display text-3xl sm:text-4xl">{game.title}</h1>
-            <p className="mt-2 text-white/90">{game.description}</p>
-            <div className="mt-4 flex gap-4 font-bold">
-              <span>👥 {game.minPlayers}〜{game.maxPlayers}人</span>
-              <span>⏱ {game.estimatedTime}</span>
+            <p className="mt-2">{game.description}</p>
+            <div className="mt-4 flex flex-wrap gap-4 font-bold">
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="users" /> {game.minPlayers}〜{game.maxPlayers}人
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="clock" /> {game.estimatedTime}
+              </span>
             </div>
-            <ol className="mt-6 space-y-2 rounded-2xl bg-black/20 p-4 text-sm backdrop-blur">
+            <ol className="ui-tile mt-6 space-y-2 p-4 text-sm">
               {game.howToPlay.map((line, i) => (
                 <li key={i} className="flex gap-2">
-                  <span className="font-extrabold text-pop-yellow">{i + 1}.</span>
+                  <span className="font-extrabold text-hi-ink">{i + 1}.</span>
                   <span>{line}</span>
                 </li>
               ))}
@@ -94,18 +100,18 @@ export function CreateRoomPage() {
             />
           </div>
           <Button size="xl" block className="mt-5" onClick={create} loading={loading} data-testid="create-room">
-            🏠 ルームを作る
+            <Icon name="home" /> ルームを作る
           </Button>
           {isEventGame(game.id) && (
             <Link to={`/demo/${game.id}`} className="mt-3 block">
               <Button size="lg" block variant="secondary">
-                👀 まずはデモで試す
+                <Icon name="eye" /> まずはデモで試す
               </Button>
             </Link>
           )}
           <div className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
             招待された方は{' '}
-            <Link to="/join" className="font-bold text-pop-sky underline underline-offset-4">
+            <Link to="/join" className="font-bold text-accent-ink underline underline-offset-4">
               ルームコードで参加
             </Link>
           </div>
