@@ -4,19 +4,20 @@ import { useRoomContext } from '../games/RoomContext';
 import { useRemaining } from '../lib/clock';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
+import { GameEmblem, Icon, type IconName } from './Icon';
 import { Avatar, Button, Card, TextInput } from './ui';
 
 /* ------------------------------------------------------------------ */
 /* 「今やること」を一目で伝えるヘッダー                                   */
 /* ------------------------------------------------------------------ */
-export function PhaseHeader({ emoji, title, sub }: { emoji?: string; title: string; sub?: ReactNode }) {
+export function PhaseHeader({ icon, emoji, title, sub }: { icon?: IconName; emoji?: string; title: string; sub?: ReactNode }) {
   return (
     <div className="animate-slide-up text-center" key={title}>
       <h2 className="font-display text-2xl leading-snug sm:text-3xl">
-        {emoji && <span className="mr-2">{emoji}</span>}
+        {icon ? <Icon name={icon} className="mr-2 inline-block h-[1em] w-[1em] align-[-0.12em]" /> : emoji && <span className="mr-2">{emoji}</span>}
         {title}
       </h2>
-      {sub && <p className="mt-1.5 text-sm text-white/75 sm:text-base">{sub}</p>}
+      {sub && <p className="mt-1.5 text-sm text-fg/75 sm:text-base">{sub}</p>}
     </div>
   );
 }
@@ -32,14 +33,15 @@ export function TimerBar({ deadline, duration }: { deadline: number | null; dura
   const urgent = sec <= 5;
   return (
     <div className="flex items-center gap-3" data-testid="timer">
-      <div className="h-3 flex-1 overflow-hidden rounded-full bg-white/10">
+      <div className="ui-timer-track h-4 flex-1 overflow-hidden">
         <div
-          className={`h-full rounded-full transition-[width] duration-200 ease-linear ${urgent ? 'bg-rose-400' : 'bg-gradient-to-r from-pop-mint to-pop-sky'}`}
+          className="ui-timer-fill h-full transition-[width] duration-200 ease-linear"
+          data-urgent={urgent}
           style={{ width: `${ratio * 100}%` }}
         />
       </div>
       <span
-        className={`w-12 text-right font-display text-xl tabular-nums ${urgent ? 'animate-pulse text-rose-300' : ''}`}
+        className={`w-12 text-right font-display text-xl tabular-nums ${urgent ? 'animate-pulse text-danger-ink' : ''}`}
         aria-label={`残り${sec}秒`}
       >
         {sec}
@@ -59,12 +61,12 @@ export function BigTimer({ deadline, duration }: { deadline: number | null; dura
   return (
     <div className="relative h-28 w-28">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        <circle cx="50" cy="50" r={r} stroke="rgb(255 255 255 / 0.1)" strokeWidth="8" fill="none" />
+        <circle cx="50" cy="50" r={r} stroke="var(--t-fg)" strokeOpacity="0.15" strokeWidth="8" fill="none" />
         <circle
           cx="50"
           cy="50"
           r={r}
-          stroke={sec <= 3 ? '#fb7185' : '#3ee6b5'}
+          stroke={sec <= 3 ? 'var(--t-danger)' : 'var(--t-ok)'}
           strokeWidth="8"
           strokeLinecap="round"
           fill="none"
@@ -73,7 +75,7 @@ export function BigTimer({ deadline, duration }: { deadline: number | null; dura
           className="transition-[stroke-dashoffset] duration-200 ease-linear"
         />
       </svg>
-      <span className={`absolute inset-0 flex items-center justify-center font-display text-4xl ${sec <= 3 ? 'text-rose-300' : ''}`}>
+      <span className={`absolute inset-0 flex items-center justify-center font-display text-4xl ${sec <= 3 ? 'text-danger-ink' : ''}`}>
         {sec}
       </span>
     </div>
@@ -98,11 +100,12 @@ export function useAutoSubmit(deadline: number | null, enabled: boolean, submit:
 /* ------------------------------------------------------------------ */
 /* お題カード                                                           */
 /* ------------------------------------------------------------------ */
-export function QuestionCard({ label = 'お題', text, accent = '#9b7bff' }: { label?: string; text: string; accent?: string }) {
+/** 色はテーマのトークン（--t-q-*）で決まる。accent は以前の呼び出しとの互換のために受け取るだけ */
+export function QuestionCard({ label = 'お題', text }: { label?: string; text: string; accent?: string }) {
   return (
-    <div className="animate-pop-in relative overflow-hidden rounded-3xl bg-white px-5 py-6 text-center text-ink shadow-2xl sm:px-8 sm:py-8">
-      <div className="absolute inset-x-0 top-0 h-2" style={{ background: accent }} />
-      <p className="text-xs font-extrabold tracking-[0.25em]" style={{ color: accent }}>
+    <div className="ui-question animate-pop-in px-5 py-6 text-center sm:px-8 sm:py-8">
+      <div className="ui-question-bar absolute inset-x-0 top-0 h-2" />
+      <p className="ui-question-label text-xs font-extrabold tracking-[0.25em]">
         {label}
       </p>
       <p className="mt-2 font-display text-2xl leading-snug sm:text-3xl" data-testid="question">
@@ -153,12 +156,12 @@ export function AnswerForm({
 
   if (!editing && submitted != null) {
     return (
-      <div className="animate-pop-in flex flex-col items-center gap-3 rounded-3xl bg-emerald-400/12 p-5 text-center ring-1 ring-emerald-300/30">
-        <p className="text-sm font-extrabold text-emerald-300">✓ 送信しました</p>
+      <div className="ui-tile animate-pop-in flex flex-col items-center gap-3 p-5 text-center">
+        <p className="text-sm font-extrabold text-ok-ink">✓ 送信しました</p>
         <p className="font-display text-2xl break-all">{submitted}</p>
         {allowEdit && (
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-            ✏️ 修正する
+            <Icon name="pencil" /> 修正する
           </Button>
         )}
       </div>
@@ -194,13 +197,13 @@ export function SubmissionStatus({ targets, done, label = '回答' }: { targets:
   const waiting = targets.filter((id) => !doneSet.has(id));
   const connected = new Set(room.players.filter((p) => p.connected).map((p) => p.id));
   return (
-    <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-line" data-testid="submission-status">
-      <p className="mb-3 text-center text-sm font-bold text-white/80">
+    <div className="ui-tile p-4" data-testid="submission-status">
+      <p className="mb-3 text-center text-sm font-bold text-fg/80">
         {waiting.length === 0 ? (
           <>全員の{label}がそろいました！</>
         ) : (
           <>
-            {label}済み <span className="font-display text-pop-mint">{targets.length - waiting.length}</span> / {targets.length}
+            {label}済み <span className="font-display text-ok-ink">{targets.length - waiting.length}</span> / {targets.length}
             <span className="ml-2 text-muted">あと{waiting.length}人</span>
           </>
         )}
@@ -211,15 +214,15 @@ export function SubmissionStatus({ targets, done, label = '回答' }: { targets:
             <div className="relative">
               <Avatar name={nameOf(id)} color={colorOf(id)} dim={!doneSet.has(id)} />
               {doneSet.has(id) && (
-                <span className="animate-pop-in absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-[11px] font-black text-ink">
+                <span className="animate-pop-in absolute -right-1 -bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-ok text-[11px] font-black text-on-ok ring-1 ring-line">
                   ✓
                 </span>
               )}
               {!connected.has(id) && (
-                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-slate-500 ring-2 ring-panel" title="オフライン" />
+                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-muted ring-2 ring-panel" title="オフライン" />
               )}
             </div>
-            <span className="w-full truncate text-center text-[11px] font-bold text-white/70">{nameOf(id)}</span>
+            <span className="w-full truncate text-center text-[11px] font-bold text-fg/70">{nameOf(id)}</span>
           </div>
         ))}
       </div>
@@ -245,7 +248,7 @@ export function Scoreboard({ deltas, title = 'スコア' }: { deltas?: Record<st
       <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">{title}</p>
       <ol className="space-y-1.5">
         {rows.map((r, i) => (
-          <li key={r.id} className={`flex items-center gap-3 rounded-xl px-2 py-1.5 ${r.id === room.youId ? 'bg-white/8' : ''}`}>
+          <li key={r.id} className={`flex items-center gap-3 rounded-xl px-2 py-1.5 ${r.id === room.youId ? 'bg-fg/8' : ''}`}>
             <span className="w-5 text-center font-display text-sm text-muted">{i + 1}</span>
             <Avatar name={nameOf(r.id)} color={colorOf(r.id)} size="sm" dim={r.left} />
             <span className="flex-1 truncate font-bold">
@@ -253,7 +256,7 @@ export function Scoreboard({ deltas, title = 'スコア' }: { deltas?: Record<st
               {r.left && <span className="ml-1 text-xs text-muted">(退出)</span>}
             </span>
             {r.delta !== 0 && (
-              <span className={`animate-pop-in text-sm font-extrabold ${r.delta > 0 ? 'text-pop-mint' : 'text-rose-300'}`}>
+              <span className={`animate-pop-in text-sm font-extrabold ${r.delta > 0 ? 'text-ok-ink' : 'text-danger-ink'}`}>
                 {r.delta > 0 ? `+${r.delta}` : r.delta}
               </span>
             )}
@@ -286,7 +289,7 @@ export function HostNext({ label = '次へ進む', waitingText = 'ホストが�
       }}
       data-testid="host-next"
     >
-      {label} ▶
+      {label} <Icon name="play" />
     </Button>
   );
 }
@@ -297,8 +300,9 @@ export function HostSkip({ label = 'スキップ' }: { label?: string }) {
   if (!isHost) return null;
   return (
     <div className="text-center">
-      <button className="text-xs font-bold text-muted underline underline-offset-4 hover:text-white" onClick={() => act('skip')}>
-        ⏭ {label}（ホスト）
+      <button className="min-h-11 px-3 text-xs font-bold text-muted underline underline-offset-4 hover:text-fg" onClick={() => act('skip')}>
+        <Icon name="next" className="mr-1 inline-block h-[1em] w-[1em] align-[-0.12em]" />
+        {label}（ホスト）
       </button>
     </div>
   );
@@ -313,21 +317,21 @@ export function StartSplash({ meta }: { meta: GameMeta }) {
   const sec = remaining == null ? null : Math.ceil(remaining / 1000);
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
-      <div className="animate-pop-in text-8xl drop-shadow-2xl">{meta.emoji}</div>
+      <GameEmblem id={meta.id} className="animate-pop-in block h-32 w-40" />
       <div>
-        <p className="text-sm font-extrabold tracking-[0.3em] text-pop-pink">GAME START</p>
+        <p className="text-sm font-extrabold tracking-[0.3em] text-accent-ink">GAME START</p>
         <h2 className="mt-1 font-display text-3xl sm:text-4xl">{meta.title}</h2>
       </div>
-      <ol className="w-full max-w-lg space-y-2 rounded-3xl bg-white/5 p-5 text-left text-sm ring-1 ring-line sm:text-base">
+      <ol className="ui-tile w-full max-w-lg space-y-2 p-5 text-left text-sm sm:text-base">
         {meta.howToPlay.map((line, i) => (
           <li key={i} className="animate-slide-up flex gap-2" style={{ animationDelay: `${i * 120}ms` }}>
-            <span className="font-extrabold text-pop-yellow">{i + 1}.</span>
+            <span className="font-extrabold text-hi-ink">{i + 1}.</span>
             <span>{line}</span>
           </li>
         ))}
       </ol>
       {sec != null && sec > 0 && (
-        <p key={sec} className="animate-pop-in font-display text-5xl text-pop-mint">
+        <p key={sec} className="animate-pop-in font-display text-5xl text-ok-ink">
           {sec}
         </p>
       )}
@@ -359,7 +363,8 @@ export function Confetti({ count = 60 }: { count?: number }) {
         delay: Math.random() * 1.5,
         duration: 2.5 + Math.random() * 2,
         dx: `${(Math.random() - 0.5) * 30}vw`,
-        color: ['#ff5fa2', '#ffb13d', '#ffe066', '#3ee6b5', '#4cc9ff', '#9b7bff'][i % 6],
+        // 紙吹雪の色もテーマから取る
+        color: ['var(--t-accent)', 'var(--t-ok)', 'var(--t-hi)', 'var(--t-fg)', 'var(--t-accent2)'][i % 5],
         size: 6 + Math.random() * 8,
       })),
     [count],
@@ -401,22 +406,23 @@ export function Podium() {
     lastRank = rank;
     return { ...p, score, rank };
   });
-  const medal = (rank: number) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}`);
   return (
     <ol className="space-y-2">
       {rows.map((r, i) => (
         <li
           key={r.id}
-          className={`animate-slide-up flex items-center gap-3 rounded-2xl p-3 ring-1 ${
-            r.rank === 1 ? 'bg-gradient-to-r from-pop-yellow/25 to-pop-orange/15 ring-pop-yellow/40' : 'bg-white/5 ring-line'
-          }`}
+          className={`animate-slide-up flex items-center gap-3 rounded-2xl p-3 ring-1 ring-line ${r.rank === 1 ? 'bg-hi/25' : 'bg-fg/5'}`}
           style={{ animationDelay: `${(rows.length - i) * 120}ms` }}
         >
-          <span className="w-9 text-center font-display text-2xl">{medal(r.rank)}</span>
+          {/* 順位は色ではなく数字で。1位には冠を添える */}
+          <span className="flex w-10 flex-col items-center font-display text-2xl leading-none">
+            {r.rank === 1 && <Icon name="crown" className="h-4 w-4 text-hi-ink" />}
+            {r.rank}
+          </span>
           <Avatar name={nameOf(r.id)} color={colorOf(r.id)} dim={r.left} />
           <span className="flex-1 truncate text-lg font-extrabold">
             {nameOf(r.id)}
-            {r.id === room.youId && <span className="ml-2 text-xs text-pop-pink">あなた</span>}
+            {r.id === room.youId && <span className="ml-2 text-xs text-accent-ink">あなた</span>}
           </span>
           <span className="font-display text-2xl tabular-nums">{r.score}</span>
           <span className="text-sm text-muted">点</span>
@@ -446,10 +452,10 @@ export function GameOverActions() {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <Button size="xl" onClick={() => run('room:restart')} loading={busy === 'room:restart'} data-testid="restart">
-        🔁 もう一回遊ぶ
+        <Icon name="repeat" /> もう一回遊ぶ
       </Button>
       <Button size="xl" variant="secondary" onClick={() => run('room:backToLobby')} loading={busy === 'room:backToLobby'}>
-        🏠 ロビーへ（ゲーム変更）
+        <Icon name="home" /> ロビーへ（ゲーム変更）
       </Button>
     </div>
   );
@@ -462,9 +468,9 @@ export function GameOverPanel({ children, ranking = true }: { children?: ReactNo
     <div className="flex flex-col gap-5">
       {!endReason && <Confetti />}
       <div className="text-center">
-        <p className="text-sm font-extrabold tracking-[0.3em] text-pop-pink">RESULT</p>
+        <p className="text-sm font-extrabold tracking-[0.3em] text-accent-ink">RESULT</p>
         <h2 className="animate-pop-in font-display text-4xl">結果発表！</h2>
-        {endReason && <p className="mt-2 rounded-xl bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-200">{endReason}</p>}
+        {endReason && <p className="mt-2 rounded-xl bg-warn/15 px-4 py-2 text-sm font-bold text-warn-ink">{endReason}</p>}
       </div>
       {children}
       {ranking && (

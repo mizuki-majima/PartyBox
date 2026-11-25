@@ -24,7 +24,7 @@ test('誰の答えでしょう？: 回答 → 推理（自分の回答は選べ�
     const others = p.page.getByTestId('guess-card').filter({ hasNotText: 'あなたの回答' });
     for (let i = 0; i < 2; i++) {
       await others.nth(i).getByRole('button').nth(i).click();
-      await expect(others.nth(i).getByRole('button').nth(i)).toHaveClass(/bg-white/);
+      await expect(others.nth(i).getByRole('button').nth(i)).toHaveAttribute('aria-pressed', 'true');
     }
     await p.page.getByTestId('lock-guesses').click();
   }

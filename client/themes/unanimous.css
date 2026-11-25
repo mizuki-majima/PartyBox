@@ -1,0 +1,129 @@
+/*
+ * 全員一致を目指せ！: ネオブルータリズム
+ *
+ * 黄色のベタ塗りの地に、太い黒枠と、ぼかさない黒のずらし影。色は黄・黒・白・青・ピンクだけ。
+ * 「そろった／そろわない」を、太い枠と大きな文字ではっきり見せる。
+ * そろった = 青（✓ 付き）、そろわない = ピンク（× 付き）。色だけでなく印でも区別する。
+ */
+@layer base {
+  [data-theme='unanimous'] {
+    --t-font-body: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', Meiryo, sans-serif;
+    --t-font-display: 'Dela Gothic One', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+    --t-body-weight: 700;
+    --t-display-weight: 400;
+    --t-display-tracking: 0;
+
+    --t-page-bg: #ffde00;
+    --t-bg: #ffde00;
+    --t-fg: #000000;
+    --t-muted: #4a4000;
+    --t-panel: #ffffff;
+    --t-panel-2: #ffffff;
+    --t-panel-3: #f1f1f1;
+    --t-line: #000000;
+    --t-shade: #000000;
+
+    --t-accent: #ff5c8a;
+    --t-accent-ink: #a80f43;
+    --t-on-accent: #000000;
+    --t-accent2: #2b6cff;
+    --t-accent2-ink: #0b3fc2;
+    --t-ok: #2b6cff;
+    --t-ok-ink: #0b3fc2;
+    --t-on-ok: #ffffff;
+    --t-hi: #ff5c8a;
+    --t-hi-ink: #a80f43;
+    --t-on-hi: #000000;
+    --t-info: #2b6cff;
+    --t-info-ink: #0b3fc2;
+    --t-sub: #000000;
+    --t-sub-ink: #000000;
+    --t-danger: #ff5c8a;
+    --t-danger-ink: #a80f43;
+    --t-on-danger: #000000;
+    --t-warn: #000000;
+    --t-warn-ink: #000000;
+    --t-on-warn: #ffde00;
+    --t-focus: #2b6cff;
+
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --t-elev: 6px 6px 0 #000000;
+
+    --t-card-bg: #ffffff;
+    --t-card-border: 4px solid #000000;
+    --t-card-radius: 0;
+    --t-card-shadow: 8px 8px 0 #000000;
+    --t-tile-bg: #ffffff;
+    --t-tile-border: 3px solid #000000;
+    --t-tile-radius: 0;
+
+    --t-btn-border: 4px solid #000000;
+    --t-btn-radius: 0;
+    --t-btn-shadow: 5px 5px 0 #000000;
+    --t-btn-shadow-press: 0 0 0 #000000;
+    --t-btn-press: translate(5px, 5px);
+    --t-btn-font: var(--t-font-display);
+    --t-btn-weight: 400;
+    --t-btn-tracking: 0.02em;
+    --t-btn-hover: none;
+    --t-btn-primary-bg: #ff5c8a;
+    --t-btn-primary-fg: #000000;
+    --t-btn-secondary-bg: #ffffff;
+    --t-btn-secondary-fg: #000000;
+    --t-btn-danger-bg: #000000;
+    --t-btn-danger-fg: #ffffff;
+
+    --t-input-bg: #ffffff;
+    --t-input-fg: #000000;
+    --t-input-border: 4px solid #000000;
+    --t-input-radius: 0;
+    --t-input-shadow: 5px 5px 0 #000000;
+    --t-input-placeholder: #6b6b6b;
+
+    --t-badge-radius: 0;
+    --t-badge-border: 2px solid #000000;
+
+    --t-overlay: rgb(0 0 0 / 0.7);
+    --t-modal-bg: #ffffff;
+    --t-modal-shadow: 10px 10px 0 #000000;
+
+    --t-q-bg: #2b6cff;
+    --t-q-fg: #ffffff;
+    --t-q-border: 4px solid #000000;
+    --t-q-shadow: 8px 8px 0 #000000;
+    --t-q-accent: #000000;
+    --t-q-label: #ffde00;
+
+    --t-bar-bg: #ffde00;
+    --t-bar-border: #000000;
+    --t-bar-filter: none;
+
+    --t-timer-track: #ffffff;
+    --t-timer-border: 3px solid #000000;
+    --t-timer-radius: 0;
+    --t-timer-fill: #2b6cff;
+  }
+}
+
+/* 触れたら影のぶんだけ少し沈む（押すと影が消えて完全に沈む） */
+@media (hover: hover) {
+  [data-theme='unanimous'] .ui-btn:hover:not(:disabled):not(.ui-btn-ghost) {
+    transform: translate(2px, 2px);
+    box-shadow: 3px 3px 0 #000000;
+  }
+}
+/* 帯の境目も太い黒線 */
+[data-theme='unanimous'] .ui-bar {
+  border-width: 0;
+  border-style: solid;
+  border-bottom-width: 4px;
+}
+[data-theme='unanimous'] .ui-bar[data-edge='bottom'] {
+  border-bottom-width: 0;
+  border-top-width: 4px;
+}

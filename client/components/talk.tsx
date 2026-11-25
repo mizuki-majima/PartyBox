@@ -15,7 +15,7 @@ export function TurnOrder({ order, index, labelOf }: { order: string[]; index: n
           <div
             key={id}
             className={`flex shrink-0 items-center gap-2 rounded-full py-1 pr-3 pl-1 text-sm font-bold transition ${
-              state === 'now' ? 'bg-white text-ink shadow-lg' : state === 'done' ? 'bg-white/5 text-white/40' : 'bg-white/8 text-white/80'
+              state === 'now' ? 'bg-fg text-bg shadow-lg' : state === 'done' ? 'bg-fg/5 text-fg/40' : 'bg-fg/8 text-fg/80'
             }`}
           >
             <Avatar name={nameOf(id)} color={colorOf(id)} size="xs" dim={state === 'done'} />
@@ -63,12 +63,12 @@ export function SpeakerPanel({
   if (!speakerId) return null;
   return (
     <div
-      className={`animate-pop-in flex flex-col items-center gap-4 rounded-3xl p-5 text-center ring-2 ${isMe ? 'bg-gradient-to-b from-pop-pink/25 to-pop-orange/10 ring-pop-pink/60' : 'bg-panel ring-line'}`}
+      className={`animate-pop-in flex flex-col items-center gap-4 rounded-3xl p-5 text-center ring-2 ${isMe ? 'bg-gradient-to-b from-accent/25 to-accent2/10 ring-accent/60' : 'bg-panel ring-line'}`}
     >
       <div className="flex items-center gap-4">
         <Avatar name={nameOf(speakerId)} color={colorOf(speakerId)} size="lg" ring={isMe} />
         <div className="text-left">
-          {roleLabel && <p className="text-xs font-extrabold text-pop-yellow">{roleLabel}</p>}
+          {roleLabel && <p className="text-xs font-extrabold text-hi-ink">{roleLabel}</p>}
           <p className="font-display text-2xl" data-testid="speaker">
             {isMe ? 'あなたの番です！' : `${nameOf(speakerId)}さんの番`}
           </p>
@@ -78,7 +78,7 @@ export function SpeakerPanel({
       </div>
       {isMe && (
         <div className="flex w-full flex-col gap-3">
-          <p className="text-sm font-bold text-white/85">{hint}</p>
+          <p className="text-sm font-bold text-fg/85">{hint}</p>
           <TextInput
             value={text}
             onChange={setText}
@@ -103,16 +103,16 @@ export function StatementLog({ statements, labelOf, title = 'みんなの発言'
   const { nameOf, colorOf } = useRoomContext();
   if (statements.length === 0) return null;
   return (
-    <div className="rounded-3xl bg-white/4 p-4 ring-1 ring-line">
+    <div className="rounded-3xl bg-fg/4 p-4 ring-1 ring-line">
       <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">{title}</p>
       <ul className="space-y-2">
         {statements.map((s, i) => (
           <li key={i} className="animate-slide-up flex items-start gap-2">
             <Avatar name={nameOf(s.playerId)} color={colorOf(s.playerId)} size="sm" />
-            <div className="min-w-0 rounded-2xl rounded-tl-sm bg-white/10 px-3 py-2">
+            <div className="min-w-0 rounded-2xl rounded-tl-sm bg-fg/10 px-3 py-2">
               <p className="text-[11px] font-bold text-muted">
                 {nameOf(s.playerId)}
-                {labelOf?.(s.playerId) && <span className="ml-1 text-pop-yellow">{labelOf(s.playerId)}</span>}
+                {labelOf?.(s.playerId) && <span className="ml-1 text-hi-ink">{labelOf(s.playerId)}</span>}
               </p>
               <p className="font-bold break-all">{s.text}</p>
             </div>

@@ -56,14 +56,14 @@ function SourceView({ entry }: { entry: GrowEntry }) {
   const { nameOf } = useGame<GrowView>();
   if (entry.kind === 'drawing' && entry.imageUrl) {
     return (
-      <div className="animate-pop-in overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="animate-pop-in overflow-hidden rounded-2xl bg-fg shadow-2xl">
         <img src={entry.imageUrl} alt="前の人の絵" className="block aspect-[4/3] w-full object-contain" data-testid="source-image" />
       </div>
     );
   }
   return (
-    <div className="animate-pop-in rounded-3xl bg-white px-5 py-6 text-center text-ink shadow-2xl">
-      <p className="text-xs font-extrabold tracking-[0.25em] text-emerald-600">
+    <div className="animate-pop-in rounded-3xl bg-fg px-5 py-6 text-center text-bg shadow-2xl">
+      <p className="text-xs font-extrabold tracking-[0.25em] text-ok-ink">
         {entry.kind === 'prompt' ? (entry.playerId ? `${nameOf(entry.playerId)}さんのお題` : 'お題') : '前の人の説明'}
       </p>
       <p className="mt-1 font-display text-3xl break-all" data-testid="source-text">
@@ -168,16 +168,16 @@ function AlbumEntry({ entry, index }: { entry: GrowEntry; index: number }) {
     <li className="animate-slide-up flex flex-col gap-2" style={{ animationDelay: `${index * 700}ms` }} data-testid="album-entry">
       <div className="flex items-center gap-2">
         {entry.playerId ? <Avatar name={nameOf(entry.playerId)} color={colorOf(entry.playerId)} size="sm" /> : <span className="text-2xl">🎁</span>}
-        <span className="text-sm font-extrabold text-white/80">{label}</span>
+        <span className="text-sm font-extrabold text-fg/80">{label}</span>
       </div>
       {entry.empty ? (
-        <div className="rounded-2xl border-2 border-dashed border-white/15 p-6 text-center text-muted">（時間切れ…）</div>
+        <div className="rounded-2xl border-2 border-dashed border-fg/15 p-6 text-center text-muted">（時間切れ…）</div>
       ) : entry.kind === 'drawing' ? (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="overflow-hidden rounded-2xl bg-fg shadow-xl">
           <img src={entry.imageUrl!} alt={label} className="block aspect-[4/3] w-full object-contain" loading="lazy" />
         </div>
       ) : (
-        <div className={`rounded-2xl px-5 py-4 font-display text-2xl break-all shadow-xl ${entry.kind === 'prompt' ? 'bg-white text-ink' : 'bg-pop-yellow text-ink'}`}>
+        <div className={`rounded-2xl px-5 py-4 font-display text-2xl break-all shadow-xl ${entry.kind === 'prompt' ? 'bg-fg text-bg' : 'bg-hi text-on-hi'}`}>
           {entry.text}
         </div>
       )}
@@ -199,14 +199,14 @@ function Album({ album, animate = true }: { album: GrowAlbum; animate?: boolean 
       </ol>
       {first && last && (
         <div
-          className="animate-slide-up rounded-3xl bg-gradient-to-r from-emerald-500 to-yellow-500 p-5 text-center shadow-2xl"
+          className="animate-slide-up rounded-3xl bg-gradient-to-r from-ok to-yellow-500 p-5 text-center shadow-2xl"
           style={{ animationDelay: `${animate ? album.entries.length * 700 : 0}ms` }}
         >
-          <p className="text-sm font-extrabold text-white/90">最初と最後をくらべると…</p>
+          <p className="text-sm font-extrabold text-fg/90">最初と最後をくらべると…</p>
           <p className="mt-1 font-display text-xl break-all">「{first.text}」</p>
           <p className="text-2xl">⬇</p>
           {last.kind === 'drawing' ? (
-            <img src={last.imageUrl!} alt="最後の絵" className="mx-auto w-1/2 rounded-xl bg-white" />
+            <img src={last.imageUrl!} alt="最後の絵" className="mx-auto w-1/2 rounded-xl bg-fg" />
           ) : (
             <p className="font-display text-2xl break-all">「{last.text}」</p>
           )}
@@ -225,7 +225,7 @@ function AlbumPhase() {
       <PhaseHeader emoji="📖" title="アルバム公開！" sub={`${game.albumIndex + 1} / ${game.albumCount} 冊目`} />
       <div className="flex justify-center gap-1.5">
         {Array.from({ length: game.albumCount }, (_, i) => (
-          <span key={i} className={`h-2 rounded-full transition-all ${i === game.albumIndex ? 'w-6 bg-white' : i < game.albumIndex ? 'w-2 bg-white/50' : 'w-2 bg-white/15'}`} />
+          <span key={i} className={`h-2 rounded-full transition-all ${i === game.albumIndex ? 'w-6 bg-fg' : i < game.albumIndex ? 'w-2 bg-fg/50' : 'w-2 bg-fg/15'}`} />
         ))}
       </div>
       {album && <Album key={album.ownerId} album={album} />}
@@ -258,7 +258,7 @@ function GameOver() {
   const album = albums[Math.min(index, albums.length - 1)];
   return (
     <GameOverPanel ranking={false}>
-      <p className="text-center text-white/80">おつかれさま！アルバムを見返してみよう 📚</p>
+      <p className="text-center text-fg/80">おつかれさま！アルバムを見返してみよう 📚</p>
       {albums.length > 0 && (
         <>
           <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
@@ -266,7 +266,7 @@ function GameOver() {
               <button
                 key={a.ownerId}
                 onClick={() => setIndex(i)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-extrabold ${i === index ? 'bg-white text-ink' : 'bg-white/8'}`}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-extrabold ${i === index ? 'bg-fg text-bg' : 'bg-fg/8'}`}
               >
                 {nameOf(a.ownerId)}
               </button>

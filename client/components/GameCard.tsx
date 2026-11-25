@@ -1,41 +1,71 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router';
 import type { GameMeta, SoloGameMeta } from '../../shared/games';
+import { loadThemeFonts, themeOfGame } from '../themes';
+import { GameEmblem, Icon } from './Icon';
 import { Button } from './ui';
 
 const CARD_CLASS =
-  'group animate-slide-up relative flex flex-col overflow-hidden rounded-3xl bg-panel ring-1 ring-line transition hover:-translate-y-1 hover:ring-white/25 focus-visible:ring-4 focus-visible:ring-pop-violet';
+  'group animate-slide-up relative flex flex-col border-t-4 border-b border-line bg-panel transition-colors hover:bg-fg hover:text-bg';
 
-type CardContent = Pick<GameMeta, 'title' | 'tagline' | 'description' | 'emoji' | 'category' | 'estimatedTime' | 'theme'> & {
+type CardContent = Pick<GameMeta, 'title' | 'tagline' | 'description' | 'category' | 'estimatedTime'> & {
+  id: string;
   players: string;
 };
 
-function CardBody({ game }: { game: CardContent }) {
+/**
+ * そのゲームのデザインの見本。入れ子の data-theme で、中だけがそのゲームのトークン（色・フォント・模様）になる。
+ * 専用のデザインが無いもの（1人用の別ページなど）は、共通画面の白黒を反転させた面にする
+ */
+function Swatch({ id, title, className = '' }: { id: string; title: string; className?: string }) {
+  const theme = themeOfGame(id);
+  const themed = theme !== 'platform' && theme !== 'classic';
+  // 見本の文字を、そのゲームの文字で出す
+  useEffect(() => {
+    if (themed) loadThemeFonts(theme);
+  }, [themed, theme]);
+  return (
+    <div
+      data-theme={themed ? theme : undefined}
+      className={`${themed ? 'theme-swatch' : 'bg-fg text-bg [&_span]:bg-fg'} relative flex items-center gap-3 overflow-hidden border-b border-line px-4 ${className}`}
+      aria-hidden
+    >
+      <GameEmblem id={id} className="h-20 w-24" />
+      {/* 地の模様と重なっても読めるように、文字の下に地の色を敷く */}
+      <span className="min-w-0 bg-bg px-1 font-display text-lg leading-tight [box-decoration-break:clone]">{title}</span>
+    </div>
+  );
+}
+
+function Facts({ players, time }: { players: string; time: string }) {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm font-bold">
+      <span className="inline-flex items-center gap-1.5">
+        <Icon name="users" /> {players}
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <Icon name="clock" /> {time}
+      </span>
+    </div>
+  );
+}
+
+function CardBody({ game, index }: { game: CardContent; index: number }) {
   return (
     <>
-      <div
-        className="relative flex h-36 items-center justify-center overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${game.theme.from}, ${game.theme.to})` }}
-      >
-        <div className="absolute -top-8 -left-8 h-28 w-28 rounded-full bg-white/15" />
-        <div className="absolute -right-6 -bottom-10 h-32 w-32 rounded-full bg-black/10" />
-        <span className="relative text-7xl drop-shadow-lg transition duration-300 group-hover:scale-110 group-hover:-rotate-6">
-          {game.emoji}
-        </span>
-        <span className="absolute top-3 left-3 rounded-full bg-black/25 px-3 py-1 text-xs font-extrabold backdrop-blur">
-          {game.category}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-2 p-5">
-        <p className="text-xs font-bold text-muted">{game.tagline}</p>
-        <h3 className="font-display text-xl leading-snug">{game.title}</h3>
-        <p className="line-clamp-2 text-sm text-white/70">{game.description}</p>
-        <div className="mt-auto flex items-center justify-between pt-3">
-          <div className="flex gap-3 text-sm font-bold text-white/80">
-            <span>👥 {game.players}</span>
-            <span>⏱ {game.estimatedTime}</span>
-          </div>
-          <span className="rounded-full bg-white px-4 py-1.5 text-sm font-extrabold text-ink transition group-hover:bg-pop-yellow">
-            遊ぶ
+      <Swatch id={game.id} title={game.title} className="h-28" />
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="flex items-baseline justify-between gap-2 text-xs font-bold">
+          <span className="tracking-[0.2em] uppercase">{game.category}</span>
+          <span className="font-display tabular-nums">{String(index + 1).padStart(2, '0')}</span>
+        </div>
+        <h3 className="font-display text-2xl leading-tight">{game.title}</h3>
+        <p className="text-sm font-bold text-accent-ink group-hover:text-bg">{game.tagline}</p>
+        <p className="line-clamp-2 text-sm opacity-80">{game.description}</p>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
+          <Facts players={game.players} time={game.estimatedTime} />
+          <span className="inline-flex items-center gap-1 border-b-2 border-current pb-0.5 text-sm font-extrabold">
+            遊ぶ <Icon name="play" className="h-3 w-3" />
           </span>
         </div>
       </div>
@@ -52,7 +82,7 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
       style={{ animationDelay: `${index * 70}ms` }}
       data-testid={`game-card-${game.id}`}
     >
-      <CardBody game={{ ...game, players: `${game.minPlayers}〜${game.maxPlayers}人` }} />
+      <CardBody game={{ ...game, players: `${game.minPlayers}〜${game.maxPlayers}人` }} index={index} />
     </Link>
   );
 }
@@ -64,35 +94,25 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
 export function EventGameCard({ game }: { game: GameMeta }) {
   return (
     <div
-      className="animate-slide-up relative overflow-hidden rounded-3xl bg-panel ring-1 ring-line sm:grid sm:grid-cols-[minmax(0,16rem)_1fr]"
+      className="animate-slide-up relative border-t-4 border-b border-line bg-panel sm:grid sm:grid-cols-[minmax(0,18rem)_1fr]"
       data-testid={`event-card-${game.id}`}
     >
-      <div
-        className="relative flex h-36 items-center justify-center overflow-hidden sm:h-auto"
-        style={{ background: `linear-gradient(135deg, ${game.theme.from}, ${game.theme.to})` }}
-      >
-        <div className="absolute -top-8 -left-8 h-28 w-28 rounded-full bg-white/15" />
-        <div className="absolute -right-6 -bottom-10 h-32 w-32 rounded-full bg-black/10" />
-        <span className="animate-float relative text-7xl drop-shadow-lg">{game.emoji}</span>
-        <span className="absolute top-3 left-3 rounded-full bg-black/25 px-3 py-1 text-xs font-extrabold backdrop-blur">
-          {game.category}
-        </span>
-      </div>
-      <div className="flex flex-col gap-2 p-5 sm:p-6">
-        <p className="text-xs font-bold text-muted">{game.tagline}</p>
-        <h3 className="font-display text-2xl leading-snug">{game.title}</h3>
-        <p className="text-sm text-white/75">{game.description}</p>
-        <div className="flex gap-3 text-sm font-bold text-white/80">
-          <span>👥 {game.minPlayers}〜{game.maxPlayers}人</span>
-          <span>⏱ {game.estimatedTime}</span>
-        </div>
+      <Swatch id={game.id} title={game.tagline} className="h-32 sm:h-auto sm:border-r sm:border-b-0" />
+      <div className="flex flex-col gap-2 p-4 sm:p-6">
+        <p className="text-xs font-bold tracking-[0.2em] uppercase">{game.category}</p>
+        <h3 className="font-display text-3xl leading-tight">{game.title}</h3>
+        <p className="text-sm font-bold text-accent-ink">{game.tagline}</p>
+        <p className="text-sm opacity-80">{game.description}</p>
+        <Facts players={`${game.minPlayers}〜${game.maxPlayers}人`} time={game.estimatedTime} />
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <Link to={`/play/${game.id}`} className="sm:flex-1" data-testid={`event-create-${game.id}`}>
-            <Button block>🏠 ルームを作る（司会）</Button>
+            <Button block>
+              <Icon name="home" /> ルームを作る（司会）
+            </Button>
           </Link>
           <Link to={`/demo/${game.id}`} className="sm:flex-1" data-testid={`event-demo-${game.id}`}>
             <Button block variant="secondary">
-              👀 デモで試す
+              <Icon name="eye" /> デモで試す
             </Button>
           </Link>
         </div>
@@ -108,7 +128,7 @@ export function EventGameCard({ game }: { game: GameMeta }) {
 export function SoloGameCard({ game, index = 0 }: { game: SoloGameMeta; index?: number }) {
   return (
     <a href={game.href} className={CARD_CLASS} style={{ animationDelay: `${index * 70}ms` }} data-testid={`game-card-${game.id}`}>
-      <CardBody game={game} />
+      <CardBody game={game} index={index} />
     </a>
   );
 }

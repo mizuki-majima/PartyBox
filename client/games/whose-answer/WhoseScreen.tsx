@@ -13,6 +13,7 @@ import {
   StartSplash,
   SubmissionStatus,
 } from '../../components/game';
+import { Icon } from '../../components/Icon';
 import { Avatar, Button } from '../../components/ui';
 import { useGame } from '../RoomContext';
 
@@ -44,7 +45,7 @@ function AnswerPhase() {
   const { game, act } = useGame<WhoseView>();
   return (
     <div className="flex flex-col gap-4">
-      <PhaseHeader emoji="✍️" title="質問に答えよう" sub="回答は匿名で集められます。自分らしい答えでも、なりすましでもOK！" />
+      <PhaseHeader icon="pencil" title="質問に答えよう" sub="回答は匿名で集められます。自分らしい答えでも、なりすましでもOK！" />
       <QuestionCard label="質問" text={game.question ?? ''} accent={meta.theme.from} />
       {game.me && (
         <AnswerForm
@@ -73,7 +74,7 @@ function GuessPhase() {
   return (
     <div className="flex flex-col gap-4">
       <PhaseHeader
-        emoji="🕵️"
+        icon="search"
         title="この回答を書いたのは誰？"
         sub={canPlay ? '各回答に「書いたと思う人」を選ぼう（自分の回答は選べません）' : 'みんなが推理中です…'}
       />
@@ -82,13 +83,13 @@ function GuessPhase() {
         {answers.map((a, i) => (
           <div
             key={a.id}
-            className={`animate-pop-in rounded-3xl p-4 ring-1 ${a.mine ? 'bg-white/4 ring-line' : 'bg-panel ring-line'}`}
+            className={`ui-card animate-pop-in !p-4 ${a.mine ? 'opacity-75' : ''}`}
             style={{ animationDelay: `${i * 60}ms` }}
             data-testid="guess-card"
           >
             <div className="flex items-center gap-3">
               <p className="flex-1 font-display text-2xl break-all">「{a.text}」</p>
-              {a.mine && <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-extrabold text-muted">あなたの回答</span>}
+              {a.mine && <span className="ui-badge shrink-0 px-3 py-1 text-xs font-extrabold text-muted">あなたの回答</span>}
             </div>
             {!a.mine && canPlay && (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -100,10 +101,13 @@ function GuessPhase() {
                       key={pid}
                       disabled={game.locked}
                       onClick={() => act('guess', { answerId: a.id, playerId: selected ? null : pid })}
-                      className={`inline-flex items-center gap-1.5 rounded-full py-1 pr-3.5 pl-1 text-sm font-extrabold ring-2 transition ${
-                        selected ? 'bg-white text-ink ring-white' : usedElsewhere ? 'bg-white/4 text-white/40 ring-transparent' : 'bg-white/8 ring-transparent hover:bg-white/15'
+                      aria-pressed={selected}
+                      className={`ui-badge inline-flex min-h-11 items-center gap-1.5 py-1 pr-3.5 pl-1.5 text-sm font-extrabold transition ${
+                        selected ? 'bg-fg text-bg' : usedElsewhere ? 'border-dashed bg-transparent text-muted' : 'bg-panel'
                       }`}
                     >
+                      {/* 選んだ人には、色だけでなく印も付ける */}
+                      {selected && <Icon name="check" className="h-4 w-4" />}
                       <Avatar name={nameOf(pid)} color={colorOf(pid)} size="xs" dim={usedElsewhere} />
                       {nameOf(pid)}
                     </button>
@@ -118,11 +122,11 @@ function GuessPhase() {
         <div className="sticky bottom-3 z-10">
           {game.locked ? (
             <Button size="xl" block variant="secondary" onClick={() => act('unlock')}>
-              ✓ 確定済み（タップで修正）
+              <Icon name="check" /> 確定済み（タップで修正）
             </Button>
           ) : (
             <Button size="xl" block onClick={() => act('lock')} data-testid="lock-guesses">
-              {assignedCount < others.length ? `推理を確定（${assignedCount}/${others.length}）` : '🔒 推理を確定する'}
+              {assignedCount < others.length ? `推理を確定（${assignedCount}/${others.length}）` : '推理を確定する'}
             </Button>
           )}
         </div>
@@ -139,15 +143,15 @@ function ResultPhase() {
   if (!result) return null;
   return (
     <div className="flex flex-col gap-4">
-      <PhaseHeader emoji="📣" title="答え合わせ！" sub={game.question ?? undefined} />
-      {result.note && <p className="rounded-xl bg-amber-400/15 px-4 py-2 text-center text-sm font-bold text-amber-200">{result.note}</p>}
+      <PhaseHeader icon="check" title="答え合わせ！" sub={game.question ?? undefined} />
+      {result.note && <p className="ui-tile px-4 py-2 text-center text-sm font-bold text-warn-ink">{result.note}</p>}
       <div className="flex flex-col gap-3">
         {result.entries.map((e, i) => {
           const wrong = Object.entries(e.guesses).filter(([, g]) => g !== e.authorId);
           return (
             <div
               key={e.id}
-              className="animate-slide-up rounded-3xl bg-panel p-4 ring-1 ring-line"
+              className="ui-card animate-slide-up !p-4"
               style={{ animationDelay: `${i * 250}ms` }}
               data-testid="result-entry"
             >
@@ -160,16 +164,16 @@ function ResultPhase() {
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
                 {e.correctGuessers.length === 0 ? (
-                  <span className="rounded-full bg-pop-mint/15 px-2.5 py-1 font-bold text-pop-mint">誰にもバレなかった！ +1</span>
+                  <span className="ui-badge px-2.5 py-1 font-bold text-ok-ink">誰にもバレなかった！ +1</span>
                 ) : (
                   e.correctGuessers.map((g) => (
-                    <span key={g} className="rounded-full bg-emerald-400/15 px-2.5 py-1 font-bold text-emerald-200">
+                    <span key={g} className="ui-badge px-2.5 py-1 font-bold text-ok-ink">
                       ✓ {nameOf(g)}
                     </span>
                   ))
                 )}
                 {wrong.map(([g, guessed]) => (
-                  <span key={g} className="rounded-full bg-white/6 px-2.5 py-1 font-bold text-white/50">
+                  <span key={g} className="ui-badge px-2.5 py-1 font-bold text-danger-ink">
                     ✗ {nameOf(g)}→{nameOf(guessed)}
                   </span>
                 ))}

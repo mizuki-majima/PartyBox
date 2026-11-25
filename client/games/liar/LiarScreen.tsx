@@ -35,13 +35,13 @@ function MyCard({ large = false }: { large?: boolean }) {
   if (game.amLiar) {
     return (
       <div
-        className={`animate-pop-in rounded-3xl bg-gradient-to-br from-rose-500 to-orange-500 text-center shadow-2xl ${large ? 'p-8' : 'p-4'}`}
+        className={`animate-pop-in rounded-3xl bg-gradient-to-br from-danger to-orange-500 text-center shadow-2xl ${large ? 'p-8' : 'p-4'}`}
         data-testid="liar-card"
       >
         <p className={large ? 'text-6xl' : 'text-2xl'}>🤫</p>
         <p className={`font-display ${large ? 'mt-3 text-3xl' : 'text-xl'}`}>あなたは嘘つきです</p>
         {large && (
-          <p className="mt-3 text-sm font-bold text-white/90">
+          <p className="mt-3 text-sm font-bold text-fg/90">
             お題は分かりません。みんなの発言から本当のお題を推理して、
             <br className="hidden sm:inline" />
             バレないように話を合わせよう！
@@ -51,11 +51,11 @@ function MyCard({ large = false }: { large?: boolean }) {
     );
   }
   return (
-    <div className={`animate-pop-in rounded-3xl bg-white text-center text-ink shadow-2xl ${large ? 'p-8' : 'p-4'}`} data-testid="topic-card">
-      <p className="text-xs font-extrabold tracking-[0.25em] text-rose-500">{game.mode === 'wordwolf' ? 'あなたのお題' : 'お題'}</p>
+    <div className={`animate-pop-in rounded-3xl bg-fg text-center text-bg shadow-2xl ${large ? 'p-8' : 'p-4'}`} data-testid="topic-card">
+      <p className="text-xs font-extrabold tracking-[0.25em] text-danger-ink">{game.mode === 'wordwolf' ? 'あなたのお題' : 'お題'}</p>
       <p className={`font-display ${large ? 'mt-2 text-4xl' : 'text-2xl'}`}>{game.myTopic}</p>
       {large && (
-        <p className="mt-3 text-sm font-bold text-slate-500">
+        <p className="mt-3 text-sm font-bold text-muted">
           {game.mode === 'wordwolf'
             ? '1人だけ違うお題の人がいます。あなたかも…？'
             : 'この中に1人だけお題を知らない嘘つきがいます。答えを言いすぎないように！'}
@@ -123,13 +123,13 @@ function VotePhase() {
                   key={p.id}
                   onClick={() => act('vote', { targetId: p.id })}
                   className={`animate-pop-in flex flex-col items-center gap-2 rounded-3xl p-4 ring-2 transition active:scale-95 ${
-                    selected ? 'bg-rose-500/25 ring-rose-400' : 'bg-panel ring-line hover:bg-panel-2'
+                    selected ? 'bg-danger/25 ring-danger' : 'bg-panel ring-line hover:bg-panel-2'
                   }`}
                   data-testid="vote-target"
                 >
                   <Avatar name={nameOf(p.id)} color={colorOf(p.id)} size="lg" />
                   <span className="max-w-full truncate font-extrabold">{nameOf(p.id)}</span>
-                  {selected && <span className="text-xs font-extrabold text-rose-300">投票中 🎯</span>}
+                  {selected && <span className="text-xs font-extrabold text-danger-ink">投票中 🎯</span>}
                 </button>
               );
             })}
@@ -181,8 +181,8 @@ function ResultPhase() {
   const voteEntries = Object.entries(r.votes);
   return (
     <div className="flex flex-col gap-4">
-      <div className="animate-pop-in rounded-3xl bg-gradient-to-br from-rose-500 to-orange-500 p-6 text-center shadow-2xl">
-        <p className="text-sm font-extrabold text-white/85">嘘つきは…</p>
+      <div className="animate-pop-in rounded-3xl bg-gradient-to-br from-danger to-orange-500 p-6 text-center shadow-2xl">
+        <p className="text-sm font-extrabold text-fg/85">嘘つきは…</p>
         <div className="mt-2 flex items-center justify-center gap-3">
           <Avatar name={nameOf(r.liarId)} color={colorOf(r.liarId)} size="lg" ring />
           <p className="font-display text-4xl" data-testid="liar-name">
@@ -193,10 +193,10 @@ function ResultPhase() {
           {r.note ? '⚠️ ラウンド無効' : r.caught ? (r.liarGuessCorrect ? '🔄 見破ったけど逆転された！' : '🎉 市民の勝ち！') : '🤫 嘘つきの逃げ切り！'}
         </p>
       </div>
-      {r.note && <p className="rounded-xl bg-amber-400/15 px-4 py-2 text-center text-sm font-bold text-amber-200">{r.note}</p>}
+      {r.note && <p className="rounded-xl bg-warn/15 px-4 py-2 text-center text-sm font-bold text-warn-ink">{r.note}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-3xl bg-white p-4 text-center text-ink">
-          <p className="text-xs font-extrabold tracking-[0.2em] text-rose-500">本当のお題</p>
+        <div className="rounded-3xl bg-fg p-4 text-center text-bg">
+          <p className="text-xs font-extrabold tracking-[0.2em] text-danger-ink">本当のお題</p>
           <p className="font-display text-2xl">{r.topic}</p>
         </div>
         <div className="rounded-3xl bg-panel p-4 text-center ring-1 ring-line">
@@ -207,7 +207,7 @@ function ResultPhase() {
         </div>
       </div>
       {voteEntries.length > 0 && (
-        <div className="rounded-3xl bg-white/4 p-4 ring-1 ring-line">
+        <div className="rounded-3xl bg-fg/4 p-4 ring-1 ring-line">
           <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">投票結果</p>
           <ul className="grid gap-1.5 sm:grid-cols-2">
             {voteEntries.map(([voter, target]) => (
@@ -216,7 +216,7 @@ function ResultPhase() {
                 {nameOf(voter)}
                 <span className="text-muted">→</span>
                 <Avatar name={nameOf(target)} color={colorOf(target)} size="xs" />
-                <span className={target === r.liarId ? 'text-pop-mint' : ''}>{nameOf(target)}</span>
+                <span className={target === r.liarId ? 'text-ok-ink' : ''}>{nameOf(target)}</span>
                 {target === r.liarId && '✓'}
               </li>
             ))}

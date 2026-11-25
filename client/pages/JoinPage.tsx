@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { Icon } from '../components/Icon';
 import { Button, Card, Logo } from '../components/ui';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
@@ -29,13 +30,13 @@ export function JoinPage() {
 
   return (
     <div className="min-h-dvh">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+      <header className="mx-auto flex max-w-5xl items-center justify-between border-b border-line px-4 py-3 sm:px-6">
         <Logo />
       </header>
       <main className="mx-auto max-w-md px-4 pt-6 pb-16">
-        <Card className="animate-pop-in text-center">
-          <div className="text-5xl">🔑</div>
-          <h1 className="mt-3 font-display text-2xl">ルームに参加</h1>
+        <Card className="animate-pop-in">
+          <Icon name="key" className="h-10 w-10" />
+          <h1 className="mt-3 font-display text-3xl">ルームに参加</h1>
           <p className="mt-1 text-sm text-muted">友達から教えてもらった6桁のコードを入力</p>
           <input
             value={code}
@@ -49,14 +50,14 @@ export function JoinPage() {
             inputMode="text"
             enterKeyHint="go"
             aria-label="ルームコード"
-            className="mt-6 h-20 w-full rounded-2xl bg-white text-center font-display text-4xl tracking-[0.3em] text-ink uppercase outline-none ring-4 ring-transparent placeholder:text-slate-300 focus:ring-pop-violet/60"
+            className="ui-input mt-6 h-20 w-full text-center font-display text-4xl tracking-[0.3em] uppercase"
           />
           <Button size="xl" block className="mt-5" onClick={go} loading={loading}>
-            参加する →
+            参加する <Icon name="play" className="h-4 w-4" />
           </Button>
           <p className="mt-6 text-sm text-muted">
             自分でルームを作る場合は{' '}
-            <Link to="/" className="font-bold text-pop-sky underline underline-offset-4">
+            <Link to="/" className="font-bold text-accent-ink underline underline-offset-4">
               ゲームを選ぶ
             </Link>
           </p>

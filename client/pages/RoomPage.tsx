@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS, type RoomSummary } from '../../shared/protocol';
+import { GameEmblem } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, Modal, Spinner, TextInput } from '../components/ui';
 import { GameShell } from '../games/GameShell';
 import { RoomProvider, useRoomContext } from '../games/RoomContext';
@@ -9,6 +10,7 @@ import { ClockContext } from '../lib/clock';
 import { getLastName } from '../lib/session';
 import { useToast } from '../lib/toast';
 import { useRoom } from '../lib/useRoom';
+import { themeOfGame } from '../themes';
 import { Lobby } from './Lobby';
 
 export function RoomPage() {
@@ -18,14 +20,14 @@ export function RoomPage() {
 
   if (state.kind === 'loading' || (state.kind === 'joined' && !view)) {
     return (
-      <FullScreenMessage emoji="📡" title="接続中…">
-        <Spinner className="h-8 w-8 text-pop-pink" />
+      <FullScreenMessage icon="signal" title="接続中…">
+        <Spinner className="h-8 w-8 text-accent-ink" />
       </FullScreenMessage>
     );
   }
   if (state.kind === 'notFound') {
     return (
-      <FullScreenMessage emoji="🔍" title="ルームが見つかりません">
+      <FullScreenMessage icon="search" title="ルームが見つかりません">
         <p className="text-muted">コード「{code.toUpperCase()}」のルームは存在しないか、終了しました。</p>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link to="/join">
@@ -41,7 +43,7 @@ export function RoomPage() {
   if (state.kind === 'ended' && state.resumable) {
     // 退出したわけではない。同じブラウザの別のタブで開いたので、こちらが止まっただけ
     return (
-      <FullScreenMessage emoji="📱" title="別のタブで開いています">
+      <FullScreenMessage icon="phone" title="別のタブで開いています">
         <p className="text-muted">{state.reason}</p>
         <Button size="lg" onClick={() => window.location.reload()} data-testid="resume-here">
           この画面で続ける
@@ -51,7 +53,7 @@ export function RoomPage() {
   }
   if (state.kind === 'ended') {
     return (
-      <FullScreenMessage emoji="👋" title="ルームを退出しました">
+      <FullScreenMessage icon="wave" title="ルームを退出しました">
         <p className="text-muted">{state.reason}</p>
         <Link to="/">
           <Button size="lg">トップへ戻る</Button>
@@ -68,7 +70,7 @@ export function RoomPage() {
       <RoomProvider room={view!}>
         <div className="min-h-dvh pb-28">
           {!connected && (
-            <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-amber-400 px-4 py-2 text-sm font-extrabold text-amber-950">
+            <div className="sticky top-0 z-40 flex items-center justify-center gap-2 bg-warn px-4 py-2 text-sm font-extrabold text-on-warn">
               <Spinner className="h-4 w-4" /> 再接続しています…
             </div>
           )}
@@ -82,7 +84,7 @@ export function RoomPage() {
             // ヘッダーはスマホ幅で詰まっているので、デモの目印は下の帯に出す
             <div className="mx-auto max-w-5xl px-3 pb-3 sm:px-6">
               <p
-                className="rounded-xl bg-pop-mint/10 px-3 py-1.5 text-center text-xs font-extrabold text-pop-mint ring-1 ring-pop-mint/25"
+                className="ui-tile px-3 py-1.5 text-center text-xs font-extrabold text-ok-ink"
                 data-testid="demo-badge"
               >
                 デモのルームです（本番のルームとは別です）
@@ -114,13 +116,13 @@ function RoomHeader({ onLeave }: { onLeave: () => void }) {
       <div className="flex items-center gap-2">
         <button
           onClick={copy}
-          className="rounded-xl bg-white/8 px-3 py-1.5 font-display text-sm tracking-[0.15em] ring-1 ring-line hover:bg-white/12"
+          className="ui-tile min-h-11 px-3 py-1.5 font-display text-sm tracking-[0.15em]"
           title="招待URLをコピー"
           data-testid="header-code"
         >
           {room.code}
         </button>
-        <Button variant="ghost" size="sm" onClick={() => setConfirm(true)}>
+        <Button variant="ghost" size="sm" className="shrink-0 whitespace-nowrap" onClick={() => setConfirm(true)}>
           退出
         </Button>
       </div>
@@ -172,14 +174,14 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
       <main className="mx-auto max-w-md px-4 pb-16">
         <Card className="animate-pop-in overflow-hidden !p-0">
           <div
-            className="flex items-center gap-4 p-5"
-            style={{ background: `linear-gradient(135deg, ${game.theme.from}, ${game.theme.to})` }}
+            className="theme-swatch flex items-center gap-4 border-b border-line p-5"
+            data-theme={themeOfGame(game.id)}
           >
-            <span className="text-5xl drop-shadow-lg">{game.emoji}</span>
+            <GameEmblem id={game.id} className="h-16 w-20" />
             <div>
-              <p className="text-xs font-extrabold text-white/80">招待されたゲーム</p>
+              <p className="text-xs font-extrabold text-fg/80">招待されたゲーム</p>
               <h1 className="font-display text-2xl">{game.title}</h1>
-              <p className="text-sm font-bold text-white/85">
+              <p className="text-sm font-bold text-fg/85">
                 ROOM <span className="font-display tracking-widest">{summary.code}</span> ・ {summary.playerCount}/{summary.maxPlayers}人
               </p>
             </div>
@@ -188,16 +190,16 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
             {summary.status === 'playing' &&
               (isEventGame(summary.gameId) ? (
                 // 懇親会は途中から来た人もすぐ参加者になる
-                <p className="mb-4 rounded-xl bg-pop-mint/10 px-4 py-2 text-sm font-bold text-pop-mint" data-testid="join-event-note">
+                <p className="mb-4 rounded-xl bg-ok/10 px-4 py-2 text-sm font-bold text-ok-ink" data-testid="join-event-note">
                   もう始まっています。名前を入れると、すぐに参加できます。
                 </p>
               ) : (
-                <p className="mb-4 rounded-xl bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-200">
+                <p className="mb-4 rounded-xl bg-warn/15 px-4 py-2 text-sm font-bold text-warn-ink">
                   いまゲーム中です。参加すると観戦しながら、次のゲームから遊べます。
                 </p>
               ))}
             {full ? (
-              <p className="rounded-xl bg-rose-500/15 px-4 py-3 text-center font-bold text-rose-200">このルームは満員です 🙇</p>
+              <p className="rounded-xl bg-danger/15 px-4 py-3 text-center font-bold text-danger-ink">このルームは満員です</p>
             ) : (
               <>
                 <label className="block text-sm font-extrabold" htmlFor="join-name">
@@ -217,7 +219,7 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
                   />
                 </div>
                 <Button size="xl" block className="mt-5" onClick={submit} loading={loading} data-testid="join-submit">
-                  🎉 参加する
+                  参加する
                 </Button>
               </>
             )}

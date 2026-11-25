@@ -1,147 +1,169 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { EVENT_GAMES, GAMES, SOLO_GAMES } from '../../shared/games';
 import { EventGameCard, GameCard, SoloGameCard } from '../components/GameCard';
+import { GameEmblem, Icon, type IconName } from '../components/Icon';
 import { Button, Logo } from '../components/ui';
 
-const STEPS = [
-  { emoji: '🎮', title: 'ゲームを選ぶ', text: '遊びたいゲームをえらんでタップ。' },
-  { emoji: '🏠', title: 'ルームを作る', text: '名前を入れるだけ。登録は不要です。' },
-  { emoji: '🔗', title: 'URLを友達に送る', text: 'DiscordやLINEに貼るだけ。QRコードでもOK。' },
-  { emoji: '🎉', title: 'みんなで遊ぶ', text: 'スマホでもPCでも。全員そろったらスタート！' },
-];
-
-const FLOATERS = [
-  { emoji: '🕵️', className: 'left-[4%] top-[12%]', r: '-12deg', delay: '0s' },
-  { emoji: '🎨', className: 'right-[6%] top-[8%]', r: '10deg', delay: '1.2s' },
-  { emoji: '⚖️', className: 'left-[10%] bottom-[8%]', r: '8deg', delay: '2.1s' },
-  { emoji: '🎭', className: 'right-[12%] bottom-[14%]', r: '-8deg', delay: '0.6s' },
-  { emoji: '🤝', className: 'right-[3%] top-[46%]', r: '4deg', delay: '1.6s' },
-  { emoji: '🏎️', className: 'left-[2%] top-[50%]', r: '-6deg', delay: '2.6s' },
+const STEPS: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'puzzle', title: 'ゲームを選ぶ', text: '遊びたいゲームをえらんでタップ。' },
+  { icon: 'home', title: 'ルームを作る', text: '名前を入れるだけ。登録は不要です。' },
+  { icon: 'link', title: 'URLを友達に送る', text: 'DiscordやLINEに貼るだけ。QRコードでもOK。' },
+  { icon: 'users', title: 'みんなで遊ぶ', text: 'スマホでもPCでも。全員そろったらスタート！' },
 ];
 
 function scrollToGames() {
   document.getElementById('games')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/** 太い罫線のあとに、左に小さなラベル・右に中身を置く（スイススタイルの段組み） */
+function Section({
+  id,
+  label,
+  title,
+  note,
+  children,
+}: {
+  id?: string;
+  label: string;
+  title: string;
+  note?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="mx-auto max-w-6xl scroll-mt-4 px-4 pb-16 sm:px-6">
+      <div className="swiss-rule grid gap-x-8 gap-y-4 pt-4 lg:grid-cols-[16rem_1fr]">
+        <div>
+          <p className="text-xs font-bold tracking-[0.3em] text-accent-ink uppercase">{label}</p>
+          <h2 className="mt-1 font-display text-3xl leading-tight">{title}</h2>
+          {note && <p className="mt-2 text-sm text-muted">{note}</p>}
+        </div>
+        <div className="min-w-0">{children}</div>
+      </div>
+    </section>
+  );
+}
+
 export function LandingPage() {
   return (
     <div className="min-h-dvh">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+      <header className="mx-auto flex max-w-6xl items-center justify-between border-b border-line px-4 py-3 sm:px-6">
         <Logo />
         <Link to="/join">
           <Button variant="secondary" size="sm">
-            🔑 コードで参加
+            <Icon name="key" /> コードで参加
           </Button>
         </Link>
       </header>
 
-      {/* Hero */}
-      <section className="relative mx-auto max-w-6xl px-4 pt-10 pb-16 sm:px-6 sm:pt-16 sm:pb-24">
-        <div className="pointer-events-none absolute inset-0 hidden sm:block" aria-hidden>
-          {FLOATERS.map((f) => (
-            <span
-              key={f.emoji}
-              className={`animate-float absolute text-5xl opacity-80 drop-shadow-xl lg:text-6xl ${f.className}`}
-              style={{ ['--r' as string]: f.r, animationDelay: f.delay }}
+      {/* Hero: 左揃えの大きな見出しだけで見せる */}
+      <section className="mx-auto max-w-6xl px-4 pt-10 pb-14 sm:px-6 sm:pt-16 sm:pb-20">
+        <div className="grid gap-8 lg:grid-cols-[1fr_15rem]">
+          <div>
+            <p className="animate-slide-up mb-5 inline-flex items-center gap-2 text-sm font-bold">
+              <span className="h-3 w-3 bg-accent" />
+              登録なし・無料・ブラウザだけ
+            </p>
+            <h1 className="animate-slide-up font-display text-[2.2rem] leading-[1.08] min-[400px]:text-[2.5rem] sm:text-6xl lg:text-7xl">
+              みんなで遊べる、
+              <br />
+              <span className="text-gradient">かんたん</span>
+              <br />
+              オンラインゲーム。
+            </h1>
+            <p className="animate-slide-up mt-6 max-w-xl text-lg sm:text-xl" style={{ animationDelay: '80ms' }}>
+              URLを送るだけ。友達とすぐに遊べます。
+            </p>
+            <div
+              className="animate-slide-up mt-8 flex flex-col gap-3 sm:flex-row"
+              style={{ animationDelay: '160ms' }}
             >
-              {f.emoji}
-            </span>
-          ))}
-        </div>
-        <div className="relative mx-auto max-w-3xl text-center">
-          <p className="animate-slide-up mb-5 inline-flex items-center gap-2 rounded-full bg-white/8 px-4 py-1.5 text-sm font-bold text-white/85 ring-1 ring-line">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-pop-mint" />
-            登録なし・無料・ブラウザだけ
-          </p>
-          <h1 className="animate-slide-up font-display text-[1.7rem] leading-tight min-[400px]:text-[1.9rem] sm:text-5xl sm:leading-[1.2] lg:text-6xl">
-            みんなで遊べる、
-            <br />
-            <span className="text-gradient inline-block whitespace-nowrap">かんたんオンラインゲーム。</span>
-          </h1>
-          <p className="animate-slide-up mt-5 text-lg text-white/80 sm:text-xl" style={{ animationDelay: '80ms' }}>
-            URLを送るだけ。友達とすぐに遊べます。
-          </p>
-          <div
-            className="animate-slide-up mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
-            style={{ animationDelay: '160ms' }}
-          >
-            <Button size="xl" onClick={scrollToGames} className="w-full sm:w-auto">
-              🎮 ゲームを選ぶ
-            </Button>
-            <Link to="/join" className="w-full sm:w-auto">
-              <Button size="xl" variant="secondary" block>
-                ルームコードで参加
+              <Button size="xl" onClick={scrollToGames} className="w-full sm:w-auto">
+                ゲームを選ぶ <Icon name="play" className="h-4 w-4" />
               </Button>
-            </Link>
+              <Link to="/join" className="w-full sm:w-auto">
+                <Button size="xl" variant="secondary" block>
+                  ルームコードで参加
+                </Button>
+              </Link>
+            </div>
           </div>
-          <p className="mt-6 text-sm text-muted">Discordで通話しながら遊ぶのにぴったり 🎧</p>
+          {/* 右の柱: 数字と短い事実だけ */}
+          <dl className="grid grid-cols-3 gap-4 self-end border-t-4 border-line pt-3 text-sm lg:grid-cols-1">
+            <div>
+              <dt className="text-xs font-bold tracking-[0.2em] text-muted">GAMES</dt>
+              <dd className="font-display text-4xl tabular-nums">{String(GAMES.length + SOLO_GAMES.length + EVENT_GAMES.length).padStart(2, '0')}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold tracking-[0.2em] text-muted">PLAYERS</dt>
+              <dd className="font-display text-4xl tabular-nums">1–120</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-bold tracking-[0.2em] text-muted">SIGN UP</dt>
+              <dd className="font-display text-4xl">0</dd>
+            </div>
+          </dl>
         </div>
+        <p className="mt-8 inline-flex items-center gap-2 text-sm text-muted">
+          <Icon name="headphones" /> Discordで通話しながら遊ぶのにぴったり
+        </p>
       </section>
 
       {/* Event（司会が進行する催し物） */}
-      <section id="event" className="mx-auto max-w-6xl scroll-mt-4 px-4 pb-16 sm:px-6">
-        <div className="mb-6">
-          <p className="text-xs font-extrabold tracking-[0.3em] text-pop-orange">EVENT</p>
-          <h2 className="font-display text-3xl">懇親会・催し物</h2>
-          <p className="mt-1 text-sm text-muted">司会が進行して、数十人がそれぞれのスマホで参加する催し物向けです。</p>
-        </div>
+      <Section
+        id="event"
+        label="Event"
+        title="懇親会・催し物"
+        note="司会が進行して、数十人がそれぞれのスマホで参加する催し物向けです。"
+      >
         <div className="grid gap-5">
           {EVENT_GAMES.map((g) => (
             <EventGameCard key={g.id} game={g} />
           ))}
         </div>
-      </section>
+      </Section>
 
       {/* Game list */}
-      <section id="games" className="mx-auto max-w-6xl scroll-mt-4 px-4 pb-20 sm:px-6">
-        <div className="mb-6 flex items-end justify-between">
-          <div>
-            <p className="text-xs font-extrabold tracking-[0.3em] text-pop-pink">GAME LIST</p>
-            <h2 className="font-display text-3xl">ゲームをえらぶ</h2>
-          </div>
-          <p className="hidden text-sm text-muted sm:block">全{GAMES.length + SOLO_GAMES.length}種類</p>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <Section id="games" label="Game list" title="ゲームをえらぶ" note={`全${GAMES.length + SOLO_GAMES.length}種類`}>
+        <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
           {GAMES.map((g, i) => (
             <GameCard key={g.id} game={g} index={i} />
           ))}
           {SOLO_GAMES.map((g, i) => (
             <SoloGameCard key={g.id} game={g} index={GAMES.length + i} />
           ))}
-          <div className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-white/12 p-6 text-center text-muted">
-            <span className="text-4xl">🧩</span>
+          <div className="flex min-h-48 flex-col items-start justify-end gap-2 border-t-4 border-b border-dashed border-line p-4 text-muted">
+            <GameEmblem id="soon" className="h-16 w-20" />
             <p className="font-bold">新しいゲーム、準備中…</p>
           </div>
         </div>
-      </section>
+      </Section>
 
       {/* How to */}
-      <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
-        <div className="mb-6">
-          <p className="text-xs font-extrabold tracking-[0.3em] text-pop-mint">HOW TO PLAY</p>
-          <h2 className="font-display text-3xl">遊び方</h2>
-        </div>
-        <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Section label="How to play" title="遊び方">
+        <ol className="grid gap-x-5 gap-y-6 sm:grid-cols-2 xl:grid-cols-4">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="relative rounded-3xl bg-panel/80 p-6 ring-1 ring-line">
-              <span className="absolute top-5 right-5 font-display text-4xl text-white/10">{i + 1}</span>
-              <div className="mb-3 text-4xl">{s.emoji}</div>
-              <p className="text-xs font-extrabold text-pop-pink">STEP {i + 1}</p>
+            <li key={s.title} className="border-t border-line pt-3">
+              <div className="flex items-start justify-between">
+                <span className="font-display text-5xl leading-none tabular-nums">{i + 1}</span>
+                <Icon name={s.icon} className="h-7 w-7" />
+              </div>
+              <p className="mt-3 text-xs font-bold tracking-[0.2em] text-accent-ink">STEP {i + 1}</p>
               <h3 className="mt-1 text-lg font-extrabold">{s.title}</h3>
-              <p className="mt-1 text-sm text-white/70">{s.text}</p>
+              <p className="mt-1 text-sm text-muted">{s.text}</p>
             </li>
           ))}
         </ol>
-        <div className="mt-10 text-center">
+        <div className="mt-10">
           <Button size="lg" onClick={scrollToGames}>
-            さっそく遊ぶ →
+            さっそく遊ぶ <Icon name="play" className="h-4 w-4" />
           </Button>
         </div>
-      </section>
+      </Section>
 
-      <footer className="border-t border-line py-8 text-center text-sm text-muted">
+      <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 border-t-4 border-line px-4 py-6 text-sm text-muted sm:px-6">
         <Logo />
-        <p className="mt-2">友達と、すぐに、ブラウザで。</p>
+        <p>友達と、すぐに、ブラウザで。</p>
       </footer>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PartyEventView, SeatsRosterEntry } from '../../../shared/games/views';
+import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { useGame } from '../RoomContext';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
@@ -16,12 +17,12 @@ export function SeatsSection() {
           {s.drawn} / {s.drawn + s.remaining} 人
         </p>
         {s.last && (
-          <div key={s.last.id} className="animate-pop-in mt-3 rounded-2xl bg-white/8 px-4 py-3">
-            <p className="text-sm text-muted">いま引いた人</p>
+          <div key={s.last.id} className="ui-tile animate-pop-in mt-3 bg-hi px-4 py-3 text-on-hi">
+            <p className="text-sm">いま引いた人</p>
             <p className="font-display text-2xl" data-testid="seats-last">
               {s.last.name}
             </p>
-            <p className="mt-1 font-display text-xl text-pop-mint">
+            <p className="mt-1 font-display text-xl">
               {s.last.table == null ? '席なし' : (s.tables[s.last.table]?.name ?? `テーブル ${s.last.table + 1}`)}
             </p>
           </div>
@@ -51,9 +52,9 @@ function MySeat() {
     return (
       <Card className="py-10 text-center" data-testid="my-no-seat">
         <p className="text-sm text-muted">{me.name} さん</p>
-        <div className="mt-3 text-5xl">🙇</div>
+        <Icon name="alert" className="mx-auto mt-3 !block h-12 w-12" />
         <p className="mt-3 font-display text-xl">席が足りませんでした</p>
-        <p className="mt-2 text-sm text-white/75">司会の案内をお待ちください。</p>
+        <p className="mt-2 text-sm text-fg/75">司会の案内をお待ちください。</p>
       </Card>
     );
   }
@@ -62,9 +63,9 @@ function MySeat() {
     return (
       <Card className="py-10 text-center">
         <p className="text-sm text-muted">{me.name} さん</p>
-        <div className="animate-float mt-3 text-5xl">🎐</div>
+        <Icon name="seat" className="animate-float mx-auto mt-3 !block h-12 w-12" />
         <p className="mt-3 font-display text-xl">くじを待っています</p>
-        <button className="mt-4 text-xs font-bold text-muted underline" onClick={() => act('seats:claim', { personId: '' })}>
+        <button className="mt-4 min-h-11 px-3 text-xs font-bold text-muted underline" onClick={() => act('seats:claim', { personId: '' })}>
           名前を選び直す
         </button>
       </Card>
@@ -74,9 +75,9 @@ function MySeat() {
   const table = s.tables[me.table];
   const mates = table?.people.filter((p) => p.id !== me.id) ?? [];
   return (
-    <Card className="animate-pop-in bg-gradient-to-br from-pop-mint/20 to-pop-sky/10 text-center">
+    <Card className="animate-pop-in bg-ok/15 text-center">
       <p className="text-sm text-muted">{me.name} さんの席は</p>
-      <p className="mt-2 font-display text-5xl text-pop-mint" data-testid="my-table">
+      <p className="mt-2 font-display text-5xl" data-testid="my-table">
         {table?.name ?? `テーブル ${me.table + 1}`}
       </p>
       {mates.length > 0 && (
@@ -84,7 +85,7 @@ function MySeat() {
           <p className="mt-5 text-xs font-extrabold tracking-[0.2em] text-muted uppercase">同じテーブルの方</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
             {mates.map((p) => (
-              <Badge key={p.id} className="bg-white/12 text-base text-white">
+              <Badge key={p.id} className="bg-panel text-base">
                 {p.name}
               </Badge>
             ))}
@@ -112,14 +113,14 @@ function PickMyName() {
   return (
     <Card>
       <SectionTitle>名簿から自分を選んでください</SectionTitle>
-      <p className="-mt-1 mb-3 text-sm text-white/75">名前を選んだ人だけが、席のくじに入ります。</p>
+      <p className="-mt-1 mb-3 text-sm text-fg/75">名前を選んだ人だけが、席のくじに入ります。</p>
       <TextInput value={q} onChange={setQ} maxLength={20} showCount={false} placeholder="名前で絞り込む" />
       <div className="mt-3 grid max-h-80 grid-cols-2 gap-2 overflow-y-auto" data-testid="seats-roster-pick">
         {list.map((p) => (
           <button
             key={p.id}
             onClick={() => pick(p)}
-            className={`rounded-xl px-3 py-3 text-left text-sm font-bold ${p.taken ? 'bg-white/4 text-white/60' : 'bg-white/8 hover:bg-white/14'}`}
+            className={`ui-tile min-h-14 px-3 py-3 text-left text-sm font-bold ${p.taken ? 'border-dashed text-muted' : ''}`}
           >
             <span className="block truncate">{p.name}</span>
             <span className="block truncate text-xs font-normal text-muted">
@@ -133,7 +134,7 @@ function PickMyName() {
         <AddMyName key={q.trim()} initialName={q.trim()} />
       ) : (
         <button
-          className="mt-4 w-full rounded-xl py-2 text-sm font-bold text-pop-sky underline underline-offset-4"
+          className="mt-4 min-h-11 w-full rounded-xl py-2 text-sm font-bold text-info-ink underline underline-offset-4"
           onClick={() => setAdding(true)}
           data-testid="seats-add-open"
         >
@@ -142,7 +143,7 @@ function PickMyName() {
       )}
       <Modal open={confirm !== null} onClose={() => setConfirm(null)}>
         <h2 className="font-display text-xl">{confirm?.name} さんですか？</h2>
-        <p className="mt-2 text-sm text-white/80">
+        <p className="mt-2 text-sm text-fg/80">
           この名前は、別のスマホですでに選ばれています。ご本人で間違いなければ、このスマホに切り替えます
           （前のスマホでは名前の選び直しになります）。
         </p>
@@ -185,9 +186,9 @@ function AddMyName({ initialName }: { initialName: string }) {
   };
 
   return (
-    <div className="mt-4 rounded-2xl bg-white/5 p-4 ring-1 ring-line" data-testid="seats-add-self">
+    <div className="ui-tile mt-4 p-4" data-testid="seats-add-self">
       <p className="font-extrabold">名簿に名前が無い方</p>
-      <p className="mt-1 text-sm text-white/75">名前と所属を入れると、名簿に加わって、そのまま席のくじに入ります。</p>
+      <p className="mt-1 text-sm text-fg/75">名前と所属を入れると、名簿に加わって、そのまま席のくじに入ります。</p>
       <div className="mt-3">
         <TextInput
           value={name}
@@ -205,9 +206,7 @@ function AddMyName({ initialName }: { initialName: string }) {
               key={g}
               onClick={() => setGroup(g)}
               aria-pressed={group === g}
-              className={`h-11 min-w-16 rounded-xl px-4 text-sm font-extrabold ring-1 transition ${
-                group === g ? 'bg-white text-ink ring-white' : 'bg-white/8 text-white ring-line hover:bg-white/14'
-              }`}
+              className={`ui-tile h-11 min-w-16 px-4 text-sm font-extrabold transition ${group === g ? 'bg-fg text-bg' : ''}`}
             >
               {g}
             </button>
@@ -236,7 +235,7 @@ function HostControls() {
       <div className="flex flex-col gap-3">
         <HostActionBar>
           <HostButton onClick={() => act('seats:draw', { at: s.drawn })} disabled={s.remaining === 0} testId="seats-draw">
-            🎐 1人引く（残り {s.remaining}）
+            1人引く（残り {s.remaining}）
           </HostButton>
         </HostActionBar>
         <ConfirmModal
@@ -257,7 +256,7 @@ function HostControls() {
             ↩ 1つ戻す
           </Button>
         </div>
-        <p className="text-xs text-white/70">
+        <p className="text-xs text-fg/70">
           くじは下の「くじに入る人」（名前を選んだ人・名前を足した人・司会がくじに入れた人）だけから引きます。
           みんなが名前を選び終わってから引いてください。
         </p>
@@ -307,10 +306,10 @@ function Roster() {
       )}
       {notChosen.length > 0 && (
         <details className="mb-3" data-testid="seats-not-chosen">
-          <summary className="cursor-pointer text-sm font-extrabold text-white/85">
+          <summary className="cursor-pointer text-sm font-extrabold text-fg/85">
             名前を選んでいない人（{notChosen.length}）
           </summary>
-          <p className="mt-2 mb-2 text-xs text-white/70">
+          <p className="mt-2 mb-2 text-xs text-fg/70">
             来ていない人も含みます。スマホが無いなど、自分で選べない方はタップするとくじに入ります。
           </p>
           <RosterChips people={notChosen} onClick={(p) => act('seats:present', { personId: p.id, present: true })} />
@@ -345,9 +344,7 @@ function RosterChips({
         <button
           key={p.id}
           onClick={() => onClick(p)}
-          className={`rounded-lg px-2.5 py-1.5 text-sm font-bold ${
-            muted ? 'bg-white/5 text-muted line-through' : 'bg-white/8 text-white/85 hover:bg-white/14'
-          }`}
+          className={`ui-badge min-h-11 bg-panel px-3 py-1.5 text-sm font-bold ${muted ? 'text-muted line-through' : ''}`}
         >
           {p.name}
         </button>
@@ -370,7 +367,7 @@ function Tables() {
             {t.people.map((p) => (
               <Badge
                 key={p.id}
-                className={`text-sm ${p.id === s.myPersonId ? 'bg-pop-mint text-ink' : 'bg-white/10 text-white/85'}`}
+                className={`text-sm ${p.id === s.myPersonId ? 'bg-ok text-on-ok' : 'bg-panel'}`}
               >
                 {p.name}
               </Badge>
@@ -384,7 +381,7 @@ function Tables() {
           <SectionTitle>席なし</SectionTitle>
           <div className="flex flex-wrap gap-1.5">
             {s.noSeat.map((p) => (
-              <Badge key={p.id} className="bg-rose-400/20 text-sm text-rose-200">
+              <Badge key={p.id} className="bg-panel text-sm text-danger-ink">
                 {p.name}
               </Badge>
             ))}
