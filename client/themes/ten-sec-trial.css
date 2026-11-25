@@ -1,0 +1,153 @@
+/*
+ * 10秒裁判: 和モダン
+ *
+ * 和紙の色の地に、墨の明朝体。枠で囲まず、細い罫線と余白（間）で区切る。差し色は朱だけ。
+ * 事件の札の見出しは縦書き、判決は朱の判子で押す。
+ * 有罪 = 朱の塗り、無罪 = 墨の枠。色だけでなく、文字と塗り／枠の違いで見分ける。
+ */
+@layer base {
+  [data-theme='ten-sec-trial'] {
+    --t-font-body: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+    --t-font-display: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+    --t-body-weight: 500;
+    --t-display-weight: 700;
+    --t-display-tracking: 0.14em;
+
+    /* 和紙の繊維 */
+    --t-page-bg:
+      repeating-linear-gradient(87deg, rgb(120 100 70 / 0.05) 0 1px, transparent 1px 9px),
+      repeating-linear-gradient(3deg, rgb(120 100 70 / 0.04) 0 1px, transparent 1px 13px) #f4efe4;
+    --t-bg: #f4efe4;
+    --t-fg: #1c1c1c;
+    --t-muted: #55626a;
+    --t-panel: #fbf8f1;
+    --t-panel-2: #efe9db;
+    --t-panel-3: #e4dccb;
+    --t-line: rgb(28 28 28 / 0.4);
+    --t-shade: #1c1c1c;
+
+    --t-accent: #c73e1d;
+    --t-accent-ink: #a83217;
+    --t-on-accent: #ffffff;
+    --t-accent2: #5b6b73;
+    --t-accent2-ink: #46545b;
+    --t-ok: #1c1c1c;
+    --t-ok-ink: #1c1c1c;
+    --t-on-ok: #f4efe4;
+    --t-hi: #c73e1d;
+    --t-hi-ink: #a83217;
+    --t-on-hi: #ffffff;
+    --t-info: #5b6b73;
+    --t-info-ink: #46545b;
+    --t-sub: #5b6b73;
+    --t-sub-ink: #46545b;
+    --t-danger: #c73e1d;
+    --t-danger-ink: #a83217;
+    --t-on-danger: #ffffff;
+    --t-warn: #5b6b73;
+    --t-warn-ink: #46545b;
+    --t-on-warn: #ffffff;
+    --t-focus: #c73e1d;
+
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 1px;
+    --radius-2xl: 1px;
+    --radius-3xl: 2px;
+    --t-elev: 0 0 #0000;
+
+    --t-card-bg: transparent;
+    --t-card-border: 0;
+    --t-card-radius: 0;
+    --t-card-shadow: none;
+    --t-tile-bg: transparent;
+    --t-tile-border: 1px solid rgb(28 28 28 / 0.4);
+    --t-tile-radius: 0;
+
+    --t-btn-border: 1px solid #1c1c1c;
+    --t-btn-radius: 0;
+    --t-btn-shadow: none;
+    --t-btn-shadow-press: none;
+    --t-btn-press: translateY(1px);
+    --t-btn-font: var(--t-font-display);
+    --t-btn-weight: 700;
+    --t-btn-tracking: 0.3em;
+    --t-btn-hover: opacity(0.82);
+    --t-btn-primary-bg: #1c1c1c;
+    --t-btn-primary-fg: #f4efe4;
+    --t-btn-secondary-bg: transparent;
+    --t-btn-secondary-fg: #1c1c1c;
+    --t-btn-danger-bg: transparent;
+    --t-btn-danger-fg: #a83217;
+
+    --t-input-bg: transparent;
+    --t-input-fg: #1c1c1c;
+    --t-input-border: 0;
+    --t-input-radius: 0;
+    --t-input-shadow: inset 0 -1px 0 #1c1c1c;
+    --t-input-placeholder: #7b858a;
+
+    --t-badge-radius: 0;
+    --t-badge-border: 1px solid rgb(28 28 28 / 0.4);
+
+    --t-overlay: rgb(28 28 28 / 0.6);
+    --t-modal-bg: #fbf8f1;
+    --t-modal-shadow: none;
+
+    --t-q-bg: #fbf8f1;
+    --t-q-fg: #1c1c1c;
+    --t-q-border: 0;
+    --t-q-shadow: none;
+    --t-q-accent: #c73e1d;
+    --t-q-label: #a83217;
+
+    --t-bar-bg: #f4efe4;
+    --t-bar-border: rgb(28 28 28 / 0.4);
+    --t-bar-filter: none;
+
+    --t-timer-track: transparent;
+    --t-timer-border: 0;
+    --t-timer-radius: 0;
+    --t-timer-fill: #1c1c1c;
+  }
+}
+
+/* 面は囲まず、上下の細い罫線と余白で区切る */
+[data-theme='ten-sec-trial'] .ui-card {
+  border-top: 1px solid #1c1c1c;
+  border-bottom: 1px solid rgb(28 28 28 / 0.4);
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+[data-theme='ten-sec-trial'] .ui-modal {
+  border: 1px solid #1c1c1c;
+}
+/* お題は、左に朱の太い線（上の帯は使わない） */
+[data-theme='ten-sec-trial'] .ui-question {
+  border-left: 6px solid #c73e1d;
+}
+[data-theme='ten-sec-trial'] .ui-question-bar {
+  display: none;
+}
+/* 残り時間は、墨の細い線が短くなっていく */
+[data-theme='ten-sec-trial'] .ui-timer-track {
+  height: 0.5rem;
+  box-shadow: inset 0 -1px 0 rgb(28 28 28 / 0.4);
+}
+[data-theme='ten-sec-trial'] .ui-bar {
+  border-style: solid;
+  border-width: 0 0 1px;
+}
+[data-theme='ten-sec-trial'] .ui-bar[data-edge='bottom'] {
+  border-width: 1px 0 0;
+}
+/* 見出しの下に、短い朱の線 */
+[data-theme='ten-sec-trial'] h2.font-display::after {
+  content: '';
+  display: block;
+  width: 2.5rem;
+  height: 2px;
+  margin: 0.6rem auto 0;
+  background: #c73e1d;
+}

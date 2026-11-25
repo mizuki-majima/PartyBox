@@ -3,6 +3,7 @@ import type { LiarView } from '../../../shared/games/views';
 import { LIMITS } from '../../../shared/protocol';
 import { GameOverPanel, HostNext, HostSkip, PhaseHeader, Scoreboard, StartSplash, SubmissionStatus } from '../../components/game';
 import { SpeakerPanel, StatementLog, TurnOrder } from '../../components/talk';
+import { Icon } from '../../components/Icon';
 import { Avatar, Button } from '../../components/ui';
 import { useGame } from '../RoomContext';
 
@@ -35,13 +36,13 @@ function MyCard({ large = false }: { large?: boolean }) {
   if (game.amLiar) {
     return (
       <div
-        className={`animate-pop-in rounded-3xl bg-gradient-to-br from-danger to-orange-500 text-center shadow-2xl ${large ? 'p-8' : 'p-4'}`}
+        className={`animate-pop-in bg-danger text-center text-on-danger ring-1 ring-line ${large ? 'p-8' : 'p-4'}`}
         data-testid="liar-card"
       >
-        <p className={large ? 'text-6xl' : 'text-2xl'}>🤫</p>
+        <Icon name="alert" className={`mx-auto !block ${large ? 'h-14 w-14' : 'h-7 w-7'}`} />
         <p className={`font-display ${large ? 'mt-3 text-3xl' : 'text-xl'}`}>あなたは嘘つきです</p>
         {large && (
-          <p className="mt-3 text-sm font-bold text-fg/90">
+          <p className="mt-3 text-sm font-bold">
             お題は分かりません。みんなの発言から本当のお題を推理して、
             <br className="hidden sm:inline" />
             バレないように話を合わせよう！
@@ -51,11 +52,11 @@ function MyCard({ large = false }: { large?: boolean }) {
     );
   }
   return (
-    <div className={`animate-pop-in rounded-3xl bg-fg text-center text-bg shadow-2xl ${large ? 'p-8' : 'p-4'}`} data-testid="topic-card">
-      <p className="text-xs font-extrabold tracking-[0.25em] text-danger-ink">{game.mode === 'wordwolf' ? 'あなたのお題' : 'お題'}</p>
+    <div className={`ui-question animate-pop-in text-center ${large ? 'p-8' : 'p-4'}`} data-testid="topic-card">
+      <p className="ui-question-label text-xs font-extrabold tracking-[0.25em]">{game.mode === 'wordwolf' ? 'あなたのお題' : 'お題'}</p>
       <p className={`font-display ${large ? 'mt-2 text-4xl' : 'text-2xl'}`}>{game.myTopic}</p>
       {large && (
-        <p className="mt-3 text-sm font-bold text-muted">
+        <p className="mt-3 text-sm font-bold">
           {game.mode === 'wordwolf'
             ? '1人だけ違うお題の人がいます。あなたかも…？'
             : 'この中に1人だけお題を知らない嘘つきがいます。答えを言いすぎないように！'}
@@ -70,7 +71,7 @@ function RolePhase() {
   const ready = game.ready.includes(room.youId);
   return (
     <div className="flex flex-col gap-5">
-      <PhaseHeader emoji="🃏" title="自分のカードを確認しよう" sub="他の人に画面を見せないように！" />
+      <PhaseHeader icon="eye" title="自分のカードを確認しよう" sub="他の人に画面を見せないように！" />
       <MyCard large />
       {game.me && (
         <Button size="xl" block onClick={() => act('ready')} disabled={ready} variant={ready ? 'secondary' : 'primary'} data-testid="ready">
@@ -88,7 +89,7 @@ function TalkPhase() {
   const speaker = game.order[game.turnIndex] ?? null;
   return (
     <div className="flex flex-col gap-4">
-      <PhaseHeader emoji="🗣️" title="順番にお題について答えよう" sub="答えそのものを言いすぎると嘘つきにバレるかも？" />
+      <PhaseHeader icon="users" title="順番にお題について答えよう" sub="答えそのものを言いすぎると嘘つきにバレるかも？" />
       <TurnOrder order={game.order} index={game.turnIndex} />
       <SpeakerPanel
         key={game.turnIndex}
@@ -111,7 +112,7 @@ function VotePhase() {
   const targets = game.players.filter((p) => !p.left);
   return (
     <div className="flex flex-col gap-4">
-      <PhaseHeader emoji="🗳️" title="嘘つきだと思う人に投票！" sub="話し合ってOK。全員が投票すると結果発表（投票は変更できます）" />
+      <PhaseHeader icon="search" title="嘘つきだと思う人に投票！" sub="話し合ってOK。全員が投票すると結果発表（投票は変更できます）" />
       {game.me && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {targets
@@ -122,14 +123,19 @@ function VotePhase() {
                 <button
                   key={p.id}
                   onClick={() => act('vote', { targetId: p.id })}
-                  className={`animate-pop-in flex flex-col items-center gap-2 rounded-3xl p-4 ring-2 transition active:scale-95 ${
-                    selected ? 'bg-danger/25 ring-danger' : 'bg-panel ring-line hover:bg-panel-2'
+                  aria-pressed={selected}
+                  className={`ui-tile animate-pop-in flex flex-col items-center gap-2 p-4 transition active:scale-95 ${
+                    selected ? 'outline-4 outline-accent' : ''
                   }`}
                   data-testid="vote-target"
                 >
                   <Avatar name={nameOf(p.id)} color={colorOf(p.id)} size="lg" />
                   <span className="max-w-full truncate font-extrabold">{nameOf(p.id)}</span>
-                  {selected && <span className="text-xs font-extrabold text-danger-ink">投票中 🎯</span>}
+                  {selected && (
+                    <span className="ui-badge inline-flex items-center gap-1 bg-accent px-2 py-0.5 text-xs font-extrabold text-on-accent">
+                      <Icon name="check" className="h-3 w-3" /> 投票中
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -149,7 +155,7 @@ function LiarGuessPhase() {
   return (
     <div className="flex flex-col gap-4">
       <PhaseHeader
-        emoji="🎯"
+        icon="search"
         title={isGuesser ? '見破られた…！でもまだチャンス' : `嘘つきは${nameOf(game.guesserId)}さんでした！`}
         sub={isGuesser ? '本当のお題を当てれば逆転ボーナス！' : '嘘つきが本当のお題を推理しています…'}
       />
@@ -181,8 +187,8 @@ function ResultPhase() {
   const voteEntries = Object.entries(r.votes);
   return (
     <div className="flex flex-col gap-4">
-      <div className="animate-pop-in rounded-3xl bg-gradient-to-br from-danger to-orange-500 p-6 text-center shadow-2xl">
-        <p className="text-sm font-extrabold text-fg/85">嘘つきは…</p>
+      <div className="animate-pop-in bg-danger p-6 text-center text-on-danger ring-1 ring-line">
+        <p className="text-sm font-extrabold">嘘つきは…</p>
         <div className="mt-2 flex items-center justify-center gap-3">
           <Avatar name={nameOf(r.liarId)} color={colorOf(r.liarId)} size="lg" ring />
           <p className="font-display text-4xl" data-testid="liar-name">
@@ -190,24 +196,24 @@ function ResultPhase() {
           </p>
         </div>
         <p className="mt-4 font-display text-2xl">
-          {r.note ? '⚠️ ラウンド無効' : r.caught ? (r.liarGuessCorrect ? '🔄 見破ったけど逆転された！' : '🎉 市民の勝ち！') : '🤫 嘘つきの逃げ切り！'}
+          {r.note ? 'ラウンド無効' : r.caught ? (r.liarGuessCorrect ? '見破ったけど逆転された！' : '市民の勝ち！') : '嘘つきの逃げ切り！'}
         </p>
       </div>
-      {r.note && <p className="rounded-xl bg-warn/15 px-4 py-2 text-center text-sm font-bold text-warn-ink">{r.note}</p>}
+      {r.note && <p className="ui-tile px-4 py-2 text-center text-sm font-bold text-warn-ink">{r.note}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-3xl bg-fg p-4 text-center text-bg">
-          <p className="text-xs font-extrabold tracking-[0.2em] text-danger-ink">本当のお題</p>
+        <div className="ui-question p-4 text-center">
+          <p className="ui-question-label text-xs font-extrabold tracking-[0.2em]">本当のお題</p>
           <p className="font-display text-2xl">{r.topic}</p>
         </div>
-        <div className="rounded-3xl bg-panel p-4 text-center ring-1 ring-line">
+        <div className="ui-tile p-4 text-center">
           <p className="text-xs font-extrabold tracking-[0.2em] text-muted">{r.liarTopic ? '嘘つきのお題' : '嘘つきの推理'}</p>
           <p className="font-display text-2xl">
-            {r.liarTopic ?? (r.liarGuess ? `${r.liarGuess} ${r.liarGuessCorrect ? '⭕' : '❌'}` : '—')}
+            {r.liarTopic ?? (r.liarGuess ? `${r.liarGuess} ${r.liarGuessCorrect ? '○ 正解' : '× はずれ'}` : '—')}
           </p>
         </div>
       </div>
       {voteEntries.length > 0 && (
-        <div className="rounded-3xl bg-fg/4 p-4 ring-1 ring-line">
+        <div className="ui-tile p-4">
           <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">投票結果</p>
           <ul className="grid gap-1.5 sm:grid-cols-2">
             {voteEntries.map(([voter, target]) => (

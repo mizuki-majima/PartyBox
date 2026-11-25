@@ -66,7 +66,7 @@ export function BigTimer({ deadline, duration }: { deadline: number | null; dura
           cx="50"
           cy="50"
           r={r}
-          stroke={sec <= 3 ? 'var(--t-danger)' : 'var(--t-ok)'}
+          stroke={sec <= 3 ? 'var(--t-danger-ink)' : 'var(--t-timer-ring, var(--t-ok))'}
           strokeWidth="8"
           strokeLinecap="round"
           fill="none"

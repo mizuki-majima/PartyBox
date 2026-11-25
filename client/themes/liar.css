@@ -1,0 +1,153 @@
+/*
+ * 嘘つきは誰だ？: アールデコ
+ *
+ * 黒の地に金の細い線。左右対称、放射状の扇の模様、二重線の額縁、角を落とした札。
+ * 1人だけお題を知らない人を探す、探偵ものの夜会の雰囲気にする。
+ * 色は黒・金・象牙・深緑（当たり）・えんじ（嘘つき）だけ。嘘つきの札は色だけでなく「嘘つき」の文字と印で示す。
+ */
+@layer base {
+  [data-theme='liar'] {
+    --t-font-body: 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+    --t-font-display: 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+    --t-body-weight: 500;
+    --t-display-weight: 800;
+    --t-display-tracking: 0.12em;
+
+    /* 扇（放射状の線）を並べた地模様 */
+    --t-page-bg:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' viewBox='0 0 120 60'%3E%3Cg fill='none' stroke='%23c9a227' stroke-opacity='.1' stroke-width='1'%3E%3Cpath d='M0 60a60 60 0 0 1 120 0M15 60a45 45 0 0 1 90 0M30 60a30 30 0 0 1 60 0M45 60a15 15 0 0 1 30 0'/%3E%3Cpath d='M60 60V0M60 60L18 18M60 60l42-42M60 60L4 38M60 60l56-22'/%3E%3C/g%3E%3C/svg%3E")
+      #0e0e10;
+    --t-bg: #0e0e10;
+    --t-fg: #f3ead3;
+    --t-muted: #b9ae93;
+    --t-panel: #17171a;
+    --t-panel-2: #1f1f23;
+    --t-panel-3: #2a2a2f;
+    --t-line: rgb(201 162 39 / 0.6);
+    --t-shade: #000000;
+
+    --t-accent: #c9a227;
+    --t-accent-ink: #e0bd4a;
+    --t-on-accent: #0e0e10;
+    --t-accent2: #f3ead3;
+    --t-accent2-ink: #f3ead3;
+    --t-ok: #0f3d33;
+    --t-ok-ink: #8fd3ba;
+    --t-on-ok: #f3ead3;
+    --t-hi: #c9a227;
+    --t-hi-ink: #e0bd4a;
+    --t-on-hi: #0e0e10;
+    --t-info: #f3ead3;
+    --t-info-ink: #f3ead3;
+    --t-sub: #c9a227;
+    --t-sub-ink: #e0bd4a;
+    --t-danger: #7d2318;
+    --t-danger-ink: #f0a394;
+    --t-on-danger: #f3ead3;
+    --t-warn: #c9a227;
+    --t-warn-ink: #e0bd4a;
+    --t-on-warn: #0e0e10;
+    --t-focus: #f3ead3;
+
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --t-elev: 0 0 0 1px rgb(201 162 39 / 0.6);
+
+    /* 二重線の額縁 */
+    --t-card-bg: #17171a;
+    --t-card-border: 1px solid #c9a227;
+    --t-card-radius: 0;
+    --t-card-shadow: inset 0 0 0 4px #17171a, inset 0 0 0 5px rgb(201 162 39 / 0.55);
+    --t-tile-bg: #17171a;
+    --t-tile-border: 1px solid rgb(201 162 39 / 0.6);
+    --t-tile-radius: 0;
+
+    --t-btn-border: 1px solid #c9a227;
+    --t-btn-radius: 0;
+    --t-btn-shadow: inset 0 0 0 3px #0e0e10, inset 0 0 0 4px rgb(201 162 39 / 0.7);
+    --t-btn-shadow-press: inset 0 0 0 3px #0e0e10, inset 0 0 0 4px rgb(201 162 39 / 0.7);
+    --t-btn-press: scale(0.98);
+    --t-btn-font: var(--t-font-display);
+    --t-btn-weight: 800;
+    --t-btn-tracking: 0.2em;
+    --t-btn-hover: brightness(1.12);
+    --t-btn-primary-bg: #c9a227;
+    --t-btn-primary-fg: #0e0e10;
+    --t-btn-secondary-bg: #17171a;
+    --t-btn-secondary-fg: #f3ead3;
+    --t-btn-danger-bg: #17171a;
+    --t-btn-danger-fg: #f0a394;
+
+    --t-input-bg: #0e0e10;
+    --t-input-fg: #f3ead3;
+    --t-input-border: 1px solid #c9a227;
+    --t-input-radius: 0;
+    --t-input-shadow: inset 0 0 0 3px #0e0e10, inset 0 0 0 4px rgb(201 162 39 / 0.4);
+    --t-input-placeholder: #8f866f;
+
+    --t-badge-radius: 0;
+    --t-badge-border: 1px solid rgb(201 162 39 / 0.6);
+
+    --t-overlay: rgb(0 0 0 / 0.78);
+    --t-modal-bg: #17171a;
+    --t-modal-shadow: inset 0 0 0 4px #17171a, inset 0 0 0 5px rgb(201 162 39 / 0.55);
+
+    /* お題は象牙の札 */
+    --t-q-bg: #f3ead3;
+    --t-q-fg: #0e0e10;
+    --t-q-border: 3px double #c9a227;
+    --t-q-shadow: none;
+    --t-q-accent: linear-gradient(90deg, transparent, #c9a227 20%, #c9a227 80%, transparent);
+    --t-q-label: #6f5606;
+
+    --t-bar-bg: #0e0e10;
+    --t-bar-border: rgb(201 162 39 / 0.6);
+    --t-bar-filter: none;
+
+    --t-timer-track: #17171a;
+    --t-timer-border: 1px solid #c9a227;
+    --t-timer-radius: 0;
+    --t-timer-fill: repeating-linear-gradient(90deg, #c9a227 0 6px, #e0bd4a 6px 8px);
+    /* 丸いタイマーの輪（当たりの深緑は黒の上で見えにくいので、金にする） */
+    --t-timer-ring: #c9a227;
+  }
+}
+
+/* 金のボタンの内側の二重線は、黒ではなく濃い金で */
+[data-theme='liar'] .ui-btn-primary,
+[data-theme='liar'] .ui-btn-white {
+  box-shadow: inset 0 0 0 3px #c9a227, inset 0 0 0 4px #0e0e10;
+}
+[data-theme='liar'] .ui-btn-white {
+  box-shadow: inset 0 0 0 3px #f3ead3, inset 0 0 0 4px #0e0e10;
+}
+/* 見出しは中央に置き、左右に金の線とひし形を添える（左右対称） */
+[data-theme='liar'] h2.font-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+}
+[data-theme='liar'] h2.font-display::before,
+[data-theme='liar'] h2.font-display::after {
+  content: '';
+  flex: 0 1 2.5rem;
+  height: 1px;
+  background: #c9a227;
+}
+[data-theme='liar'] .ui-question {
+  outline: 1px solid #c9a227;
+  outline-offset: 4px;
+  margin: 5px;
+}
+[data-theme='liar'] .ui-bar {
+  border-style: solid;
+  border-width: 0 0 1px;
+}
+[data-theme='liar'] .ui-bar[data-edge='bottom'] {
+  border-width: 1px 0 0;
+}

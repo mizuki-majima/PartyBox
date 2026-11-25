@@ -23,23 +23,25 @@ import './fonts/platform';
  */
 export const THEMES = {
   platform: { chrome: '#fafafa', fonts: () => Promise.resolve() },
-  classic: { chrome: '#0f0c24', fonts: () => import('./fonts/classic') },
   unanimous: { chrome: '#ffde00', fonts: () => import('./fonts/unanimous') },
   'whose-answer': { chrome: '#fdf8ec', fonts: () => import('./fonts/whose-answer') },
   'party-event': { chrome: '#fff7e6', fonts: () => import('./fonts/party-event') },
+  liar: { chrome: '#0e0e10', fonts: () => import('./fonts/liar') },
+  'grow-answer': { chrome: '#d9c7a3', fonts: () => import('./fonts/grow-answer') },
+  'ten-sec-trial': { chrome: '#f4efe4', fonts: () => import('./fonts/ten-sec-trial') },
 } as const satisfies Record<string, { chrome: string; fonts: () => Promise<unknown> }>;
 
 export type ThemeName = keyof typeof THEMES;
 
 export const PLATFORM_THEME: ThemeName = 'platform';
 
-/** ゲームごとのテーマ。専用のデザインがまだ無いゲームは、作り直す前の見た目（classic）で動く */
+/** ゲームごとのテーマ（ゲームを足すときは、ここに1行足す） */
 export const GAME_THEMES: Record<GameId, ThemeName> = {
   'whose-answer': 'whose-answer',
   unanimous: 'unanimous',
-  liar: 'classic',
-  'grow-answer': 'classic',
-  'ten-sec-trial': 'classic',
+  liar: 'liar',
+  'grow-answer': 'grow-answer',
+  'ten-sec-trial': 'ten-sec-trial',
   'party-event': 'party-event',
 };
 

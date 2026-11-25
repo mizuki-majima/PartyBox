@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { type GameMeta, getGameMeta, isEventGame } from '../../shared/games';
+import { Icon } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, Modal, Spinner } from '../components/ui';
 import { type DemoRoom, GUEST_COUNTS, HOST_SEAT, addDemoGuests, closeDemoRoom, createDemoRoom, guestSeat } from '../lib/demo';
 import { useToast } from '../lib/toast';
@@ -120,7 +121,7 @@ function Demo({ meta }: { meta: GameMeta }) {
             <div className="mr-auto">
               <p className="text-xs font-extrabold tracking-[0.3em] text-ok-ink">DEMO</p>
               <h1 className="font-display text-2xl">
-                {meta.emoji} {meta.title}を試す
+                {meta.title}を試す
               </h1>
             </div>
             <div className="flex flex-wrap items-center gap-2" role="group" aria-label="参加者の台数">
@@ -132,8 +133,8 @@ function Demo({ meta }: { meta: GameMeta }) {
                   disabled={busy}
                   aria-pressed={count === n}
                   data-testid={`demo-guests-${n}`}
-                  className={`h-9 rounded-xl px-3 text-sm font-extrabold ring-1 transition disabled:opacity-50 ${
-                    count === n ? 'bg-fg text-bg ring-fg' : 'bg-panel-2 text-fg ring-line hover:bg-panel-3'
+                  className={`min-h-11 rounded-xl px-3 text-sm font-extrabold ring-1 ring-line transition disabled:opacity-50 ${
+                    count === n ? 'bg-fg text-bg' : 'bg-panel'
                   }`}
                 >
                   {n}台
@@ -142,7 +143,7 @@ function Demo({ meta }: { meta: GameMeta }) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="secondary" onClick={() => setShowQr(true)} disabled={!room}>
-                📱 スマホで参加
+                <Icon name="qr" /> スマホで参加
               </Button>
               <Button size="sm" variant="secondary" onClick={() => setReloadKey((k) => k + 1)} disabled={!room}>
                 読み込み直す
@@ -166,7 +167,7 @@ function Demo({ meta }: { meta: GameMeta }) {
       <main className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6">
         {error ? (
           <Card className="py-12 text-center">
-            <div className="text-5xl">😵</div>
+            <Icon name="alert" className="mx-auto !block h-12 w-12" />
             <p className="mt-3 font-extrabold">デモのルームを作れませんでした</p>
             <p className="mt-1 text-sm text-muted">{error}</p>
             <Button className="mt-5" onClick={() => void start(count)} loading={busy}>
@@ -182,7 +183,7 @@ function Demo({ meta }: { meta: GameMeta }) {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
             <Frame
               key={`host-${room.code}-${reloadKey}`}
-              label="👑 司会"
+              label="司会（進行する人の画面）"
               title="司会"
               src={`/room/${room.code}/h/${room.hostToken}?seat=${HOST_SEAT}`}
               className="lg:sticky lg:top-3 lg:flex-1"
@@ -193,7 +194,7 @@ function Demo({ meta }: { meta: GameMeta }) {
               {Array.from({ length: shown }, (_, i) => (
                 <Frame
                   key={`guest-${i + 1}-${room.code}-${reloadKey}`}
-                  label={`📱 参加者 ${i + 1}`}
+                  label={`参加者 ${i + 1}`}
                   title={`参加者 ${i + 1}`}
                   src={`/room/${room.code}?seat=${guestSeat(i + 1)}`}
                   frameClassName="h-[680px]"
@@ -229,11 +230,11 @@ function Frame({
 }) {
   return (
     <figure className={`min-w-0 ${className}`}>
-      <figcaption className="mb-1.5 px-1 text-sm font-extrabold text-fg/85">{label}</figcaption>
+      <figcaption className="mb-1.5 border-t-4 border-line px-1 pt-1 text-sm font-extrabold">{label}</figcaption>
       <iframe
         src={src}
         title={title}
-        className={`block w-full rounded-3xl bg-bg ring-1 ring-line ${frameClassName}`}
+        className={`block w-full bg-bg ring-1 ring-line ${frameClassName}`}
         data-testid={`demo-frame-${title}`}
       />
     </figure>

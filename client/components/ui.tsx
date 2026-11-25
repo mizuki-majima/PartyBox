@@ -193,7 +193,7 @@ export function Modal({ open, onClose, children }: { open: boolean; onClose: () 
 /* ------------------------------------------------------------------ */
 export function Logo({ size = 'md' }: { size?: 'md' | 'lg' }) {
   return (
-    <Link to="/" className="inline-flex items-center gap-2" aria-label="PartyBox トップへ">
+    <Link to="/" className="inline-flex min-h-11 items-center gap-2" aria-label="PartyBox トップへ">
       <img src="/favicon.svg" alt="" className={size === 'lg' ? 'h-10 w-10' : 'h-8 w-8'} />
       <span className={`font-display tracking-wide ${size === 'lg' ? 'text-2xl' : 'text-xl'}`}>
         Party<span className="text-accent-ink">Box</span>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Statement } from '../../shared/games/views';
 import { useRoomContext } from '../games/RoomContext';
 import { BigTimer, useAutoSubmit } from './game';
+import { Icon } from './Icon';
 import { Avatar, Button, TextInput } from './ui';
 
 /** 発言の順番（現在の人をハイライト） */
@@ -14,10 +15,14 @@ export function TurnOrder({ order, index, labelOf }: { order: string[]; index: n
         return (
           <div
             key={id}
-            className={`flex shrink-0 items-center gap-2 rounded-full py-1 pr-3 pl-1 text-sm font-bold transition ${
-              state === 'now' ? 'bg-fg text-bg shadow-lg' : state === 'done' ? 'bg-fg/5 text-fg/40' : 'bg-fg/8 text-fg/80'
+            aria-current={state === 'now' ? 'step' : undefined}
+            className={`ui-badge flex shrink-0 items-center gap-2 py-1 pr-3 pl-1 text-sm font-bold transition ${
+              state === 'now' ? 'bg-fg text-bg' : state === 'done' ? 'border-dashed text-muted' : 'bg-panel'
             }`}
           >
+            {/* 誰の番かは、色だけでなく印でも示す（いま = ▶、終わった = ✓） */}
+            {state === 'now' && <Icon name="play" className="ml-1 h-3 w-3" />}
+            {state === 'done' && <Icon name="check" className="ml-1 h-3 w-3" />}
             <Avatar name={nameOf(id)} color={colorOf(id)} size="xs" dim={state === 'done'} />
             <span>{nameOf(id)}</span>
             {labelOf?.(id) && <span className="text-[10px] opacity-70">{labelOf(id)}</span>}
@@ -63,16 +68,16 @@ export function SpeakerPanel({
   if (!speakerId) return null;
   return (
     <div
-      className={`animate-pop-in flex flex-col items-center gap-4 rounded-3xl p-5 text-center ring-2 ${isMe ? 'bg-gradient-to-b from-accent/25 to-accent2/10 ring-accent/60' : 'bg-panel ring-line'}`}
+      className={`ui-card animate-pop-in flex flex-col items-center gap-4 text-center ${isMe ? 'outline-4 outline-accent' : ''}`}
     >
       <div className="flex items-center gap-4">
         <Avatar name={nameOf(speakerId)} color={colorOf(speakerId)} size="lg" ring={isMe} />
         <div className="text-left">
-          {roleLabel && <p className="text-xs font-extrabold text-hi-ink">{roleLabel}</p>}
+          {roleLabel && <p className="text-xs font-extrabold text-accent-ink">{roleLabel}</p>}
           <p className="font-display text-2xl" data-testid="speaker">
             {isMe ? 'あなたの番です！' : `${nameOf(speakerId)}さんの番`}
           </p>
-          {!isMe && <p className="text-sm text-muted">話を聞こう 👂</p>}
+          {!isMe && <p className="text-sm text-muted">話を聞こう</p>}
         </div>
         <BigTimer deadline={deadline} duration={duration} />
       </div>
@@ -103,7 +108,7 @@ export function StatementLog({ statements, labelOf, title = 'みんなの発言'
   const { nameOf, colorOf } = useRoomContext();
   if (statements.length === 0) return null;
   return (
-    <div className="rounded-3xl bg-fg/4 p-4 ring-1 ring-line">
+    <div className="ui-tile p-4">
       <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">{title}</p>
       <ul className="space-y-2">
         {statements.map((s, i) => (
@@ -112,7 +117,7 @@ export function StatementLog({ statements, labelOf, title = 'みんなの発言'
             <div className="min-w-0 rounded-2xl rounded-tl-sm bg-fg/10 px-3 py-2">
               <p className="text-[11px] font-bold text-muted">
                 {nameOf(s.playerId)}
-                {labelOf?.(s.playerId) && <span className="ml-1 text-hi-ink">{labelOf(s.playerId)}</span>}
+                {labelOf?.(s.playerId) && <span className="ml-1 text-accent-ink">{labelOf(s.playerId)}</span>}
               </p>
               <p className="font-bold break-all">{s.text}</p>
             </div>

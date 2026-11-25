@@ -1,0 +1,167 @@
+/*
+ * 回答を育てろ: スクラップブック
+ *
+ * クラフト紙の台紙に、白い紙片や写真を少し傾けて貼り、マスキングテープで留める。
+ * 絵と言葉が交互に続き、最後にアルバムとして見返す遊びなので、画面そのものをアルバムにする。
+ * 色はクラフト紙・白・紺のインク・赤のラベル・黄のテープだけ。
+ */
+@layer base {
+  [data-theme='grow-answer'] {
+    --t-font-body: 'Zen Kurenaido', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', sans-serif;
+    /* 英数字はタイプライター、かなと漢字はペン字 */
+    --t-font-display: 'Courier New', Courier, 'Zen Kurenaido', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    --t-body-weight: 400;
+    --t-display-weight: 700;
+    --t-display-tracking: 0.02em;
+
+    /* 紙の繊維（細い斜めの線を2方向に重ねる） */
+    --t-page-bg:
+      repeating-linear-gradient(98deg, rgb(120 90 40 / 0.07) 0 1px, transparent 1px 7px),
+      repeating-linear-gradient(8deg, rgb(255 255 255 / 0.1) 0 1px, transparent 1px 11px) #d9c7a3;
+    --t-bg: #d9c7a3;
+    --t-fg: #26314d;
+    --t-muted: #554c38;
+    --t-panel: #fffdf8;
+    --t-panel-2: #f3ead6;
+    --t-panel-3: #e6d9bd;
+    --t-line: rgb(38 49 77 / 0.45);
+    --t-shade: #26314d;
+
+    --t-accent: #b8432c;
+    --t-accent-ink: #94321f;
+    --t-on-accent: #ffffff;
+    --t-accent2: #26314d;
+    --t-accent2-ink: #26314d;
+    --t-ok: #26314d;
+    --t-ok-ink: #26314d;
+    --t-on-ok: #ffffff;
+    --t-hi: #f2d95c;
+    --t-hi-ink: #94321f;
+    --t-on-hi: #26314d;
+    --t-info: #26314d;
+    --t-info-ink: #26314d;
+    --t-sub: #b8432c;
+    --t-sub-ink: #94321f;
+    --t-danger: #b8432c;
+    --t-danger-ink: #94321f;
+    --t-on-danger: #ffffff;
+    --t-warn: #f2d95c;
+    --t-warn-ink: #5c4500;
+    --t-on-warn: #26314d;
+    --t-focus: #26314d;
+
+    --radius-sm: 1px;
+    --radius-md: 2px;
+    --radius-lg: 2px;
+    --radius-xl: 3px;
+    --radius-2xl: 3px;
+    --radius-3xl: 4px;
+    --t-elev: 2px 5px 10px rgb(70 45 10 / 0.3);
+
+    --t-card-bg: #fffdf8;
+    --t-card-border: 0;
+    --t-card-radius: 3px;
+    --t-card-shadow: 0 1px 0 rgb(0 0 0 / 0.08), 3px 7px 14px rgb(70 45 10 / 0.28);
+    --t-tile-bg: #f3ead6;
+    --t-tile-border: 1px dashed rgb(38 49 77 / 0.5);
+    --t-tile-radius: 3px;
+
+    --t-btn-border: 0;
+    --t-btn-radius: 4px;
+    --t-btn-shadow: 2px 4px 8px rgb(70 45 10 / 0.35);
+    --t-btn-shadow-press: 0 1px 2px rgb(70 45 10 / 0.35);
+    --t-btn-press: translateY(2px) rotate(-0.4deg);
+    --t-btn-font: var(--t-font-display);
+    --t-btn-weight: 700;
+    --t-btn-tracking: 0.06em;
+    --t-btn-hover: brightness(1.05);
+    --t-btn-primary-bg: #b8432c;
+    --t-btn-primary-fg: #ffffff;
+    --t-btn-secondary-bg: #fffdf8;
+    --t-btn-secondary-fg: #26314d;
+    --t-btn-danger-bg: #fffdf8;
+    --t-btn-danger-fg: #94321f;
+
+    --t-input-bg: #fffdf8;
+    --t-input-fg: #26314d;
+    --t-input-border: 0;
+    --t-input-radius: 2px;
+    --t-input-shadow: inset 0 -2px 0 #26314d, 2px 4px 8px rgb(70 45 10 / 0.25);
+    --t-input-placeholder: #857a62;
+
+    --t-badge-radius: 2px;
+    --t-badge-border: 1px solid rgb(38 49 77 / 0.45);
+
+    --t-overlay: rgb(38 30 15 / 0.6);
+    --t-modal-bg: #fffdf8;
+    --t-modal-shadow: 4px 10px 24px rgb(40 25 5 / 0.45);
+
+    --t-q-bg: #fffdf8;
+    --t-q-fg: #26314d;
+    --t-q-border: 0;
+    --t-q-shadow: 0 1px 0 rgb(0 0 0 / 0.08), 3px 7px 14px rgb(70 45 10 / 0.28);
+    --t-q-accent: transparent;
+    --t-q-label: #94321f;
+
+    --t-bar-bg: #d9c7a3;
+    --t-bar-border: rgb(38 49 77 / 0.45);
+    --t-bar-filter: none;
+
+    --t-timer-track: #fffdf8;
+    --t-timer-border: 1px solid #26314d;
+    --t-timer-radius: 2px;
+    --t-timer-fill: repeating-linear-gradient(90deg, #26314d 0 3px, #44517a 3px 5px);
+  }
+}
+
+/* 貼った紙は、ひとつおきに少し傾ける。上の辺にマスキングテープを1枚 */
+[data-theme='grow-answer'] .ui-card,
+[data-theme='grow-answer'] .ui-question {
+  position: relative;
+  overflow: visible;
+}
+[data-theme='grow-answer'] .ui-card:nth-of-type(odd) {
+  transform: rotate(-0.7deg);
+}
+[data-theme='grow-answer'] .ui-card:nth-of-type(even) {
+  transform: rotate(0.6deg);
+}
+[data-theme='grow-answer'] .ui-question {
+  transform: rotate(0.8deg);
+}
+[data-theme='grow-answer'] .ui-card::before,
+[data-theme='grow-answer'] .ui-question::before {
+  content: '';
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 5.5rem;
+  height: 1.4rem;
+  margin-left: -2.75rem;
+  background: repeating-linear-gradient(90deg, rgb(242 217 92 / 0.85) 0 6px, rgb(235 205 70 / 0.85) 6px 12px);
+  transform: rotate(-3deg);
+  box-shadow: 0 1px 2px rgb(70 45 10 / 0.25);
+  pointer-events: none;
+}
+[data-theme='grow-answer'] .ui-question-bar {
+  display: none;
+}
+/* 赤いボタンは、縫い目のあるラベル */
+[data-theme='grow-answer'] .ui-btn-primary {
+  background-image: linear-gradient(#b8432c, #b8432c);
+  outline: 1.5px dashed rgb(255 255 255 / 0.75);
+  outline-offset: -5px;
+}
+[data-theme='grow-answer'] .ui-bar {
+  border-style: dashed;
+  border-width: 0 0 1px;
+}
+[data-theme='grow-answer'] .ui-bar[data-edge='bottom'] {
+  border-width: 1px 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='grow-answer'] .ui-card,
+  [data-theme='grow-answer'] .ui-question {
+    transform: none;
+  }
+}
