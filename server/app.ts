@@ -5,6 +5,7 @@ import path from 'node:path';
 import express, { type Request, type Response } from 'express';
 import { Server } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '../shared/protocol';
+import type { ResultsResponse } from '../shared/results';
 import { RoomManager, type RoomManagerOptions } from './rooms/RoomManager';
 
 export interface PartyServerOptions extends Partial<RoomManagerOptions> {
@@ -42,6 +43,13 @@ export async function startPartyServer(options: PartyServerOptions = {}): Promis
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, rooms: manager.rooms.size });
+  });
+
+  // 勝者の記録（/results のページが読む。最後まで遊んだ通常のゲームの結果を、終わった順に）
+  app.get('/api/results', (_req, res) => {
+    const body: ResultsResponse = { results: manager.results.list(), serverNow: Date.now() };
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(body);
   });
 
   // お絵描き画像（IDは推測不能なランダム値。ビューで公開されたIDのみ参照できる）
