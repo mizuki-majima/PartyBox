@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import type { GameMeta } from '../../shared/games';
+import { type GameMeta, isEventGame } from '../../shared/games';
 import { useRoomContext } from '../games/RoomContext';
 import { useRemaining } from '../lib/clock';
 import { request } from '../lib/socket';
@@ -477,6 +477,14 @@ export function GameOverPanel({ children, ranking = true }: { children?: ReactNo
         <Card>
           <Podium />
         </Card>
+      )}
+      {!endReason && !isEventGame(room.gameId) && !room.demo && (
+        <p className="text-center text-sm text-muted" data-testid="result-recorded">
+          この結果は「勝者の記録」に残りました。{' '}
+          <a href="/results" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center font-bold text-fg underline underline-offset-4">
+            記録を見る
+          </a>
+        </p>
       )}
       <GameOverActions />
     </div>

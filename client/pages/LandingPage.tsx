@@ -49,11 +49,20 @@ export function LandingPage() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-6xl items-center justify-between border-b border-line px-4 py-3 sm:px-6">
         <Logo />
-        <Link to="/join">
-          <Button variant="secondary" size="sm">
-            <Icon name="key" /> コードで参加
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/results"
+            className="inline-flex min-h-11 items-center gap-1 text-sm font-bold underline underline-offset-4 hover:text-accent-ink"
+            data-testid="results-link"
+          >
+            <Icon name="trophy" /> 勝者の記録
+          </Link>
+          <Link to="/join">
+            <Button variant="secondary" size="sm">
+              <Icon name="key" /> コードで参加
+            </Button>
+          </Link>
+        </div>
       </header>
 
       {/* Hero: 左揃えの大きな見出しだけで見せる */}
@@ -163,6 +172,9 @@ export function LandingPage() {
 
       <footer className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 border-t-4 border-line px-4 py-6 text-sm text-muted sm:px-6">
         <Logo />
+        <Link to="/results" className="inline-flex min-h-11 items-center gap-1 font-bold underline underline-offset-4 hover:text-accent-ink">
+          <Icon name="trophy" /> 勝者の記録
+        </Link>
         <p>友達と、すぐに、ブラウザで。</p>
       </footer>
     </div>

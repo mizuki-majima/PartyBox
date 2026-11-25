@@ -27,6 +27,8 @@ export interface RoomDeps {
   send(socketId: string, view: RoomView): void;
   /** 状態が変わった（保存のきっかけ）。保存するかはルーム管理側が決める */
   onChange?(): void;
+  /** ゲームが最後まで終わった（1つのゲームにつき1回だけ呼ぶ。勝者の記録のきっかけ） */
+  onGameOver?(room: Room): void;
 }
 
 interface StoredImage {
@@ -59,6 +61,8 @@ export class Room {
   private readonly decks = new Map<string, Set<string>>();
   private broadcastScheduled = false;
   private closed = false;
+  /** 終わったことをもう伝えたゲーム（「もう一回」で新しいゲームになれば、また伝える） */
+  private reportedGame: GameInstance | null = null;
 
   constructor(
     readonly code: string,
@@ -163,6 +167,15 @@ export class Room {
   private flush(): void {
     if (this.closed) return;
     this.deps.onChange?.();
+    if (this.game?.isOver() && this.reportedGame !== this.game) {
+      this.reportedGame = this.game;
+      try {
+        this.deps.onGameOver?.(this);
+      } catch (err) {
+        // 記録に失敗しても、ゲームの画面は止めない
+        console.error(`[room ${this.code}] failed to report game over`, err);
+      }
+    }
     for (const p of this.players.values()) {
       if (!p.connected || !p.socketId) continue;
       try {

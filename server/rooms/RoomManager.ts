@@ -9,6 +9,7 @@ import {
   type SessionInfo,
 } from '../../shared/protocol';
 import { getServerGame } from '../games/registry';
+import { ResultLog } from '../results';
 import { UserError } from '../games/types';
 import { generateId, generateRoomCode, generateToken } from '../utils/random';
 import { cleanText } from '../utils/text';
@@ -61,6 +62,8 @@ export class RoomManager {
   readonly rooms = new Map<string, Room>();
   private sweepTimer: NodeJS.Timeout;
   private readonly persister: RoomPersister;
+  /** 勝者の記録（最後まで遊んだ通常のゲームの結果） */
+  readonly results: ResultLog;
 
   constructor(
     private readonly io: PartyServer,
@@ -70,6 +73,7 @@ export class RoomManager {
     // 念のための掃除: 誰も接続していない古いルームを削除
     this.sweepTimer = setInterval(() => this.sweep(), 5 * 60 * 1000);
     this.sweepTimer.unref();
+    this.results = new ResultLog(opts.persist !== false);
     this.persister = new RoomPersister(() => this.collectPersisted());
     if (opts.persist === false) this.persister.stop(); // 試験ではディスクを触らない
     else this.restoreRooms();
@@ -212,6 +216,7 @@ export class RoomManager {
         timeScale: this.opts.timeScale,
         send: (socketId, view) => this.io.to(socketId).emit('room:state', view),
         onChange: () => this.persister.schedule(),
+        onGameOver: (r) => this.recordResult(r),
       });
       // デモは催し物を1人で試すためのもの（通常のゲームはそのまま遊べるので作らない）
       room.demo = demo === true && isEventGame(gameId);
@@ -379,6 +384,30 @@ export class RoomManager {
     room.status = 'playing';
     room.game.start();
     room.requestBroadcast();
+  }
+
+  /**
+   * 最後まで遊んだゲームの結果を、勝者の記録に残す。
+   * 途中で打ち切られたゲーム（人数が足りなくなった等）、懇親会、デモは残さない
+   */
+  private recordResult(room: Room): void {
+    const game = room.game;
+    if (!game || isEventRoom(room) || room.demo) return;
+    const viewer = game.participants[0];
+    if (!viewer) return;
+    const view = game.getView(viewer);
+    if (view.endReason) return;
+    // 「全員一致を目指せ！」は全員で1チームなので、個人の順位のかわりにチームの点を残す
+    const team = view as unknown as { teamScore?: unknown; maxScore?: unknown };
+    const note =
+      room.gameId === 'unanimous' && typeof team.teamScore === 'number'
+        ? `チーム得点 ${team.teamScore} 点${typeof team.maxScore === 'number' ? `（最大 ${team.maxScore} 点）` : ''}`
+        : null;
+    this.results.add({
+      gameId: room.gameId,
+      players: view.players.map((p) => ({ name: p.name, score: view.scores[p.id] ?? 0, left: p.left })),
+      note,
+    });
   }
 
   private addPlayer(room: Room, name: string): Player {
