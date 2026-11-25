@@ -37,6 +37,8 @@ npm start
 # → http://localhost:3001
 ```
 
+> 開発を引き継ぐ方（AI エージェントを含む）は、先に [CLAUDE.md](CLAUDE.md) を読んでください。進め方・壊してはいけない所・決めたことの理由・既知の問題を書いています。
+
 ### スマホから参加するには
 
 - **同じWi-Fi内**: `npm run dev` 中に `http://<PCのIPアドレス>:5173` を開く（Vite は `host: true` で起動します）
@@ -304,8 +306,8 @@ PARTYBOX_STATE_DIR=/opt/partybox/state   # 既定。Docker では必ずホスト
 ## テスト
 
 ```bash
-npm test            # Vitest: ルームシステム + 全5ゲームのソケット結合テスト、ページ配信、プロンプト・グランプリのユニットテスト（計70件）
-npm run test:e2e    # Playwright: PCホスト + スマホ参加者の複数ブラウザで全5ゲームを通しプレイ + プロンプト・グランプリをトップから開いて遊ぶ
+npm test            # Vitest: ルームシステム + 全5ゲーム・懇親会のソケット結合テスト、懇親会の規則、ページ配信、プロンプト・グランプリのユニットテスト
+npm run test:e2e    # Playwright: PCホスト + スマホ参加者の複数ブラウザで全5ゲーム・懇親会を通しプレイ + プロンプト・グランプリをトップから開いて遊ぶ
 npm run typecheck   # 型チェック
 ```
 
@@ -341,7 +343,6 @@ docker run -p 3001:3001 partybox
 | `PORT` | `3001` | 待ち受けポート |
 | `HOST` | （全インターフェース） | 待ち受けアドレス |
 | `PARTYBOX_TIME_SCALE` | `1` | ゲーム内時間の倍率（動作確認用。`0.5` で半分の時間） |
-
 | `PARTYBOX_STATE_DIR` | `/opt/partybox/state` | 懇親会のルームの保存先（[懇親会](#懇親会社内の余興など)を参照） |
 | `PARTYBOX_EVENT_DATA_DIR` | `/opt/partybox/event-data` | 懇親会の名簿・問題の置き場 |
 
