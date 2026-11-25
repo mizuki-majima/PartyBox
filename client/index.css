@@ -12,10 +12,12 @@
  * 色・角丸・影・枠線・フォントを直接書かない。説明は docs/design.md。
  */
 @import './themes/platform.css';
-@import './themes/classic.css';
 @import './themes/unanimous.css';
 @import './themes/whose-answer.css';
 @import './themes/party-event.css';
+@import './themes/liar.css';
+@import './themes/grow-answer.css';
+@import './themes/ten-sec-trial.css';
 
 /* 意味の名前 → トークン。inline なので、その要素の位置のトークンで決まる（入れ子の data-theme でも効く） */
 @theme inline {

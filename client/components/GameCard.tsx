@@ -19,7 +19,7 @@ type CardContent = Pick<GameMeta, 'title' | 'tagline' | 'description' | 'categor
  */
 function Swatch({ id, title, className = '' }: { id: string; title: string; className?: string }) {
   const theme = themeOfGame(id);
-  const themed = theme !== 'platform' && theme !== 'classic';
+  const themed = theme !== 'platform';
   // 見本の文字を、そのゲームの文字で出す
   useEffect(() => {
     if (themed) loadThemeFonts(theme);
