@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { PartyEventView, SeatsRosterEntry } from '../../../shared/games/views';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
+import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
@@ -28,6 +29,22 @@ export function SeatsSection() {
           </div>
         )}
       </Card>
+
+      {!game.isHost && (
+        <HowTo
+          title="座席決めのやり方"
+          testId="event-howto-seats"
+          steps={
+            s.myPersonId
+              ? ['このまま待ちます。司会がくじを引くと、あなたのテーブルが大きく出ます。', '出たテーブルに移動してください。']
+              : [
+                  '下の名簿から、自分の名前を押します（名前の一部を入れると、さがしやすくなります）。',
+                  '名前が無いときは、「名簿に名前が無い方はこちら」から自分で足せます。',
+                  '選んだら待つだけです。司会がくじを引くと、テーブルが出ます。',
+                ]
+          }
+        />
+      )}
 
       {game.isHost ? <HostControls /> : <MySeat />}
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
+import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
@@ -29,6 +30,18 @@ export function BingoSection() {
           {b.called.length} 個 / 残り {b.remaining}
         </p>
       </Card>
+
+      {!game.isHost && (
+        <HowTo
+          title="ビンゴのやり方"
+          testId="event-howto-bingo"
+          steps={[
+            '読み上げられた番号のマスは、自動で丸くなります。何も押さなくて大丈夫です。',
+            'たて・よこ・ななめのどれか1列がそろうと、「ビンゴ！」のボタンが出ます。出たら押してください。',
+            'まん中の ★ は、最初から開いています。',
+          ]}
+        />
+      )}
 
       {game.isHost ? <HostControls /> : <MyCard />}
 

@@ -102,6 +102,12 @@ const PATHS = {
   puzzle: <path d="M9 4h6v3a2 2 0 1 0 4 0h0v6h-3a2 2 0 1 0 0 4h3v3H5v-6h3a2 2 0 1 0 0-4H5V4h4" />,
   headphones: <path d="M4 15v-3a8 8 0 0 1 16 0v3M4 14h3v6H4zM17 14h3v6h-3z" />,
   alert: <path d="M12 3l10 18H2zM12 10v5M12 17.500v.500" />,
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.500 9.500a2.500 2.500 0 1 1 3.700 2.200c-.800.500-1.200 1-1.200 1.800M12 16.500v.500" />
+    </>
+  ),
   spark: <path d="M12 3v6M12 15v6M3 12h6M15 12h6M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3" />,
 } as const satisfies Record<string, ReactNode>;
 

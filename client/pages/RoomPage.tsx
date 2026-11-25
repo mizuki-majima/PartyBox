@@ -218,6 +218,11 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
                     data-testid="join-name"
                   />
                 </div>
+                <p className="mt-2 text-sm text-muted">
+                  {isEventGame(summary.gameId)
+                    ? '呼ばれて自分だと分かる名前（名字など）を入れて、下の「参加する」を押してください。登録やアプリは要りません。'
+                    : 'ほかの人に見える名前です。あだ名でかまいません。入れたら、下の「参加する」を押してください。'}
+                </p>
                 <Button size="xl" block className="mt-5" onClick={submit} loading={loading} data-testid="join-submit">
                   参加する
                 </Button>
