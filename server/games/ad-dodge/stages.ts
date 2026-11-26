@@ -137,9 +137,23 @@ export function trapPoint(zones: readonly Zone[], t: number): { x: number; y: nu
 
 type Rect = { x: number; y: number; w: number; h: number };
 
+/**
+ * 本物（進める✕・ボタン・リンク）の押せる範囲の、縦横の最低の大きさ（論理座標）。
+ * 見た目は小さいままでも、狙って押せば入るようにする（スマホの窓は幅 300px 前後 = 0.8倍ほどなので、画面で 35px ほど）。
+ * 罠の判定は広げない
+ */
+export const MIN_HIT = 44;
+
 /** 判定を、見た目より少し大きくする（指で押せるように）。中心は同じ */
 function pad(r: Rect, n: number): Rect {
   return { x: r.x - n, y: r.y - n, w: r.w + n * 2, h: r.h + n * 2 };
+}
+
+/** 本物の判定: 見た目から n だけ広げ、縦横とも MIN_HIT に満たなければ MIN_HIT まで広げる。中心は同じ */
+function reach(r: Rect, n: number): Rect {
+  const px = Math.max(n, (MIN_HIT - r.w) / 2);
+  const py = Math.max(n, (MIN_HIT - r.h) / 2);
+  return { x: r.x - px, y: r.y - py, w: r.w + px * 2, h: r.h + py * 2 };
 }
 
 function zone(act: ZoneAct, r: Rect, extra: Partial<Zone> = {}): Zone {
@@ -178,7 +192,7 @@ function tinyX(c: Ctx): StepDef[] {
   return [
     {
       els: [sheetEl(c, sheet), { id: c.id(), shape: 'x', ...x, tone: 'faint' }],
-      zones: [zone('trap', sheet), zone('exit', pad(x, 6))],
+      zones: [zone('trap', sheet), zone('exit', reach(x, 6))],
     },
   ];
 }
@@ -207,7 +221,7 @@ function fakeX(c: Ctx): StepDef[] {
     { id: c.id(), shape: 'btn', ...closeBtn, label: '✕ 閉じる', tone: 'loud' },
     realEl,
   ]);
-  return [{ els: [sheetEl(c, sheet), ...els], zones: [zone('trap', sheet), zone('exit', pad(real, 8))] }];
+  return [{ els: [sheetEl(c, sheet), ...els], zones: [zone('trap', sheet), zone('exit', reach(real, 8))] }];
 }
 
 /** 大きな「次へ」は広告: 派手なボタンは広告。本物は記事の中の青い文字のリンク */
@@ -229,7 +243,7 @@ function bigNext(c: Ctx): StepDef[] {
           { id: c.id(), shape: 'link', ...pr, label: '次のページへ(PR)', tone: 'article' },
         ]),
       ],
-      zones: [zone('trap', big), zone('trap', dl), zone('trap', pad(pr, 4)), zone('exit', pad(real, 6))],
+      zones: [zone('trap', big), zone('trap', dl), zone('trap', pad(pr, 4)), zone('exit', reach(real, 6))],
     },
   ];
 }
@@ -246,7 +260,7 @@ function shift(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'btn', ...btn, label: '次のページへ', tone: 'plain', shift: move },
         { id: c.id(), shape: 'banner', ...banner, label: '次のページへ ▶', sub: '広告', variant: c.rng.int(0, 5), from: at },
       ],
-      zones: [zone('exit', pad(btn, 4), { shift: move }), zone('trap', banner, { from: at })],
+      zones: [zone('exit', reach(btn, 4), { shift: move }), zone('trap', banner, { from: at })],
     },
   ];
 }
@@ -267,7 +281,7 @@ function escape(c: Ctx): StepDef[] {
     const x = spots[i];
     return {
       els: [{ ...ad, id: c.id() }, { id: c.id(), shape: 'x', ...x, tone: 'plain' }],
-      zones: [zone('trap', sheet), zone(i < 2 ? 'step' : 'exit', pad(x, 5))],
+      zones: [zone('trap', sheet), zone(i < 2 ? 'step' : 'exit', reach(x, 5))],
     };
   });
 }
@@ -288,7 +302,7 @@ function countdown(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'btn', ...fake, label: 'スキップ ▶▶', sub: '広告', tone: 'loud', variant: 2 },
       ],
       // 待ち時間のあいだに本物の場所を押すと、動画（広告）を押したことになる
-      zones: [zone('trap', video), zone('trap', fake), zone('exit', pad(real, 4), { from: wait })],
+      zones: [zone('trap', video), zone('trap', fake), zone('exit', reach(real, 4), { from: wait })],
     },
   ];
 }
@@ -310,7 +324,7 @@ function shame(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'btn', ...join, label: '無料で登録して進む', tone: 'loud', variant: 1 },
         { id: c.id(), shape: 'link', ...no, label: 'いいえ、損をしたいです', tone: 'muted' },
       ],
-      zones: [zone('trap', join), zone('step', pad(no, 5))],
+      zones: [zone('trap', join), zone('step', reach(no, 5))],
     },
     {
       els: [
@@ -318,7 +332,7 @@ function shame(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'btn', ...again, label: 'やっぱり登録', tone: 'loud', variant: 1 },
         { id: c.id(), shape: 'btn', ...yes, label: 'はい、損します', tone: 'plain' },
       ],
-      zones: [zone('trap', again), zone('exit', yes)],
+      zones: [zone('trap', again), zone('exit', reach(yes, 0))],
     },
   ];
 }
@@ -339,7 +353,7 @@ function virus(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'x', ...title, tone: 'title' },
         { id: c.id(), shape: 'link', ...real, label: '次のページへ →', tone: 'article' },
       ],
-      zones: [zone('trap', box), zone('exit', pad(real, 6))],
+      zones: [zone('trap', box), zone('exit', reach(real, 6))],
     },
   ];
 }
@@ -354,7 +368,7 @@ function chain(c: Ctx): StepDef[] {
     const x = corner(sheet, size, 7, c.rng.pick(CORNERS));
     return {
       els: [sheetEl(c, sheet), { id: c.id(), shape: 'x', ...x, tone: i === 2 ? 'faint' : 'plain' }],
-      zones: [zone('trap', sheet), zone(i < sizes.length - 1 ? 'step' : 'exit', pad(x, 6))],
+      zones: [zone('trap', sheet), zone(i < sizes.length - 1 ? 'step' : 'exit', reach(x, 6))],
     };
   });
 }
@@ -374,7 +388,7 @@ function cookie(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'btn', ...all, label: 'すべて同意して続ける', tone: 'loud', variant: 4 },
         { id: c.id(), shape: 'link', ...manage, label: '設定を管理する', tone: 'muted' },
       ],
-      zones: [zone('trap', all), zone('step', pad(manage, 5))],
+      zones: [zone('trap', all), zone('step', reach(manage, 5))],
     },
     {
       els: [
@@ -382,7 +396,7 @@ function cookie(c: Ctx): StepDef[] {
         { id: c.id(), shape: 'btn', ...save, label: 'すべて同意して保存', tone: 'loud', variant: 4 },
         { id: c.id(), shape: 'link', ...needed, label: '必要なものだけ保存', tone: 'muted' },
       ],
-      zones: [zone('trap', save), zone('exit', pad(needed, 5))],
+      zones: [zone('trap', save), zone('exit', reach(needed, 5))],
     },
   ];
 }
@@ -403,6 +417,8 @@ function misregister(c: Ctx): StepDef[] {
         sheetEl(c, drawn),
         { id: c.id(), shape: 'x', ...drawnX, tone: 'plain' },
       ],
+      // ここだけ MIN_HIT まで広げない（すぐ左下にある絵の✕まで届いてしまい、罠にならないため）。
+      // 本物の✕は広告の右上の角にあり、外向き（上・右）に外れても何も無い場所なので罰は無い
       zones: [zone('trap', real), zone('exit', pad(realX, 5))],
     },
   ];
@@ -457,6 +473,6 @@ export function landingStep(rng: Rng, lockMs: number): StepDef {
       { id: 'l3', shape: 'btn', ...back, label: '← 戻る', tone: 'plain', from: lockMs },
       { id: 'l4', shape: 'btn', ...bait, label: '今すぐ受け取る', tone: 'loud', variant: rng.int(0, 5) },
     ],
-    zones: [zone('trap', bait), zone('exit', pad(back, 4), { from: lockMs })],
+    zones: [zone('trap', bait), zone('exit', reach(back, 4), { from: lockMs })],
   };
 }

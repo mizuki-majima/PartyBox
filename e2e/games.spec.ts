@@ -39,6 +39,8 @@ test('嘘つきは誰だ？: 役割確認 → 順番に発言 → 投票 → 正
   await host.page.getByRole('button', { name: '2ラウンド' }).click();
   await host.page.getByRole('button', { name: '1周' }).click(); // 1周（今までどおりの流れ）
   await host.page.getByRole('button', { name: '15秒' }).click();
+  // 既定はワードウルフ。この試験は嘘つきのカードと逆転の推理を見るので「お題を知らない」に切り替える
+  await host.page.getByRole('button', { name: '嘘つきはお題を知らない' }).click();
   await start(host, players, 'ready');
   // 嘘つきカードは1人だけ、それ以外は同じお題
   let liar: Player | null = null;
@@ -114,8 +116,9 @@ test('回答を育てろ: 絵を描く → 説明 → 絵 → アルバム公開
 
 test('嘘つきは誰だ？: 1つのお題で何周も話し、いま何周目かと周ごとの発言が見える', async ({ browser }) => {
   const { players, host } = await setupRoom(browser, 'liar', ['みずき', 'たろう', 'はな', 'けん']);
-  // 既定は「1ラウンド・3周」
+  // 既定は「1ラウンド・3周・ワードウルフ」
   await expect(host.page.getByRole('button', { name: '3周' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(host.page.getByRole('button', { name: /ワードウルフ/ })).toHaveAttribute('aria-pressed', 'true');
   // 試験の機械が遅くても、持ち時間切れで番が飛ばないように長めにする
   await host.page.getByRole('button', { name: '30秒' }).click();
   await start(host, players, 'ready');

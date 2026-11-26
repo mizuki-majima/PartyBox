@@ -75,6 +75,18 @@ test('広告をすり抜けろ！: 同じページ → 広告でロック → �
   await host.page.getByTestId('start-game').click();
   for (const p of players) await expect(p.page.getByTestId('ad-stage')).toBeVisible({ timeout: 20_000 });
   await expect(host.page.getByTestId('dev-badge')).toBeVisible();
+
+  // スマホ: Safari のツールバーが出ている iPhone 13 くらいの背の低い画面でも、ページの窓が画面の中に収まる
+  // （はみ出すと、ページの中では指でスクロールできないので下の方が押せない）。レース中はルームの見出しの帯を隠す
+  await guest.page.setViewportSize({ width: 390, height: 664 });
+  await expect(guest.page.locator('[data-room-header]')).toBeHidden();
+  await expect(host.page.locator('[data-room-header]')).toBeVisible(); // PC はそのまま
+  await expect
+    .poll(async () => {
+      const box = (await guest.page.getByTestId('ad-stage').boundingBox())!;
+      return box.y + box.height <= 664 && box.width >= 250;
+    })
+    .toBe(true);
   await shot(guest, 'ad-dodge-stage-phone');
   await shot(host, 'ad-dodge-stage-desktop');
 
@@ -97,6 +109,7 @@ test('広告をすり抜けろ！: 同じページ → 広告でロック → �
   await runToGoal(guest);
 
   for (const p of players) await expect(p.page.getByTestId('round-result')).toBeVisible({ timeout: 20_000 });
+  await expect(guest.page.locator('[data-room-header]')).toBeVisible(); // レースが終われば戻る
   await expect(guest.page.getByTestId('result-row').first()).toContainText('みずき');
   await expect(guest.page.getByTestId('result-row').first()).toContainText('+5');
   await expect(guest.page.getByTestId('result-row').nth(1)).toContainText('広告 1回');

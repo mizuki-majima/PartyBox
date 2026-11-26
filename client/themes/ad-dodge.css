@@ -196,6 +196,13 @@
 [data-theme='ad-dodge'] .adx-stage * {
   pointer-events: none;
 }
+/* レース中のスマホ: ルームの見出しの帯を隠して、ページの窓を大きくする（AdDodgeScreen の Race が html に data-ad-race を付ける）。
+   帯の「退出」はレースの間（長くて2分）だけ出ない。「遊び方」と残り時間はゲームの帯に残る */
+@media (max-width: 639px) {
+  html[data-ad-race] [data-room-header] {
+    display: none;
+  }
+}
 /* 記事の地（本物のサイトに見えるように、落ち着いた色で） */
 [data-theme='ad-dodge'] .adx-line {
   background: #e3e3e3;

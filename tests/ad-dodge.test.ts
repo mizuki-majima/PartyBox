@@ -2,7 +2,18 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { AdDodgeView } from '../shared/games/views';
 import type { PartyServer } from '../server/app';
 import { finishPoints } from '../server/games/ad-dodge/AdDodgeGame';
-import { generateRound, hitTest, passPoint, TRAP_INFO, TRAP_KINDS, type Zone } from '../server/games/ad-dodge/stages';
+import {
+  createRng,
+  generateRound,
+  hitTest,
+  landingStep,
+  MIN_HIT,
+  passPoint,
+  TRAP_INFO,
+  TRAP_KINDS,
+  type Zone,
+  zoneRectAt,
+} from '../server/games/ad-dodge/stages';
 import { setupRoom, startGame, startTestServer, type TestClient } from './helpers';
 
 const settled = (zones: Zone[]) => Math.max(0, ...zones.map((z) => Math.max(z.from ?? 0, z.shift?.at ?? 0)));
@@ -36,6 +47,56 @@ describe('ページ作り・当たり判定', () => {
       }
     }
     expect([...seen].sort()).toEqual([...TRAP_KINDS].sort());
+  });
+
+  it('見えている本物（✕・ボタン・リンク）の真ん中を押せば進む。上に罠も絵も重なっていない', () => {
+    const inside = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+      a.x >= b.x - 0.01 && a.y >= b.y - 0.01 && a.x + a.w <= b.x + b.w + 0.01 && a.y + a.h <= b.y + b.h + 0.01;
+    for (let seed = 0; seed < 300; seed++) {
+      for (const page of generateRound(seed, 11)) {
+        page.steps.forEach((step, i) => {
+          const pass = step.zones.find((z) => z.act !== 'trap')!;
+          const t = Math.max(pass.from ?? 0, pass.shift?.at ?? 0) + 1;
+          const area = zoneRectAt(pass, t)!;
+          const shown = step.els.filter((e) => (e.from == null || t >= e.from) && (e.until == null || t < e.until));
+          const at = (e: (typeof shown)[number]) => {
+            const moved = e.shift && t >= e.shift.at;
+            return { x: e.x + (moved ? e.shift!.dx : 0), y: e.y + (moved ? e.shift!.dy : 0), w: e.w, h: e.h };
+          };
+          // 押せる範囲の中に収まっている、見えている部品が本物
+          const realIndex = shown.findIndex((e) => e.shape !== 'sheet' && e.shape !== 'ghost' && inside(at(e), area));
+          const label = `${page.kind} step ${i} seed ${seed}`;
+          expect(realIndex, label).toBeGreaterThanOrEqual(0);
+          const c = center(at(shown[realIndex]));
+          expect(hitTest(step.zones, c.x, c.y, t), label).toBe(pass);
+          // 後ろに描く（上に重なる）部品が、本物の真ん中を隠していない
+          for (const e of shown.slice(realIndex + 1)) {
+            const r = at(e);
+            expect(c.x >= r.x && c.x <= r.x + r.w && c.y >= r.y && c.y <= r.y + r.h, `${label} covered by ${e.shape}`).toBe(false);
+          }
+          // 本物の範囲を広げても、ほかの部品（偽の✕・派手なボタン・PR のリンクなど）の真ん中までは届かない
+          shown.forEach((e, k) => {
+            if (k === realIndex) return;
+            const o = center(at(e));
+            expect(hitTest(step.zones, o.x, o.y, t), `${label} decoy ${e.shape}/${e.tone ?? ''}`).not.toBe(pass);
+          });
+        });
+      }
+    }
+  });
+
+  it('本物の押せる範囲は、見た目が小さくても縦横とも MIN_HIT 以上（判定ずれだけは、絵の✕と重ならないよう小さめ）', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      for (const page of generateRound(seed, 11)) {
+        for (const step of page.steps) {
+          const pass = step.zones.find((z) => z.act !== 'trap')!;
+          const min = page.kind === 'misregister' ? 34 : MIN_HIT;
+          expect(Math.min(pass.w, pass.h), `${page.kind} seed ${seed}`).toBeGreaterThanOrEqual(min);
+        }
+      }
+    }
+    // 広告のページの「← 戻る」も
+    expect(Math.min(landingStep(createRng(1), 3000).zones.at(-1)!.w, landingStep(createRng(1), 3000).zones.at(-1)!.h)).toBeGreaterThanOrEqual(MIN_HIT);
   });
 
   it('上に重なった判定が勝つ。何も無い場所は null（罰なし）', () => {

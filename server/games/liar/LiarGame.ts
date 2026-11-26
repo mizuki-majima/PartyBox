@@ -66,7 +66,8 @@ export class LiarGame extends BaseGame<LiarPhase> {
     this.talkTime = Number(settings.talkTime) * 1000;
     this.laps = Math.max(1, Number(settings.laps) || 1);
     this.voteTime = Number(settings.voteTime) * 1000;
-    this.mode = settings.mode === 'wordwolf' ? 'wordwolf' : 'secret';
+    // 既定はワードウルフ（2026-11-26）。設定に無いときも既定に合わせる
+    this.mode = settings.mode === 'secret' ? 'secret' : 'wordwolf';
     this.topics = ctx.drawFromDeck('liar', ALL_TOPICS, this.totalRounds, (t) => t.topic);
   }
 

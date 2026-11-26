@@ -75,7 +75,7 @@ describe('ルーム作成・参加', () => {
     expect(v.settings.answerTime).toBe(30); // 不正値は既定値のまま
     await host.ok('room:changeGame', { gameId: 'liar' });
     const v2 = await cs[2].waitFor((v) => v.gameId === 'liar');
-    expect(v2.settings.mode).toBe('secret');
+    expect(v2.settings.mode).toBe('wordwolf'); // 嘘つきの既定はワードウルフ
   });
 
   it('最少人数に満たないと開始できない', async () => {
