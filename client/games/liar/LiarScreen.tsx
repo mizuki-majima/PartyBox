@@ -90,6 +90,12 @@ function TalkPhase() {
   return (
     <div className="flex flex-col gap-4">
       <PhaseHeader icon="users" title="順番にお題について答えよう" sub="答えそのものを言いすぎると嘘つきにバレるかも？" />
+      {game.laps > 1 && (
+        // 1つのお題で何周も話すので、いま何周目かを大きく出す（あと何周で投票かが分かるように）
+        <p className="ui-tile self-center px-4 py-1.5 font-display text-lg" data-testid="liar-lap">
+          {game.lap}周目 <span className="text-base text-muted">/ {game.laps}周</span>
+        </p>
+      )}
       <TurnOrder order={game.order} index={game.turnIndex} />
       <SpeakerPanel
         key={game.turnIndex}

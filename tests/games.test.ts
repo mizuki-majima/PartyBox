@@ -3,6 +3,7 @@ import type { GrowView, LiarView, TrialView, WhoseView } from '../shared/games/v
 import type { PartyServer } from '../server/app';
 import { parseImageDataUrl, planSteps } from '../server/games/grow-answer/GrowAnswerGame';
 import { tallyLiarVotes } from '../server/games/liar/LiarGame';
+import { TurnSequence } from '../server/games/TurnSequence';
 import { decideVerdict, generateCase } from '../server/games/trial/TrialGame';
 import { scoreWhoseRound } from '../server/games/whose-answer/WhoseAnswerGame';
 import data from '../server/data/trial.json';
@@ -100,7 +101,7 @@ describe('嘘つきは誰だ？', () => {
   });
 
   it('通しプレイ: 嘘つきは1人だけでお題が見えない → 順番に発言 → 投票 → 逆転推理 → 結果', async () => {
-    const { host, clients } = await setupRoom(server.port, 'liar', 4, { rounds: 2, mode: 'secret' });
+    const { host, clients } = await setupRoom(server.port, 'liar', 4, { rounds: 2, mode: 'secret', laps: 1 });
     open = clients;
     await startGame(host, clients, 'ROLE');
 
@@ -156,6 +157,49 @@ describe('嘘つきは誰だ？', () => {
     const others = clients.filter((c) => c !== liar2);
     const voided = await others[0].waitPhase('RESULT');
     expect((voided.game as LiarView).result!.note).toContain('無効');
+  });
+
+  it('順番の管理: 何周も回り、話せない人はどの周でも飛ばし、誰も話せなければ終わる', () => {
+    const t = new TurnSequence();
+    t.reset(['a', 'b', 'c'], 2);
+    const seq: [number, string][] = [];
+    for (let s = t.next((id) => id !== 'b'); s; s = t.next((id) => id !== 'b')) {
+      seq.push([t.lap, s]);
+      t.record(s, 'x');
+    }
+    expect(seq).toEqual([
+      [1, 'a'],
+      [1, 'c'],
+      [2, 'a'],
+      [2, 'c'],
+    ]);
+    expect(t.statements.map((x) => x.lap)).toEqual([1, 1, 2, 2]);
+    const none = new TurnSequence();
+    none.reset(['a', 'b'], 3);
+    expect(none.next(() => false)).toBeNull();
+  });
+
+  it('1つのお題で laps 周話してから投票になり、発言に何周目かが付く', async () => {
+    const { host, clients } = await setupRoom(server.port, 'liar', 4, { rounds: 1, laps: 3, mode: 'secret' });
+    open = clients;
+    await startGame(host, clients, 'ROLE');
+    for (const c of clients) await c.actionOk('ready');
+    let n = 0;
+    let firstOrder: string[] | null = null;
+    for (let lap = 1; lap <= 3; lap++) {
+      for (let i = 0; i < 4; i++) {
+        const v = await host.waitPhase('TALK', (x) => (x.game as LiarView).lap === lap && (x.game as LiarView).turnIndex === i);
+        const g = v.game as LiarView;
+        expect(g.laps).toBe(3);
+        firstOrder ??= g.order;
+        expect(g.order).toEqual(firstOrder); // どの周も同じ順番
+        await clients.find((c) => c.id === g.order[i])!.actionOk('speak', { text: `発言${n++}` });
+      }
+    }
+    const vote = await host.waitPhase('VOTE');
+    const statements = (vote.game as LiarView).statements;
+    expect(statements.map((s) => s.text)).toEqual(Array.from({ length: 12 }, (_, i) => `発言${i}`));
+    expect(statements.map((s) => s.lap)).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]);
   });
 
   it('ワードウルフモード: 嘘つきは別のお題を受け取り、自分が嘘つきだと知らない', async () => {
