@@ -31,6 +31,9 @@ export function BingoSection() {
         </p>
       </Card>
 
+      {/* 参加者は、押すもの（カード）を説明より上に出す */}
+      {game.isHost ? <HostControls /> : <MyCard />}
+
       {!game.isHost && (
         <HowTo
           title="ビンゴのやり方"
@@ -43,7 +46,6 @@ export function BingoSection() {
         />
       )}
 
-      {game.isHost ? <HostControls /> : <MyCard />}
 
       <CalledNumbers called={b.called} />
       <Claims />

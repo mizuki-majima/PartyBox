@@ -102,7 +102,11 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   // 参加者が自分でくじを引く。結果が出るまで、テーブル名が回る演出が入る
   await guestA.getByTestId('seats-draw-self').click();
   await expect(guestA.getByTestId('seats-reveal-spinning')).toBeVisible();
+  // 回っている間は、テーブルの一覧と「いま引いた人」に自分の結果を先に出さない（ネタばれしない）
+  await expect(guestA.getByTestId('seats-tables')).toHaveCount(0);
+  await expect(guestA.getByTestId('seats-last')).toHaveCount(0);
   await expect(guestA.getByTestId('my-table')).toBeVisible();
+  await expect(guestA.getByTestId('seats-tables')).toBeVisible();
   await expect(host.getByTestId('seats-last')).toBeVisible();
   await expect(guestB.getByTestId('seats-tables')).toBeVisible();
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1');

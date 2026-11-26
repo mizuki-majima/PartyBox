@@ -1,9 +1,11 @@
 /*
- * 懇親会（クイズ・座席決め・ビンゴ）: メンフィス
+ * 懇親会（クイズ・座席決め・ビンゴ）: メンフィス × 主催のテンプレートの青
  *
- * 生成りの地に、80年代風の波線・ドット・三角の模様。珊瑚・青緑・黄のベタ面と、色つきのずらし影。
- * 丸い太字で、会場の遠くからでも読める大きさにする。
- * 正解・開いたマス = 青緑、注目 = 黄、進行（押すもの）= 珊瑚。司会の操作は黄色い枠で囲む。
+ * 形はメンフィスのまま（波線・ドット・三角の模様、太い線、色つきのずらし影、丸い太字）。
+ * 色は主催のテンプレート（ビジネス用）に寄せる: 地は薄いグレー、線と影は濃紺、進行（押すもの）は青。
+ * テンプレート唯一の飾り「青の明るさを段階的に並べた小さな四角の列」を、地の模様と見出し（.event-squares）に入れる。
+ * 黄と橙は、ゲームらしさのために「注目」と「お祝い」にだけ残す。
+ * 正解・開いたマス = 緑、注目・いまやること = 黄、進行 = 青。司会の操作は黄色い枠で囲む。
  */
 @layer base {
   [data-theme='party-event'] {
@@ -13,41 +15,51 @@
     --t-display-weight: 800;
     --t-display-tracking: 0.01em;
 
-    /* ドットと波線と三角（SVG をそのまま埋め込む。外のURLは使わない） */
+    /* 波線・三角・丸・四角・ドットと、青の四角の列（SVG をそのまま埋め込む。外のURLは使わない） */
     --t-page-bg:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' opacity='.3'%3E%3Cpath d='M18 40q9-12 18 0t18 0 18 0' fill='none' stroke='%2300a6a6' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M150 28l16 26h-32z' fill='%23ffd23f'/%3E%3Ccircle cx='190' cy='120' r='9' fill='%23ff6b5e'/%3E%3Cpath d='M30 150h26v26h-26z' fill='none' stroke='%231a1a1a' stroke-width='4'/%3E%3Cpath d='M112 168q9-12 18 0t18 0' fill='none' stroke='%23ff6b5e' stroke-width='4' stroke-linecap='round'/%3E%3Cg fill='%231a1a1a'%3E%3Ccircle cx='96' cy='96' r='2.5'/%3E%3Ccircle cx='108' cy='96' r='2.5'/%3E%3Ccircle cx='96' cy='108' r='2.5'/%3E%3Ccircle cx='108' cy='108' r='2.5'/%3E%3C/g%3E%3C/svg%3E")
-      #fff7e6;
-    --t-bg: #fff7e6;
-    --t-fg: #1a1a1a;
-    --t-muted: #5c5546;
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' opacity='.3'%3E%3Cpath d='M18 40q9-12 18 0t18 0 18 0' fill='none' stroke='%230969da' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M150 28l16 26h-32z' fill='%23ffd23f'/%3E%3Ccircle cx='190' cy='120' r='9' fill='%23e8743b'/%3E%3Cpath d='M30 150h26v26h-26z' fill='none' stroke='%230a3069' stroke-width='4'/%3E%3Cpath d='M112 168q9-12 18 0t18 0' fill='none' stroke='%230969da' stroke-width='4' stroke-linecap='round'/%3E%3Cg fill='%230a3069'%3E%3Ccircle cx='96' cy='96' r='2.5'/%3E%3Ccircle cx='108' cy='96' r='2.5'/%3E%3Ccircle cx='96' cy='108' r='2.5'/%3E%3Ccircle cx='108' cy='108' r='2.5'/%3E%3C/g%3E%3Cpath fill='%23218bff' d='M120 200h10v10h-10z'/%3E%3Cpath fill='%2361b3ff' d='M133 200h10v10h-10z'/%3E%3Cpath fill='%2397d3ff' d='M146 200h10v10h-10z'/%3E%3Cpath fill='%23ceedff' d='M159 200h10v10h-10z'/%3E%3C/svg%3E")
+      #f6f8fa;
+    --t-bg: #f6f8fa;
+    --t-fg: #24292f;
+    --t-muted: #57606a;
     --t-panel: #ffffff;
     --t-panel-2: #ffffff;
-    --t-panel-3: #fdeccb;
-    --t-line: #1a1a1a;
-    --t-shade: #1a1a1a;
+    --t-panel-3: #e5f6ff;
+    --t-line: #0a3069;
+    --t-shade: #0a3069;
 
-    --t-accent: #ff6b5e;
-    --t-accent-ink: #c2281b;
-    --t-on-accent: #1a1a1a;
-    --t-accent2: #00a6a6;
-    --t-accent2-ink: #006f6f;
-    --t-ok: #00a6a6;
-    --t-ok-ink: #006f6f;
-    --t-on-ok: #1a1a1a;
+    --t-accent: #0969da;
+    --t-accent-ink: #0550ae;
+    --t-on-accent: #ffffff;
+    --t-accent2: #61b3ff;
+    --t-accent2-ink: #0550ae;
+    --t-ok: #4ac26b;
+    --t-ok-ink: #1a7f37;
+    --t-on-ok: #24292f;
     --t-hi: #ffd23f;
-    --t-hi-ink: #c2281b;
-    --t-on-hi: #1a1a1a;
-    --t-info: #00a6a6;
-    --t-info-ink: #006f6f;
-    --t-sub: #ff6b5e;
-    --t-sub-ink: #c2281b;
-    --t-danger: #ff6b5e;
-    --t-danger-ink: #c2281b;
-    --t-on-danger: #1a1a1a;
+    --t-hi-ink: #7d4e00;
+    --t-on-hi: #24292f;
+    --t-info: #61b3ff;
+    --t-info-ink: #0550ae;
+    --t-sub: #e8743b;
+    --t-sub-ink: #b5501f;
+    --t-danger: #cf222e;
+    --t-danger-ink: #a40e26;
+    --t-on-danger: #ffffff;
     --t-warn: #ffd23f;
-    --t-warn-ink: #6b4a00;
-    --t-on-warn: #1a1a1a;
-    --t-focus: #006f6f;
+    --t-warn-ink: #7d4e00;
+    --t-on-warn: #24292f;
+    --t-focus: #0969da;
+
+    /* 夕食の席の所属の色（凡例の順） */
+    --t-tone-0: #b5501f;
+    --t-on-tone-0: #ffffff;
+    --t-tone-1: #0a3069;
+    --t-on-tone-1: #ffffff;
+    --t-tone-2: #ffd23f;
+    --t-on-tone-2: #24292f;
+    --t-tone-3: #4ac26b;
+    --t-on-tone-3: #24292f;
 
     --radius-sm: 0.375rem;
     --radius-md: 0.5rem;
@@ -55,67 +67,67 @@
     --radius-xl: 0.875rem;
     --radius-2xl: 1.125rem;
     --radius-3xl: 1.5rem;
-    --t-elev: 5px 5px 0 #00a6a6;
+    --t-elev: 5px 5px 0 #0969da;
 
     --t-card-bg: #ffffff;
-    --t-card-border: 2.5px solid #1a1a1a;
+    --t-card-border: 2.5px solid #0a3069;
     --t-card-radius: 1.5rem;
-    --t-card-shadow: 6px 6px 0 #00a6a6;
+    --t-card-shadow: 6px 6px 0 #0969da;
     --t-tile-bg: #ffffff;
-    --t-tile-border: 2px solid #1a1a1a;
+    --t-tile-border: 2px solid #0a3069;
     --t-tile-radius: 1rem;
 
-    --t-btn-border: 2.5px solid #1a1a1a;
+    --t-btn-border: 2.5px solid #0a3069;
     --t-btn-radius: 999px;
-    --t-btn-shadow: 0 5px 0 #1a1a1a;
-    --t-btn-shadow-press: 0 0 0 #1a1a1a;
+    --t-btn-shadow: 0 5px 0 #0a3069;
+    --t-btn-shadow-press: 0 0 0 #0a3069;
     --t-btn-press: translateY(5px);
     --t-btn-font: var(--t-font-display);
     --t-btn-weight: 800;
     --t-btn-tracking: 0.03em;
     --t-btn-hover: brightness(1.06);
-    --t-btn-primary-bg: #ff6b5e;
-    --t-btn-primary-fg: #1a1a1a;
+    --t-btn-primary-bg: #0969da;
+    --t-btn-primary-fg: #ffffff;
     --t-btn-secondary-bg: #ffffff;
-    --t-btn-secondary-fg: #1a1a1a;
+    --t-btn-secondary-fg: #24292f;
     --t-btn-danger-bg: #ffffff;
-    --t-btn-danger-fg: #c2281b;
+    --t-btn-danger-fg: #a40e26;
 
     --t-input-bg: #ffffff;
-    --t-input-fg: #1a1a1a;
-    --t-input-border: 2.5px solid #1a1a1a;
+    --t-input-fg: #24292f;
+    --t-input-border: 2.5px solid #0a3069;
     --t-input-radius: 1rem;
-    --t-input-shadow: 4px 4px 0 #ffd23f;
-    --t-input-placeholder: #857c69;
+    --t-input-shadow: 4px 4px 0 #97d3ff;
+    --t-input-placeholder: #6e7781;
 
     --t-badge-radius: 999px;
-    --t-badge-border: 2px solid #1a1a1a;
+    --t-badge-border: 2px solid #0a3069;
 
-    --t-overlay: rgb(26 26 26 / 0.6);
+    --t-overlay: rgb(10 48 105 / 0.55);
     --t-modal-bg: #ffffff;
-    --t-modal-shadow: 8px 8px 0 #ff6b5e;
+    --t-modal-shadow: 8px 8px 0 #0969da;
 
-    --t-q-bg: #ffd23f;
-    --t-q-fg: #1a1a1a;
-    --t-q-border: 2.5px solid #1a1a1a;
-    --t-q-shadow: 6px 6px 0 #ff6b5e;
-    --t-q-accent: repeating-linear-gradient(90deg, #1a1a1a 0 10px, transparent 10px 20px);
-    --t-q-label: #1a1a1a;
+    --t-q-bg: #e5f6ff;
+    --t-q-fg: #24292f;
+    --t-q-border: 2.5px solid #0a3069;
+    --t-q-shadow: 6px 6px 0 #0969da;
+    --t-q-accent: repeating-linear-gradient(90deg, #0a3069 0 10px, transparent 10px 20px);
+    --t-q-label: #0a3069;
 
-    --t-bar-bg: #fff7e6;
-    --t-bar-border: #1a1a1a;
+    --t-bar-bg: #f6f8fa;
+    --t-bar-border: #0a3069;
     --t-bar-filter: none;
 
     --t-timer-track: #ffffff;
-    --t-timer-border: 2.5px solid #1a1a1a;
+    --t-timer-border: 2.5px solid #0a3069;
     --t-timer-radius: 999px;
-    --t-timer-fill: repeating-linear-gradient(135deg, #00a6a6 0 10px, #33bdbd 10px 20px);
+    --t-timer-fill: repeating-linear-gradient(135deg, #0969da 0 10px, #218bff 10px 20px);
   }
 }
 
-/* カードの影の色を順に変える（青緑 → 珊瑚 → 黄） */
+/* カードの影の色を順に変える（青 → 明るい青 → 黄） */
 [data-theme='party-event'] .ui-card:nth-of-type(3n + 2) {
-  box-shadow: 6px 6px 0 #ff6b5e;
+  box-shadow: 6px 6px 0 #61b3ff;
 }
 [data-theme='party-event'] .ui-card:nth-of-type(3n) {
   box-shadow: 6px 6px 0 #ffd23f;

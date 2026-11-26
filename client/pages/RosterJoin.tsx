@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { LIMITS, type RoomSummary } from '../../shared/protocol';
 import { Button, Modal, TextInput } from '../components/ui';
 import { useToast } from '../lib/toast';
+import { useTheme } from '../themes';
 
 type RosterEntry = NonNullable<RoomSummary['roster']>[number];
 
@@ -27,6 +28,8 @@ export function RosterJoin({
   onFree: () => void;
 }) {
   const toast = useToast();
+  // 参加者が最初に見る画面なので、入ったあとと同じ懇親会のデザインで見せる（共通画面のデザインから急に変わらないように）
+  useTheme('party-event');
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState<RosterEntry | null>(null);
   const [display, setDisplay] = useState('');

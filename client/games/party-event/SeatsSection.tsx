@@ -10,8 +10,16 @@ import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from 
 import { useSeatReveal } from './seatReveal';
 
 export function SeatsSection() {
-  const { game } = useGame<PartyEventView>();
+  const { game, room } = useGame<PartyEventView>();
   const s = game.seats;
+  const me = s.myPersonId ? s.roster.find((p) => p.id === s.myPersonId) : null;
+  // 自分の席の演出（参加者だけ）。回っている間は、一覧と「いま引いた人」に結果を先に出さない（ネタばれしないように）
+  const reveal = useSeatReveal(
+    room.code,
+    game.isHost ? null : (me?.id ?? null),
+    game.isHost ? null : (me?.table ?? null),
+    s.tables.map((t) => t.name),
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -20,7 +28,7 @@ export function SeatsSection() {
         <p className="mt-2 font-display text-2xl">
           {s.drawn} / {s.drawn + s.remaining} 人
         </p>
-        {s.last && (
+        {s.last && !reveal.spinning && (
           <div key={s.last.id} className="ui-tile animate-pop-in mt-3 bg-hi px-4 py-3 text-on-hi">
             <p className="text-sm">いま引いた人</p>
             <p className="font-display text-2xl" data-testid="seats-last">
@@ -33,15 +41,18 @@ export function SeatsSection() {
         )}
       </Card>
 
+      {/* 参加者は、押すもの（くじ・名簿）を説明より上に出す（リハーサルで、どこを押すか分からなくなったため） */}
+      {game.isHost ? <HostControls /> : <MySeat reveal={reveal} />}
+
       {!game.isHost && (
         <HowTo
           title="座席決めのやり方"
           testId="event-howto-seats"
           steps={
             s.myPersonId
-              ? ['下の「くじを引く」を押します。テーブル名が回って、あなたの席が決まります。', '出たテーブルに移動してください。']
+              ? ['「くじを引く」を押します。テーブル名が回って、あなたの席が決まります。', '出たテーブルに移動してください。']
               : [
-                  '下の名簿から、自分の名前を押します（名前の一部を入れると、さがしやすくなります）。',
+                  '名簿から、自分の名前を押します（名前の一部を入れると、さがしやすくなります）。',
                   '名前が無いときは、「名簿に名前が無い方はこちら」から自分で足せます。',
                   '名前を選んだら、「くじを引く」を押します。',
                 ]
@@ -49,9 +60,7 @@ export function SeatsSection() {
         />
       )}
 
-      {game.isHost ? <HostControls /> : <MySeat />}
-
-      <Tables />
+      {!reveal.spinning && <Tables />}
       {game.isHost && <Roster />}
     </div>
   );
@@ -60,17 +69,11 @@ export function SeatsSection() {
 /* ------------------------------------------------------------------ */
 /* 参加者                                                               */
 /* ------------------------------------------------------------------ */
-function MySeat() {
-  const { game, act, room } = useGame<PartyEventView>();
+function MySeat({ reveal }: { reveal: ReturnType<typeof useSeatReveal> }) {
+  const { game, act } = useGame<PartyEventView>();
   const s = game.seats;
   const me = s.myPersonId ? s.roster.find((p) => p.id === s.myPersonId) : null;
   const [drawing, setDrawing] = useState(false);
-  const reveal = useSeatReveal(
-    room.code,
-    me?.id ?? null,
-    me?.table ?? null,
-    s.tables.map((t) => t.name),
-  );
 
   if (!me) return <PickMyName />;
 
