@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
-import { BigTimer, QuestionCard } from '../../components/game';
+import { BigTimer, QuestionCard, TimerBar } from '../../components/game';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, SectionTitle, TextInput } from '../../components/ui';
-import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
+import { MoreRow, MoreSheet } from './MoreSheet';
 import { HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
 const PHASE_LABEL: Record<string, string> = {
@@ -18,6 +18,7 @@ const PHASE_LABEL: Record<string, string> = {
 export function QuizSection() {
   const { game } = useGame<PartyEventView>();
   const q = game.quiz;
+  if (!game.isHost) return <GuestQuiz />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,25 +35,64 @@ export function QuizSection() {
         )}
       </Card>
 
-      {!game.isHost && q.phase !== 'result' && (
-        <HowTo
-          title="クイズのやり方"
-          testId="event-howto-quiz"
-          steps={
-            q.myTeam
-              ? [
-                  '問題が出て「回答タイム」になったら、答えを押します（文字で答える問題は、書いて「送信する」）。',
-                  '時間内なら、何回でも押し直せます。答えはチームで1つです。',
-                ]
-              : ['下の「チームを選んでください」から、自分のチームを押します。', '問題が出て「回答タイム」になったら、答えを押します。']
-          }
-        />
+      {q.phase === 'result' ? <Ranking /> : q.question ? <QuestionArea /> : <Idle />}
+
+      <HostControls />
+      {q.phase !== 'idle' && <Scores />}
+    </div>
+  );
+}
+
+/**
+ * 参加者の表紙: 何問目・問題・答える所（答えの段では答えとみんなの回答、結果では優勝）だけを大きく出す。
+ * 得点とチームの変更は「得点・チーム」から開く（リハーサルで画面が煩雑だったため）
+ */
+function GuestQuiz() {
+  const { game } = useGame<PartyEventView>();
+  const q = game.quiz;
+  return (
+    <div className="flex flex-col gap-3">
+      <Card className="!py-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="font-display text-2xl">
+            {q.qno > 0 ? `第 ${q.qno} 問` : 'クイズ'}
+            <span className="ml-1 text-base text-muted">/ {q.total}</span>
+          </p>
+          <span className="text-base font-bold text-hi-ink">{PHASE_LABEL[q.phase]}</span>
+          {q.myTeam && (
+            <span className="ml-auto" data-testid="my-team">
+              <Badge className="bg-hi text-base text-on-hi">{q.myTeam}</Badge>
+            </span>
+          )}
+        </div>
+        {q.phase === 'answering' && q.deadline && (
+          // 参加者は細い横長のタイマーにして、問題と答えを1画面目に収める
+          <div className="mt-2">
+            <TimerBar deadline={q.deadline} duration={q.secondsPerQuestion * 1000} />
+          </div>
+        )}
+      </Card>
+
+      {/* チームが無い人（名簿に無い人など）は、答えるためにチームを選ぶ必要があるので表紙に出す */}
+      {!q.myTeam && q.phase !== 'result' && (
+        <Card>
+          <SectionTitle>チームを選んでください</SectionTitle>
+          <TeamPicker />
+        </Card>
       )}
 
       {q.phase === 'result' ? <Ranking /> : q.question ? <QuestionArea /> : <Idle />}
 
-      {game.isHost ? <HostControls /> : <MyTeam />}
-      {q.phase !== 'idle' && <Scores />}
+      <MoreRow>
+        <MoreSheet label="得点・チーム" title="得点とチーム" testId="quiz-more">
+          {(close) => (
+            <div className="flex flex-col gap-4">
+              {q.myTeam && <TeamChanger onPicked={close} />}
+              {q.phase !== 'idle' ? <Scores /> : <p className="text-base text-muted">得点は、第1問が終わると出ます。</p>}
+            </div>
+          )}
+        </MoreSheet>
+      </MoreRow>
     </div>
   );
 }
@@ -88,11 +128,12 @@ function QuestionArea() {
           {question.points > 1 && <span>この問題は {question.points} 点！</span>}
         </p>
       )}
-      <QuestionCard label={`第 ${q.qno} 問`} text={question.question} accent="#f59e0b" />
+      {/* 参加者の画面では上の見出しに「第 n 問」があるので、ここは「問題」とだけ書く */}
+      <QuestionCard label={game.isHost ? `第 ${q.qno} 問` : '問題'} text={question.question} accent="#f59e0b" />
 
       {q.phase === 'answering' && !game.isHost && <AnswerArea />}
 
-      {q.phase === 'answering' && (
+      {q.phase === 'answering' && game.isHost && (
         <Card>
           <SectionTitle>送信ずみ</SectionTitle>
           <div className="flex flex-wrap gap-1.5" data-testid="quiz-answered">
@@ -110,8 +151,9 @@ function QuestionArea() {
       )}
 
       {revealed && (
-        <Card className="animate-pop-in bg-ok/15 text-center">
-          <p className="text-xs font-extrabold tracking-[0.2em] text-muted uppercase">答え</p>
+        // 地の模様が透けないよう、塗りつぶしたカードにする（「答え」の印で目立たせる）
+        <Card className="animate-pop-in text-center">
+          <Badge className="bg-ok text-on-ok">答え</Badge>
           <p className="mt-2 font-display text-3xl" data-testid="quiz-answer">
             {question.choices && typeof question.answer === 'number'
               ? question.choices[question.answer]
@@ -179,49 +221,50 @@ function AllAnswers() {
 /* ------------------------------------------------------------------ */
 /* 参加者                                                               */
 /* ------------------------------------------------------------------ */
-function MyTeam() {
+/** チームのボタン（押すとそのチームに入る） */
+function TeamPicker({ onPicked }: { onPicked?: () => void }) {
   const { game, act } = useGame<PartyEventView>();
   const q = game.quiz;
+  return (
+    <div className="grid grid-cols-2 gap-2" data-testid="quiz-team-pick">
+      {q.teams.map((t) => (
+        <Button
+          key={t}
+          size="lg"
+          variant={t === q.myTeam ? 'success' : 'secondary'}
+          onClick={async () => {
+            if (await act('quiz:team', { team: t })) onPicked?.();
+          }}
+        >
+          {t}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/** 「得点・チーム」の中: いまのチームと、押し間違えたときの選び直し */
+function TeamChanger({ onPicked }: { onPicked: () => void }) {
+  const { game } = useGame<PartyEventView>();
   const [changing, setChanging] = useState(false);
-  if (q.myTeam && !changing) {
-    return (
-      <Card className="flex items-center justify-between gap-2 !py-3">
-        <span className="text-sm text-muted">あなたのチーム</span>
-        <span className="flex items-center gap-3">
-          <span data-testid="my-team">
-            <Badge className="bg-hi text-base text-on-hi">{q.myTeam}</Badge>
-          </span>
-          <button className="min-h-11 px-2 text-xs font-bold text-muted underline" onClick={() => setChanging(true)} data-testid="quiz-team-change">
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-base">
+          あなたのチーム: <span className="font-extrabold">{game.quiz.myTeam}</span>
+        </span>
+        {!changing && (
+          <button className="min-h-11 px-2 text-sm font-bold text-info-ink underline" onClick={() => setChanging(true)} data-testid="quiz-team-change">
             変える
           </button>
-        </span>
-      </Card>
-    );
-  }
-  return (
-    <Card>
-      <SectionTitle>{q.myTeam ? 'チームを選び直してください' : 'チームを選んでください'}</SectionTitle>
-      <div className="grid grid-cols-2 gap-2" data-testid="quiz-team-pick">
-        {q.teams.map((t) => (
-          <Button
-            key={t}
-            size="lg"
-            variant={t === q.myTeam ? 'success' : 'secondary'}
-            onClick={async () => {
-              await act('quiz:team', { team: t });
-              setChanging(false);
-            }}
-          >
-            {t}
-          </Button>
-        ))}
+        )}
       </div>
-      {q.myTeam && (
-        <button className="mt-3 w-full text-xs font-bold text-muted underline" onClick={() => setChanging(false)}>
-          やめる（{q.myTeam} のまま）
-        </button>
+      {changing && (
+        <div className="mt-2">
+          <TeamPicker onPicked={onPicked} />
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
 
