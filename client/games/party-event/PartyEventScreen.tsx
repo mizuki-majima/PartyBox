@@ -10,6 +10,8 @@ import { useToast } from '../../lib/toast';
 import { HostUrl } from '../../pages/Lobby';
 import { useGame, useRoomContext } from '../RoomContext';
 import { BingoSection } from './BingoSection';
+import { DinnerSeating } from './DinnerSeating';
+import { MeBar, NowBanner } from './MeBar';
 import { QuizSection } from './QuizSection';
 import { SeatsSection } from './SeatsSection';
 
@@ -62,10 +64,19 @@ export function PartyEventScreen() {
             司会の画面です。ここでの操作が参加者全員の画面に出ます
           </p>
           <Invite />
+          {game.dinner && <HostDinner />}
         </Card>
       )}
 
+      {!game.isHost && (
+        <>
+          <MeBar />
+          <NowBanner />
+        </>
+      )}
+
       {game.section === 'none' && <Waiting isHost={game.isHost} />}
+      {game.section === 'none' && !game.isHost && game.dinner && <DinnerSeating dinner={game.dinner} />}
       {game.section === 'quiz' && <QuizSection />}
       {game.section === 'seats' && <SeatsSection />}
       {game.section === 'bingo' && <BingoSection />}
@@ -124,6 +135,25 @@ function Invite() {
           </div>
         </div>
         <HostUrl />
+        <Button variant="secondary" block className="mt-4" onClick={() => setOpen(false)}>
+          閉じる
+        </Button>
+      </Modal>
+    </>
+  );
+}
+
+/** 司会の画面から夕食の席を出す（受付で見せる・席を聞かれたとき用） */
+function HostDinner() {
+  const { game } = useGame<PartyEventView>();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="secondary" block className="mt-2" onClick={() => setOpen(true)} data-testid="host-dinner-open">
+        <Icon name="seat" /> 夕食の席
+      </Button>
+      <Modal open={open} onClose={() => setOpen(false)}>
+        {game.dinner && <DinnerSeating dinner={game.dinner} />}
         <Button variant="secondary" block className="mt-4" onClick={() => setOpen(false)}>
           閉じる
         </Button>

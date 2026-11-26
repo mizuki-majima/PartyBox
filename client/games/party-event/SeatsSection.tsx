@@ -116,7 +116,8 @@ function MySeat() {
 /** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす（サーバーの nameKey と同じ） */
 const nameKey = (name: string) => name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 
-function PickMyName() {
+/** 名簿から自分を選ぶ（座席決めの画面と、「あなた」の帯から開く） */
+export function PickMyName() {
   const { game, act } = useGame<PartyEventView>();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);

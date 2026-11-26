@@ -55,6 +55,16 @@
   --color-warn: var(--t-warn);
   --color-warn-ink: var(--t-warn-ink);
   --color-on-warn: var(--t-on-warn);
+
+  /* 夕食の席の所属の色（凡例の順）。決めていないテーマは、ほかの意味の色を借りる */
+  --color-tone-0: var(--t-tone-0, var(--t-accent));
+  --color-on-tone-0: var(--t-on-tone-0, var(--t-on-accent));
+  --color-tone-1: var(--t-tone-1, var(--t-info));
+  --color-on-tone-1: var(--t-on-tone-1, var(--t-fg));
+  --color-tone-2: var(--t-tone-2, var(--t-hi));
+  --color-on-tone-2: var(--t-on-tone-2, var(--t-on-hi));
+  --color-tone-3: var(--t-tone-3, var(--t-ok));
+  --color-on-tone-3: var(--t-on-tone-3, var(--t-on-ok));
 }
 
 @theme {

@@ -437,9 +437,56 @@ test('懇親会: 始まったルームには名簿から名前を選んで入り
   await guest2.getByTestId('join-roster-person').filter({ hasText: 'さくら' }).click();
   await guest2.getByTestId('join-submit').click();
   await guest2.getByTestId('join-takeover').click();
-  await expect(guest2.getByText('さくら さん')).toBeVisible();
+  await expect(guest2.getByTestId('me-bar')).toContainText('さくら さん');
+  await expect(guest2.getByText('くじを待っています')).toBeVisible();
   await expect(guest.getByTestId('resume-here')).toBeVisible();
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
 
   for (const p of [host, guest, guest2]) await p.context().close();
+});
+
+test('懇親会: 夕食の席が待機画面とモーダルで見られ、自分に印が付く。あなたの帯で表示名を直せ、いまやることが出る', async ({ browser }) => {
+  const host = await newPage(browser, DESKTOP);
+  const guest = await newPage(browser, PHONE);
+
+  await host.goto('/play/party-event');
+  await host.getByPlaceholder('例：みずき').fill('司会');
+  await host.getByTestId('create-room').click();
+  await host.waitForURL(/\/room\/[A-Z0-9]{6}$/);
+  const code = await host.getByTestId('room-code').innerText();
+  await host.getByTestId('start-game').click();
+
+  await guest.goto(`/room/${code}`);
+  await guest.getByTestId('join-roster-person').filter({ hasText: 'さくら' }).click();
+  await guest.getByTestId('join-submit').click();
+
+  // 待機画面: いまやること・あなたの帯・夕食の席（自分に印）
+  await expect(guest.getByTestId('now-banner')).toContainText('司会の合図を待ちましょう');
+  await expect(guest.getByTestId('me-bar')).toContainText('さくら さん');
+  await expect(guest.getByTestId('me-bar')).toContainText('チーム A');
+  await expect(guest.getByTestId('dinner-seating')).toBeVisible();
+  await expect(guest.getByTestId('dinner-table')).toHaveCount(2);
+  await expect(guest.getByTestId('dinner-you')).toHaveText(/さくら/);
+
+  // ほかの企画の間も、帯の「夕食の席」から開ける
+  await host.getByTestId('section-bingo').click();
+  await expect(guest.getByTestId('dinner-seating')).toHaveCount(0);
+  await guest.getByTestId('me-dinner-open').click();
+  await expect(guest.getByTestId('dinner-seating')).toBeVisible();
+  await guest.getByRole('button', { name: '閉じる' }).click();
+
+  // 表示名を直しても、名簿の名前（夕食の席の印）はそのまま
+  await guest.getByTestId('me-rename').click();
+  await guest.getByTestId('me-rename-input').fill('さくらちゃん');
+  await guest.getByTestId('me-rename-save').click();
+  await expect(guest.getByTestId('me-bar')).toContainText('さくらちゃん さん');
+  await guest.getByTestId('me-dinner-open').click();
+  await expect(guest.getByTestId('dinner-you')).toHaveText(/さくら/);
+  await guest.getByRole('button', { name: '閉じる' }).click();
+
+  // 司会の画面からも夕食の席を開ける
+  await host.getByTestId('host-dinner-open').click();
+  await expect(host.getByTestId('dinner-seating')).toBeVisible();
+
+  for (const p of [host, guest]) await p.context().close();
 });

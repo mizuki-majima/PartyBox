@@ -127,3 +127,23 @@
 [data-theme='party-event'] .ui-bar[data-edge='bottom'] {
   border-width: 2.5px 0 0;
 }
+
+/* 主催のテンプレートの飾り: 青の明るさを段階的に変えた小さな四角の列（見出しの頭に置く） */
+[data-theme='party-event'] .event-squares {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 4.25rem;
+  height: 0.75rem;
+  background: linear-gradient(
+    90deg,
+    #218bff 0 0.75rem,
+    transparent 0.75rem 0.875rem,
+    #61b3ff 0.875rem 1.625rem,
+    transparent 1.625rem 1.75rem,
+    #97d3ff 1.75rem 2.5rem,
+    transparent 2.5rem 2.625rem,
+    #ceedff 2.625rem 3.375rem,
+    transparent 3.375rem 3.5rem,
+    #e5f6ff 3.5rem 4.25rem
+  );
+}
