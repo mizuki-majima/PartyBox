@@ -486,6 +486,11 @@ export function GameOverPanel({ children, ranking = true }: { children?: ReactNo
           </a>
         </p>
       )}
+      {!endReason && !isEventGame(room.gameId) && room.demo && (
+        <p className="text-center text-sm text-muted" data-testid="result-not-recorded">
+          デモのルームなので、勝者の記録には残りません。
+        </p>
+      )}
       <GameOverActions />
     </div>
   );
