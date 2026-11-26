@@ -35,15 +35,16 @@ const QuizQuestion = z
     choices: z.array(nonEmpty(120)).min(2).max(6).optional(),
     /**
      * 選択問題なら選択肢の番号（**1 始まり**。party-app-aws の quiz.json と同じ）、自由回答なら答えの文章。
-     * 読み込んだあとは、選択問題の番号を 0 始まりに直して持つ（画面と採点は 0 始まり）
+     * 読み込んだあとは、選択問題の番号を 0 始まりに直して持つ（画面と採点は 0 始まり）。
+     * 省いてもよい（答えが当日まで分からない問題など）。省いた問題は選択問題でも自動採点せず、司会が ○ を付ける
      */
-    answer: z.union([z.number().int(), nonEmpty(300)]),
+    answer: z.union([z.number().int(), nonEmpty(300)]).optional(),
     note: z.string().max(500).optional(),
     /** 正解したチームに足す点（省くと 1）。最後の問題を高くするなど */
     points: z.number().int().min(1).max(10).optional(),
   })
   .superRefine((q, ctx) => {
-    if (!q.choices) return;
+    if (!q.choices || q.answer === undefined) return;
     if (typeof q.answer !== 'number' || q.answer < 1 || q.answer > q.choices.length) {
       ctx.addIssue({
         code: 'custom',
@@ -53,6 +54,8 @@ const QuizQuestion = z
     }
   })
   .transform((q) => {
+    // 答えを省いた問題は、省いたまま持つ（司会が ○ を付ける）
+    if (q.answer === undefined) return { ...q, answer: undefined };
     if (q.choices) return { ...q, answer: (q.answer as number) - 1 };
     // 自由回答に数字だけ書いてあっても、答えの文章として扱う
     return { ...q, answer: String(q.answer) };
@@ -90,7 +93,7 @@ const SeatsConfig = z.object({
  * 常設のルーム（room.json）。置いてあれば、サーバーが起動時にこのコードの懇親会ルームを用意し、期限で片付けない。
  * 参加者はトップの「コードで参加」からコードを入れるだけで入れる（誰かがルームを作る必要が無い）。
  * コードを知らない人に名簿やクイズを見せないよう、このファイルがある間は、懇親会のルームを新しく作れなくする。
- * デモは作れるが、名前・所属を仮名に、問題をダミーにしたデータで動く（./demoConfig.ts。人数や構成は本番とそろう）。
+ * デモは作れる（使い捨てのルームで、本番と同じデータで動く。常設のルームには触れない）。
  * 名簿と同じく、リポジトリには置かない（コードと司会用の合言葉が入るため）
  */
 const FixedRoomConfig = z.object({

@@ -1,4 +1,3 @@
-import type { EventConfig } from '../event/config';
 import type { GameId, GameSettings } from '../../shared/games';
 import type { GameAction, GameViewBase } from '../../shared/protocol';
 
@@ -45,6 +44,5 @@ export interface GameInstance {
 
 export interface ServerGameDefinition {
   id: GameId;
-  /** eventConfig: 懇親会の名簿・問題（省けば置き場のデータ。常設のルームがあるサーバーのデモでは仮名のデータを渡す） */
-  create(ctx: GameContext, participants: string[], settings: GameSettings, eventConfig?: EventConfig): GameInstance;
+  create(ctx: GameContext, participants: string[], settings: GameSettings): GameInstance;
 }

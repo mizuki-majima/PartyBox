@@ -59,10 +59,17 @@ export function submitAnswer(state: QuizState, team: string, answer: Omit<TeamAn
   state.answers = { ...state.answers, [state.qno]: forQno };
 }
 
-/** 選択肢の問題は締め切った時点で自動採点する。自由回答は司会が ○ を付ける */
+/**
+ * 司会が ○ を付ける問題か。自由回答と、答えを書いていない問題（選択問題でも）。
+ * 答えが当日まで分からない問題でも、書き忘れた答えで自動採点しないように
+ */
+export const hostGraded = (question: { choices?: string[] | null; answer?: unknown }): boolean =>
+  !question.choices || question.answer === undefined || question.answer === null;
+
+/** 選択肢の問題は締め切った時点で自動採点する。自由回答・答えを書いていない問題は司会が ○ を付ける */
 function autoGrade(state: QuizState, cfg: QuizConfig): void {
   const question = currentQuestion(state, cfg);
-  if (!question?.choices) return;
+  if (!question || hostGraded(question)) return;
   const forQno = { ...(state.graded[state.qno] ?? {}) };
   for (const [team, answer] of Object.entries(answersFor(state, state.qno))) {
     forQno[team] = Number(answer.choice) === Number(question.answer);
@@ -226,8 +233,9 @@ export function quizView(state: QuizState, cfg: QuizConfig, isHost: boolean, tea
       ? {
           question: question.question,
           choices: question.choices ?? null,
-          // ここが肝心: 答えは reveal 以降か、司会にだけ
-          answer: revealed || isHost ? question.answer : null,
+          // ここが肝心: 答えは reveal 以降か、司会にだけ。答えを書いていない問題は null
+          answer: revealed || isHost ? (question.answer ?? null) : null,
+          hostGraded: hostGraded(question),
           note: revealed || isHost ? (question.note ?? null) : null,
           points: pointsOf(cfg, state.qno),
         }

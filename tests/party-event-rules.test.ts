@@ -449,6 +449,38 @@ describe('クイズ', () => {
     expect(quiz.quizView(t, c, false, 'A').question?.points).toBe(3);
   });
 
+  it('答えを書いた選択問題は自動採点、自由回答と答えを書いていない選択問題は司会が ○ を付ける（hostGraded）', () => {
+    expect(quiz.hostGraded(cfg.questions[0])).toBe(false);
+    expect(quiz.hostGraded(cfg.questions[1])).toBe(true);
+    expect(quiz.hostGraded({ choices: ['あ', 'い'], answer: undefined })).toBe(true);
+  });
+
+  it('答えを書いていない選択問題は、締め切っても自動採点しない。答えは誰にも null で、司会の ○ が得点と正誤になる', () => {
+    const c: QuizConfig = { ...cfg, questions: [{ question: '答えが未定', choices: ['あ', 'い', 'う'], answer: undefined }] };
+    const s = quiz.emptyQuiz();
+    quiz.next(s, c); // 問題
+    const forHost = quiz.quizView(s, c, true, null).question!;
+    expect(forHost.answer).toBeNull();
+    expect(forHost.hostGraded).toBe(true);
+
+    quiz.next(s, c); // 回答タイム
+    quiz.submitAnswer(s, 'A', { text: 'い', choice: 1, by: 'p1' });
+    quiz.submitAnswer(s, 'B', { text: 'あ', choice: 0, by: 'p2' });
+    quiz.next(s, c); // 締め切って答え
+    expect(s.phase).toBe('reveal');
+    const forA = quiz.quizView(s, c, false, 'A');
+    expect(forA.question!.answer).toBeNull();
+    expect(forA.myCorrect).toBeNull(); // まだ ○ を付けていない（仮の答えで × にしない）
+    expect(forA.answers!.map((r) => r.correct)).toEqual([null, null]);
+    expect(quiz.scoresOf(s, c)).toEqual({ A: 0, B: 0 });
+
+    quiz.grade(s, 1, 'A', true);
+    quiz.grade(s, 1, 'B', false);
+    expect(quiz.quizView(s, c, false, 'A').myCorrect).toBe(true);
+    expect(quiz.quizView(s, c, false, 'B').myCorrect).toBe(false);
+    expect(quiz.scoresOf(s, c)).toEqual({ A: 1, B: 0 });
+  });
+
   it('参加者には回答タイム中は他チームの回答を見せず、答えの段から全チーム分を見せる', () => {
     const s = quiz.emptyQuiz();
     advanceTo(s, 'answering');

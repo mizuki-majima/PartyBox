@@ -59,6 +59,15 @@ describe('クイズの answer（選択問題は 1 始まり）', () => {
     expect(quiz.questions[1].answer).toBe('3776');
   });
 
+  it('answer は省ける（選択問題でも自由回答でも）。省いたまま持つ（答えが当日まで分からない問題のため）', () => {
+    writeQuiz([
+      { question: '答えが直前に決まる選択問題', choices: ['あ', 'い', 'う'] },
+      { question: '司会が正解を決める自由回答' },
+    ]);
+    const { quiz } = loadEventConfig();
+    expect(quiz.questions.map((q) => q.answer)).toEqual([undefined, undefined]);
+  });
+
   it('points を省くと 1 点、書けばその点', () => {
     writeQuiz([
       { question: 'ふつう', answer: 'あ' },
