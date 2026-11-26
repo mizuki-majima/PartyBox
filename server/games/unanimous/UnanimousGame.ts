@@ -59,7 +59,6 @@ export class UnanimousGame extends BaseGame<UnanimousPhase> {
   private merges = new Map<string, string>();
   private result: UnanimousRoundResult | null = null;
   private teamScore = 0;
-  private readonly maxScore: number;
   private history: UnanimousView['history'] = [];
   private matchCounts: Record<string, number> = {};
 
@@ -68,7 +67,6 @@ export class UnanimousGame extends BaseGame<UnanimousPhase> {
     this.totalRounds = Number(settings.rounds);
     this.answerTime = Number(settings.answerTime) * 1000;
     this.questions = ctx.drawFromDeck('unanimous', data.prompts, this.totalRounds);
-    this.maxScore = this.totalRounds * unanimousPoints(participants.length, participants.length);
     for (const id of participants) this.matchCounts[id] = 0;
   }
 
@@ -78,6 +76,11 @@ export class UnanimousGame extends BaseGame<UnanimousPhase> {
 
   private get question(): string | null {
     return this.round > 0 ? (this.questions[(this.round - 1) % this.questions.length] ?? null) : null;
+  }
+
+  /** 最大点（全ラウンド全員一致）。「ここで終了」で totalRounds が減ると、遊んだラウンドのぶんになる */
+  private get maxScore(): number {
+    return this.totalRounds * unanimousPoints(this.participants.length, this.participants.length);
   }
 
   private startRound(round: number): void {
