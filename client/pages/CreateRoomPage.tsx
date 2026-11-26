@@ -104,7 +104,7 @@ export function CreateRoomPage() {
                 <Icon name="eye" /> まずはデモで試す
               </Button>
             </Link>
-            <p className="mt-2 text-center text-xs text-muted">デモは名前と会社名が仮名、問題がダミーです（人数やチームの数は本番と同じ）</p>
+            <p className="mt-2 text-center text-xs text-muted">デモは本番と同じ名簿・問題で動きます（用意してあるルームには影響しません）</p>
           </Card>
         ) : (
         <Card className="animate-slide-up self-start">

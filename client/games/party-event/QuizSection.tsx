@@ -155,9 +155,12 @@ function QuestionArea() {
         <Card className="animate-pop-in text-center">
           <Badge className="bg-ok text-on-ok">答え</Badge>
           <p className="mt-2 font-display text-3xl" data-testid="quiz-answer">
-            {question.choices && typeof question.answer === 'number'
-              ? question.choices[question.answer]
-              : String(question.answer ?? '')}
+            {question.answer == null
+              ? // 答えを書いていない問題は、司会が口頭で発表して ○ を付ける
+                '司会から発表します'
+              : question.choices && typeof question.answer === 'number'
+                ? question.choices[question.answer]
+                : String(question.answer)}
           </p>
           {question.note && <p className="mt-3 text-sm text-fg/80">{question.note}</p>}
           {myCorrect !== null && (
@@ -341,8 +344,9 @@ function HostControls() {
 
   // 問題・回答タイムの間も、司会にだけ答えを小さく出す（読み上げながら確かめられるように）
   const question = q.question;
+  const asking = question && (q.phase === 'question' || q.phase === 'answering');
   const preview =
-    question && (q.phase === 'question' || q.phase === 'answering') && question.answer != null
+    asking && question.answer != null
       ? question.choices && typeof question.answer === 'number'
         ? `${question.answer + 1}. ${question.choices[question.answer]}`
         : String(question.answer)
@@ -355,6 +359,13 @@ function HostControls() {
           <p className="ui-tile px-3 py-2 text-sm" data-testid="quiz-host-answer">
             <span className="mr-2 text-xs font-extrabold text-warn-ink">答え（司会だけに表示）</span>
             <span className="font-bold">{preview}</span>
+          </p>
+        )}
+        {asking && question.answer == null && (
+          // 答えが当日まで分からない問題など。締め切ったあと、司会が各チームの回答に ○ を付ける
+          <p className="ui-tile px-3 py-2 text-sm" data-testid="quiz-host-answer">
+            <span className="mr-2 text-xs font-extrabold text-warn-ink">答えは未設定</span>
+            <span className="font-bold">締め切ったあと、正解のチームに ○ を付けてください</span>
           </p>
         )}
         <HostActionBar>
@@ -379,7 +390,8 @@ function HostControls() {
 function AnswerTable() {
   const { game, act } = useGame<PartyEventView>();
   const q = game.quiz;
-  const free = !q.question?.choices;
+  // 自由回答と、答えを書いていない選択問題は、司会が ○ を付ける（サーバーは自動採点しない）
+  const free = q.question?.hostGraded ?? !q.question?.choices;
   return (
     <div>
       <SectionTitle right={<span className="text-xs text-muted">{free ? '○ を付けてください' : '自動採点ずみ'}</span>}>

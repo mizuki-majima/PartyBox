@@ -52,7 +52,7 @@ function saveCount(n: number): void {
 }
 
 function Demo({ meta }: { meta: GameMeta }) {
-  // 常設のルームがあるサーバーでは、デモは仮名のデータで動く（server/event/demoConfig.ts）
+  // 常設のルームがあるサーバーでも、デモは本番と同じ名簿・問題で動く（常設のルームには触れない）
   const fixed = useFixedEventRoom() === true;
   const toast = useToast();
   const [count, setCount] = useState(loadCount);
@@ -167,8 +167,8 @@ function Demo({ meta }: { meta: GameMeta }) {
             <span className="lg:hidden">PCの大きな画面で開くのがおすすめです。</span>
           </p>
           {fixed && (
-            <p className="mt-2 text-sm font-bold" data-testid="demo-pseudonym-note">
-              ルームが用意してあるので、デモは名前と会社名を仮名、問題をダミーにして動かしています（人数・チーム・テーブル・問題の数と点数は本番と同じです）。
+            <p className="mt-2 text-sm font-bold" data-testid="demo-real-data-note">
+              名簿とクイズ（答えも）は、用意してあるルームと同じです。デモで進めても、用意してあるルームの進み具合は変わりません。
             </p>
           )}
         </Card>
