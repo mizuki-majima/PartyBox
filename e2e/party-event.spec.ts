@@ -110,6 +110,7 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   await expect(guestA.getByTestId('seats-tables')).toHaveCount(0);
   await guestA.getByTestId('seats-more-open').click();
   await expect(guestA.getByTestId('seats-tables')).toBeVisible();
+  await expect(guestA.getByTestId('seats-last')).toBeVisible(); // いま引いた人も、テーブルの一覧の中で見られる
   await guestA.getByTestId('seats-more-close').click();
   await expect(host.getByTestId('seats-last')).toBeVisible();
   await expect(host.getByTestId('seats-tables')).toBeVisible(); // 司会の画面は今までどおり
@@ -465,6 +466,15 @@ test('懇親会: 始まったルームには名簿から名前を選んで入り
   await host.getByTestId('section-quiz').click();
   await expect(guest.getByTestId('my-team')).toHaveText('チーム A');
   await expect(guest.getByTestId('quiz-team-pick')).toHaveCount(0);
+
+  // 「得点・チーム」を開いたまま回答タイムに入ったら、閉じて答えのボタンを見せる
+  await host.getByTestId('quiz-next').click(); // 第1問
+  await expect(guest.getByTestId('question')).toBeVisible();
+  await guest.getByTestId('quiz-more-open').click();
+  await expect(guest.getByTestId('quiz-more-close')).toBeVisible();
+  await host.getByTestId('quiz-next').click(); // 回答タイム
+  await expect(guest.getByTestId('quiz-more-close')).toHaveCount(0);
+  await expect(guest.getByTestId('quiz-choices')).toBeVisible();
 
   // 座席決めは、選んだ名簿の名前で待つ（表示名ではない）
   await host.getByTestId('section-seats').click();

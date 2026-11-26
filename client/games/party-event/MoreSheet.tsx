@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Icon } from '../../components/Icon';
 import { Button, Modal } from '../../components/ui';
 
@@ -11,15 +11,21 @@ export function MoreSheet({
   label,
   title,
   testId,
+  closeOn,
   children,
 }: {
   label: string;
   title: string;
   testId: string;
+  /** これが変わったら閉じる（例: クイズの段。開いたまま回答タイムに入ると、答えのボタンが隠れるため） */
+  closeOn?: string | number;
   children: ReactNode | ((close: () => void) => ReactNode);
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  useEffect(() => {
+    setOpen(false);
+  }, [closeOn]);
   return (
     <>
       <button

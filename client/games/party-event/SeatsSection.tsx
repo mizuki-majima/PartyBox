@@ -32,6 +32,14 @@ export function SeatsSection() {
               <p className="mb-3 text-base font-bold">
                 {s.drawn} / {s.drawn + s.remaining} 人の席が決まりました
               </p>
+              {s.last && (
+                <div className="ui-tile mb-3 bg-hi px-4 py-2 text-on-hi">
+                  <p className="text-sm">いま引いた人</p>
+                  <p className="font-display text-xl" data-testid="seats-last">
+                    {s.last.name}・{s.last.table == null ? '席なし' : (s.tables[s.last.table]?.name ?? `テーブル ${s.last.table + 1}`)}
+                  </p>
+                </div>
+              )}
               <Tables />
             </MoreSheet>
           </MoreRow>
