@@ -3,6 +3,7 @@ import type { PartyEventView } from '../shared/games/views';
 import { getLastEventRoom, getTeamPlay, rememberEventRoom, setTeamPlay } from '../client/lib/eventReturn';
 import { nowText } from '../client/games/party-event/nowText';
 import { REVEAL_MS, reelSchedule } from '../client/games/party-event/seatReveal';
+import { keepAwakeIn } from '../client/lib/wakeLock';
 
 /**
  * 懇親会の画面のうち、画面の部品から切り出した決まりごと（スロットの止め方・いまやることの文・端末に覚えること）
@@ -83,5 +84,13 @@ describe('端末に覚えること（チームで遊ぶ・戻り先）', () => {
     expect(getLastEventRoom()).toBe('ABC123');
     vi.setSystemTime(new Date('2026-11-28T06:00:01+09:00'));
     expect(getLastEventRoom()).toBeNull();
+  });
+});
+
+describe('画面を消さないとき（嘘つきは誰だ？）', () => {
+  it('お題を見て・話して・投票する間は、画面を消さない（自動ロックで切断し、自分の番が飛ばされないように）', () => {
+    for (const phase of ['ROLE', 'TALK', 'VOTE', 'LIAR_GUESS']) expect(keepAwakeIn('liar', phase)).toBe(true);
+    for (const phase of ['START', 'RESULT', 'GAME_OVER']) expect(keepAwakeIn('liar', phase)).toBe(false);
+    expect(keepAwakeIn('whose-answer', 'ANSWER')).toBe(false);
   });
 });

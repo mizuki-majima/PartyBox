@@ -84,7 +84,7 @@ function GuestQuiz() {
       {q.phase === 'result' ? <Ranking /> : q.question ? <QuestionArea /> : <Idle />}
 
       <MoreRow>
-        <MoreSheet label="得点・チーム" title="得点とチーム" testId="quiz-more">
+        <MoreSheet label="得点・チーム" title="得点とチーム" testId="quiz-more" closeOn={q.position}>
           {(close) => (
             <div className="flex flex-col gap-4">
               {q.myTeam && <TeamChanger onPicked={close} />}
