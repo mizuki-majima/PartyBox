@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { BingoConfig, QuizConfig, SeatsConfig } from '../server/event/config';
+import type { BingoConfig, DinnerConfig, QuizConfig, SeatsConfig } from '../server/event/config';
 import * as bingo from '../server/games/party-event/bingo';
 import { cardCells, judgeCard, labelOf, normalizeCardId } from '../server/games/party-event/cards';
+import * as dinner from '../server/games/party-event/dinner';
 import * as quiz from '../server/games/party-event/quiz';
 import * as seats from '../server/games/party-event/seats';
 
@@ -438,5 +439,57 @@ describe('クイズ', () => {
     quiz.grade(s, 1, 'A', true);
     quiz.grade(s, 1, 'B', true);
     expect(quiz.quizView(s, cfg, false, null).ranking.map((r) => r.rank)).toEqual([1, 1]);
+  });
+});
+
+/* ================================================================== */
+describe('夕食の席', () => {
+  const cfg: DinnerConfig = {
+    title: '夕食の席',
+    legend: [
+      { label: '甲', groups: ['A社'] },
+      { label: '乙', groups: ['B社', 'C社'] },
+    ],
+    tables: [
+      {
+        name: '1卓目',
+        teams: [
+          { name: 'チーム A', members: ['山田 太郎', 'すずき'] },
+          { name: 'チーム B', members: ['たなか', 'ゲスト'] },
+        ],
+      },
+    ],
+  };
+  const roster = [
+    { id: 'p1', name: '山田 太郎', group: 'A社' },
+    { id: 'p2', name: 'すずき', group: 'B社' },
+    { id: 'p3', name: 'たなか', group: 'C社' },
+  ];
+
+  it('名前から夕食のチームを引く（全角・空白の違いは同じ）', () => {
+    expect(dinner.teamOfName(cfg, '山田太郎')).toEqual({ table: '1卓目', team: 'チーム A' });
+    expect(dinner.teamOfName(cfg, '　たなか ')).toEqual({ table: '1卓目', team: 'チーム B' });
+    expect(dinner.teamOfName(cfg, 'いないひと')).toBeNull();
+  });
+
+  it('所属の色は legend の順、名簿に無い名前は tone null。凡例に人数が付く', () => {
+    const v = dinner.dinnerView(cfg, roster, null);
+    const [a, b] = v.tables[0].teams;
+    expect(a.members.map((m) => m.tone)).toEqual([0, 1]);
+    expect(b.members.map((m) => m.tone)).toEqual([1, null]);
+    expect(v.legend).toEqual([
+      { label: '甲', tone: 0, count: 1 },
+      { label: '乙', tone: 1, count: 2 },
+    ]);
+    expect(v.tables[0].count).toBe(4);
+  });
+
+  it('自分の名前に you が付き、myTeam / myTable が入る', () => {
+    const v = dinner.dinnerView(cfg, roster, 'たなか');
+    expect(v.tables[0].teams[1].members[0].you).toBe(true);
+    expect(v.tables[0].teams[0].members.some((m) => m.you)).toBe(false);
+    expect(v.myTeam).toBe('チーム B');
+    expect(v.myTable).toBe('1卓目');
+    expect(dinner.dinnerView(cfg, roster, null).myTeam).toBeNull();
   });
 });

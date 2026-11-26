@@ -280,6 +280,20 @@ describe('座席決め（通信の中身）', () => {
     expect(view(clients[2]).seats.myPersonId).toBe('p2');
   });
 
+  it('名簿で名前を選ぶと、夕食のチームと同じ名前のクイズのチームに入り、夕食の席に自分の印が付く', async () => {
+    const { clients } = await setupEvent();
+    const guest = clients[1];
+    // サンプルの夕食の席では、さくら は「チーム A」。サンプルのクイズにも「チーム A」がある
+    const sakura = view(guest).seats.roster.find((p) => p.name === 'さくら')!;
+    await guest.actionOk('seats:claim', { personId: sakura.id });
+    await guest.waitFor((v) => (v.game as unknown as PartyEventView).quiz.myTeam === 'チーム A', 3000, 'クイズのチーム');
+    const d = view(guest).dinner!;
+    expect(d.myTeam).toBe('チーム A');
+    expect(d.tables[0].teams[0].members.find((m) => m.name === 'さくら')?.you).toBe(true);
+    // ほかの人の画面では、さくら に自分の印は付かない
+    expect(view(clients[2]).dinner!.tables[0].teams[0].members.find((m) => m.name === 'さくら')?.you).toBe(false);
+  });
+
   it('別のスマホで選ばれている名前は、本人だと確かめると、こちらのスマホに移る', async () => {
     const { host, clients } = await setupEvent();
     await host.actionOk('event:section', { section: 'seats' });

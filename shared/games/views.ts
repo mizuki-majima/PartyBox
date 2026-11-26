@@ -340,6 +340,36 @@ export interface SeatsView {
   myPersonId: string | null;
 }
 
+/** 夕食の席の1人。tone は所属の色（legend の何番目か。名簿に無い名前は null） */
+export interface DinnerMemberView {
+  name: string;
+  tone: number | null;
+  /** この画面の人が名簿で選んだ名前か */
+  you: boolean;
+}
+
+export interface DinnerTeamView {
+  name: string;
+  members: DinnerMemberView[];
+}
+
+export interface DinnerTableView {
+  name: string;
+  /** このテーブルの人数 */
+  count: number;
+  teams: DinnerTeamView[];
+}
+
+export interface DinnerView {
+  title: string;
+  tables: DinnerTableView[];
+  /** 色の凡例（人数つき） */
+  legend: { label: string; tone: number; count: number }[];
+  /** 自分の夕食のチーム・テーブル（名簿で名前を選んでいて、席の表に載っていれば） */
+  myTeam: string | null;
+  myTable: string | null;
+}
+
 export interface PartyEventView extends GameViewBase {
   gameId: 'party-event';
   phase: 'EVENT';
@@ -349,6 +379,8 @@ export interface PartyEventView extends GameViewBase {
   quiz: QuizView;
   bingo: BingoView;
   seats: SeatsView;
+  /** 夕食の席（dinner.json が無ければ null） */
+  dinner: DinnerView | null;
 }
 
 export type AnyGameView = UnanimousView | WhoseView | LiarView | GrowView | TrialView | PartyEventView;

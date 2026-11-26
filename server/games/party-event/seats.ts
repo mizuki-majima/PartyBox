@@ -57,8 +57,8 @@ function chosenIds(state: SeatsState): Set<string> {
   return new Set([...Object.values(state.claimed), ...byHost, ...state.present]);
 }
 
-/** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす */
-function nameKey(name: string): string {
+/** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす（夕食の席の引き当てにも使う） */
+export function nameKey(name: string): string {
   return name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 }
 

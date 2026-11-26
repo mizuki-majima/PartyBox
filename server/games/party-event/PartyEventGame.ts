@@ -16,6 +16,7 @@ import { type EventConfig, getEventConfig } from '../../event/config';
 import { BaseGame } from '../BaseGame';
 import { type GameContext, UserError } from '../types';
 import * as bingo from './bingo';
+import * as dinner from './dinner';
 import * as quiz from './quiz';
 import * as seats from './seats';
 import { isCardId, normalizeCardId } from './cards';
@@ -250,7 +251,7 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       }
       case 'seats:claim':
         // personId が空なら選び直し。takeover は「別のスマホで選ばれているが本人です」と確かめたとき
-        seats.claim(this.seatsState, this.cfg.seats, playerId, String(action.personId ?? ''), action.takeover === true);
+        this.claimPerson(playerId, String(action.personId ?? ''), action.takeover === true);
         return;
       case 'seats:addSelf':
         // 名簿に無い人が、自分の名前を足してくじに入る
@@ -259,6 +260,26 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       default:
         throw new UserError(isHost ? 'その操作はできません' : 'その操作は司会のみです');
     }
+  }
+
+  /**
+   * 名簿の人を自分として選ぶ（座席決めの名前）。
+   * 夕食の席でその人のチームが分かり、同じ名前のクイズのチームがあれば、クイズのチームもそれにする
+   * （参加者が自分でチームを選ばなくてよいように。あとから「変える」で選び直すことはできる）
+   */
+  claimPerson(playerId: string, personId: string, takeover: boolean): void {
+    seats.claim(this.seatsState, this.cfg.seats, playerId, personId, takeover);
+    if (!personId || !this.cfg.dinner) return;
+    const person = seats.roster(this.seatsState, this.cfg.seats).find((p) => p.id === personId);
+    const team = person ? dinner.teamOfName(this.cfg.dinner, person.name)?.team : undefined;
+    if (team && this.cfg.quiz.teams.includes(team)) this.quizState.teamOf[playerId] = team;
+  }
+
+  /** この人が名簿で選んだ名前（選んでいなければ null） */
+  private claimedName(playerId: string): string | null {
+    const personId = this.seatsState.claimed[playerId];
+    if (!personId) return null;
+    return seats.roster(this.seatsState, this.cfg.seats).find((p) => p.id === personId)?.name ?? null;
   }
 
   /* ---------------- ビュー ---------------- */
@@ -278,6 +299,9 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       quiz: quiz.quizView(this.quizState, this.cfg.quiz, isHost, this.quizState.teamOf[playerId] ?? null),
       bingo: bingo.bingoView(this.bingoState, this.cfg.bingo, isHost, this.bingoState.cards[playerId] ?? null, this.inspected),
       seats: seats.seatsView(this.seatsState, this.cfg.seats, this.seatsState.claimed[playerId] ?? null),
+      dinner: this.cfg.dinner
+        ? dinner.dinnerView(this.cfg.dinner, seats.roster(this.seatsState, this.cfg.seats), this.claimedName(playerId))
+        : null,
     };
   }
 }
