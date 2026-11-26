@@ -36,8 +36,8 @@ export function BingoSection() {
           title="ビンゴのやり方"
           testId="event-howto-bingo"
           steps={[
-            '読み上げられた番号のマスは、自動で丸くなります。何も押さなくて大丈夫です。',
-            'たて・よこ・ななめのどれか1列がそろうと、「ビンゴ！」のボタンが出ます。出たら押してください。',
+            '読み上げられた番号がカードにあれば、そのマスを押して開けます（いま読まれた番号のマスは点滅して知らせます）。',
+            'たて・よこ・ななめのどれか1列を開けると、「ビンゴ！」のボタンが出ます。出たら押してください。',
             'まん中の ★ は、最初から開いています。',
           ]}
         />
@@ -64,6 +64,13 @@ function MyCard() {
     );
   }
   const myRank = game.bingo.myRank;
+  const called = new Set(game.bingo.called);
+  const last = game.bingo.last;
+  // いま読まれた番号がカードにあって、まだ開けていなければ、そのマスを点滅させて知らせる
+  const lastIndex = last != null ? card.cells.indexOf(last) : -1;
+  const lastWaiting = lastIndex >= 0 && !card.marked[lastIndex];
+  // 読まれたのに開けていないマスの数（見落とし防止）
+  const missed = card.cells.filter((n, i) => n !== 0 && called.has(n) && !card.marked[i]).length;
 
   return (
     <Card>
@@ -76,18 +83,42 @@ function MyCard() {
             {l}
           </div>
         ))}
-        {card.cells.map((n, i) => (
-          <div
-            key={i}
-            // 開いたマスは、色だけでなく形でも分かるようにする（開いた = 丸、まだ = 四角）
-            className={`flex aspect-square items-center justify-center text-base font-extrabold ring-2 ring-line transition sm:text-lg ${
-              n === 0 ? 'rounded-full bg-hi text-on-hi' : card.marked[i] ? 'rounded-full bg-ok text-on-ok' : 'rounded-lg bg-panel'
-            }`}
-          >
-            {n === 0 ? '★' : n}
-          </div>
-        ))}
+        {card.cells.map((n, i) =>
+          n === 0 ? (
+            <div
+              key={i}
+              className="flex aspect-square items-center justify-center rounded-full bg-hi text-base font-extrabold text-on-hi ring-2 ring-line sm:text-lg"
+            >
+              ★
+            </div>
+          ) : (
+            <button
+              key={i}
+              data-testid="bingo-cell"
+              data-number={n}
+              aria-pressed={card.marked[i]}
+              aria-label={`${letterOf(n)} ${n}${card.marked[i] ? '（開いた）' : ''}`}
+              // 開いたマスは押しても何もしない。読まれていない番号は、サーバーが「まだ読まれていない番号です」と返す
+              onClick={() => !card.marked[i] && act('bingo:punch', { number: n })}
+              // 開いたマスは、色だけでなく形でも分かるようにする（開いた = 丸、まだ = 四角）
+              className={`flex aspect-square items-center justify-center text-base font-extrabold ring-2 ring-line transition sm:text-lg ${
+                card.marked[i]
+                  ? 'animate-stamp rounded-full bg-ok text-on-ok'
+                  : i === lastIndex
+                    ? 'animate-pulse rounded-lg bg-hi text-on-hi ring-4'
+                    : 'rounded-lg bg-panel active:scale-95'
+              }`}
+            >
+              {n}
+            </button>
+          ),
+        )}
       </div>
+      {lastWaiting && (
+        <p className="ui-tile mt-3 bg-hi px-3 py-2 text-center text-base font-extrabold text-on-hi" data-testid="bingo-hint" role="status">
+          いま読まれた {letterOf(last!)} {last} があります。押して開けましょう
+        </p>
+      )}
 
       <div className="mt-4">
         {card.bingo ? (
@@ -102,14 +133,17 @@ function MyCard() {
             </Button>
           )
         ) : (
-          <p className="text-center text-sm font-bold text-muted">
+          <p className="text-center text-base font-bold text-muted">
             {card.reach > 0 ? `あと1つでビンゴ！（リーチ ${card.reach}）` : '読み上げられた番号を待ちましょう'}
           </p>
         )}
       </div>
-      <p className="mt-3 text-center text-xs text-muted">
-        マスは自動で開きます。タップは要りません
-      </p>
+      {missed > 0 && !lastWaiting && (
+        <p className="mt-2 text-center text-sm font-bold text-warn-ink" data-testid="bingo-missed">
+          読まれたのに開けていないマスが {missed} こあります
+        </p>
+      )}
+      <p className="mt-3 text-center text-sm text-muted">読み上げられた番号のマスを押すと開きます</p>
     </Card>
   );
 }

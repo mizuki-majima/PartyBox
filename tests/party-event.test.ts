@@ -389,6 +389,23 @@ describe('再起動をまたぐ保存', () => {
     expect(v.quiz.qno).toBe(1);
   });
 
+  it('開けたマス（punched）の無い古い保存を読み戻しても、マスを開けられる', () => {
+    const cfg = loadEventConfig();
+    const game = new PartyEventGame(ctx(), ['p1'], {}, cfg);
+    const cardId = game.viewFor('p1', false).bingo.myCard!.cardId;
+    const cells = game.viewFor('p1', false).bingo.myCard!.cells;
+    const n = cells.find((x) => x !== 0)!;
+    game.restore({
+      section: 'bingo',
+      quiz: { phase: 'idle', qno: 0, startedAt: null, deadline: null, graded: {}, answers: {}, teamOf: {} },
+      bingo: { called: [n], claims: [], prizes: null, cards: { p1: cardId } },
+      seats: { assign: {}, absent: [], order: [], extras: [], claimed: {}, present: [], selfAdded: {} },
+    });
+    game.handleAction('p1', { type: 'bingo:punch', number: n }, false);
+    const card = game.viewFor('p1', false).bingo.myCard!;
+    expect(card.marked[cells.indexOf(n)]).toBe(true);
+  });
+
   it('回答タイムの途中で落ちた場合は締め切った状態で戻す', () => {
     const cfg = loadEventConfig();
     const game = new PartyEventGame(ctx(), ['p1'], {}, cfg);

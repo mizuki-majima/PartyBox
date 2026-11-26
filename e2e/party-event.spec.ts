@@ -67,6 +67,23 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   // 揃っていないのに押しても受け付けない（そもそもボタンが出ない）
   await expect(guestA.getByTestId('bingo-claim')).toHaveCount(0);
 
+  // マスは自分で押して開ける。読まれた番号がカードに出るまで引き、そのマスが知らせているのを押す
+  const onCard = await guestA
+    .getByTestId('bingo-cell')
+    .evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-number'))));
+  const lastNumber = async () => Number((await host.getByTestId('bingo-last').innerText()).replace(/\D/g, ''));
+  for (let count = 1; count < 40 && !onCard.includes(await lastNumber()); count++) {
+    await host.getByTestId('bingo-draw').click();
+    await expect(host.getByTestId('bingo-count')).toContainText(`${count + 1} 個`);
+  }
+  const n = await lastNumber();
+  const cell = guestA.locator(`[data-testid="bingo-cell"][data-number="${n}"]`);
+  await expect(cell).toHaveAttribute('aria-pressed', 'false'); // 読まれただけでは開かない
+  await expect(guestA.getByTestId('bingo-hint')).toContainText(String(n));
+  await cell.click();
+  await expect(cell).toHaveAttribute('aria-pressed', 'true');
+  await expect(guestA.getByTestId('bingo-hint')).toHaveCount(0);
+
   /* ---- 座席決め ---- */
   await host.getByTestId('section-seats').click();
   await expect(guestA.getByTestId('seats-roster-pick')).toBeVisible();
@@ -328,7 +345,7 @@ test('懇親会: 2人目の司会がロビーから始められ、二度押し�
   /* ---- 説明書き: 参加者には、待っている間の流れと、いつでも開ける「遊び方」が出る ---- */
   await expect(right.getByTestId('event-howto-waiting')).toBeVisible();
   await right.getByTestId('guide-open').click();
-  await expect(right.getByTestId('game-guide')).toContainText('何も押さなくて大丈夫です'); // 参加者向けの説明
+  await expect(right.getByTestId('game-guide')).toContainText('そのマスを押して開けます'); // 参加者向けの説明
   await expect(right.getByTestId('game-guide')).not.toContainText('司会用URL'); // 司会向けの説明は出さない
   await right.getByTestId('guide-close').click();
   await host.getByTestId('guide-open').click();

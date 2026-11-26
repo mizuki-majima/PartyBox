@@ -241,6 +241,12 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
         }
         return;
       }
+      case 'bingo:punch': {
+        const cardId = this.bingoState.cards[playerId];
+        if (!cardId) throw new UserError('カードがまだ配られていません');
+        bingo.punch(this.bingoState, this.cfg.bingo, cardId, Number(action.number));
+        return;
+      }
       case 'bingo:claim': {
         const cardId = this.bingoState.cards[playerId];
         if (!cardId) throw new UserError('カードがまだ配られていません');

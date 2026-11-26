@@ -147,7 +147,7 @@ function nowText(game: PartyEventView): string {
       if (me.table == null) return '下の「くじを引く」を押しましょう';
       return '出たテーブルへ移動しましょう';
     case 'bingo':
-      return '読み上げられた番号を待ちましょう。そろったら「ビンゴ！」を押します';
+      return '読まれた番号がカードにあれば、そのマスを押して開けましょう';
     default:
       return '何も押さずに、司会の合図を待ちましょう';
   }

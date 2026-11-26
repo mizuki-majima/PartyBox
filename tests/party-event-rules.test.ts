@@ -58,6 +58,56 @@ describe('ビンゴのカード', () => {
 describe('ビンゴの進行', () => {
   const cfg: BingoConfig = { title: 'ビンゴ', seed: 'party', winnersCount: 2, prizes: ['景品A', '景品B'] };
 
+  // AB23 の1行目（cardCells('party', 'AB23') の先頭5つ）。74 は AB23 に無い番号
+  const ROW1 = [12, 21, 35, 58, 61];
+
+  it('呼ばれた番号だけ開けられ、開けたマスで列を判定する', () => {
+    const s = bingo.emptyBingo();
+    expect(cardCells('party', 'AB23').slice(0, 5)).toEqual(ROW1);
+    expect(() => bingo.punch(s, cfg, 'AB23', ROW1[0])).toThrow('まだ読まれていない番号です');
+    expect(() => bingo.punch(s, cfg, 'AB23', 74)).toThrow('その番号はカードにありません');
+
+    s.called.push(...ROW1);
+    // 呼ばれただけでは開かない（自分で押す）。司会の確かめは呼ばれた番号で見る
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').bingo).toBe(false);
+    expect(bingo.cardView(cfg, s, 'AB23', 'called').bingo).toBe(true);
+
+    for (const n of ROW1.slice(0, 4)) bingo.punch(s, cfg, 'AB23', n);
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').reach).toBeGreaterThan(0);
+    bingo.punch(s, cfg, 'AB23', ROW1[4]);
+    bingo.punch(s, cfg, 'AB23', ROW1[4]); // 2回押しても同じ
+    const v = bingo.cardView(cfg, s, 'AB23', 'opened');
+    expect(v.bingo).toBe(true);
+    expect(v.marked.slice(0, 5)).toEqual([true, true, true, true, true]);
+    expect(v.marked[12]).toBe(true); // まん中の FREE は最初から開いている
+    expect(s.punched?.AB23).toHaveLength(5);
+  });
+
+  it('戻した番号のマスは開いていない扱いになる', () => {
+    const s = bingo.emptyBingo();
+    s.called.push(ROW1[0]);
+    bingo.punch(s, cfg, 'AB23', ROW1[0]);
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').marked[0]).toBe(true);
+    bingo.undoDraw(s);
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').marked[0]).toBe(false);
+  });
+
+  it('受付の判定は呼ばれた番号のまま（開けていなくても、そろっていれば受け付ける）', () => {
+    const s = bingo.emptyBingo();
+    s.called.push(...ROW1);
+    const res = bingo.claim(s, cfg, 'AB23', 'なまえ');
+    expect(res.rejected).toBe(false);
+    expect(res.rank).toBe(1);
+  });
+
+  it('やり直すと開けたマスも消える', () => {
+    const s = bingo.emptyBingo();
+    s.called.push(ROW1[0]);
+    bingo.punch(s, cfg, 'AB23', ROW1[0]);
+    bingo.resetBingo(s);
+    expect(s.punched).toEqual({});
+  });
+
   it('75個引いたら終わり、戻すと引き直せる', () => {
     const s = bingo.emptyBingo();
     for (let i = 0; i < 75; i++) expect(bingo.draw(s)).not.toBeNull();
