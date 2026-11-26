@@ -258,7 +258,7 @@ export class RoomManager {
       return { room: event ? { ...room.summary(), roster: event.joinRoster() } : room.summary() };
     });
 
-    on('room:create', ({ gameId, name, demo }) => {
+    on('room:create', ({ gameId, name, demo, label }) => {
       if (!isGameId(gameId)) throw new UserError('ゲームが見つかりません');
       // 常設のルームがあるときは、懇親会のルーム・デモを新しく作らせない。
       // 作れると、コードを知らない人でも名簿とクイズ（答え）を見られてしまう
@@ -275,6 +275,8 @@ export class RoomManager {
       });
       // デモは催し物を1人で試すためのもの（通常のゲームはそのまま遊べるので作らない）
       room.demo = demo === true && isEventGame(gameId);
+      // 夕食のチームで遊ぶときのチーム名。懇親会のルームには付けない（勝者の記録に残さないルームのため）
+      room.label = isEventGame(gameId) ? null : cleanText(String(label ?? ''), 20) || null;
       this.rooms.set(code, room);
       const player = this.addPlayer(room, cleanName);
       room.hostId = player.id;
@@ -468,6 +470,7 @@ export class RoomManager {
       gameId: room.gameId,
       players: view.players.map((p) => ({ name: p.name, score: view.scores[p.id] ?? 0, left: p.left })),
       note,
+      label: room.label,
     });
   }
 

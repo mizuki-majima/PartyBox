@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeAll, setupRoom } from './helpers';
+import { closeAll, createRoom, joinRoom, newPlayer, setupRoom } from './helpers';
 
 /**
  * 勝者の記録。ゲームを最後まで遊ぶと、トップの1つ奥のページ（/results）に、終わった時刻と結果が残る。
@@ -45,4 +45,55 @@ test('勝者の記録: 最後まで遊んだゲームが、時刻と番号つき
   await viewer.screenshot({ path: 'e2e/screenshots/results-desktop.png', fullPage: true });
 
   await closeAll(players);
+});
+
+test('勝者の記録: 夕食のチームでゲームを遊ぶと、ルームと記録にチーム名が付き、懇親会の画面に戻れる', async ({ browser }) => {
+  const mc = await newPlayer(browser, '司会', 'desktop');
+  const sakura = await newPlayer(browser, 'さくら', 'phone');
+
+  // 懇親会のルーム（始めておく）に、名簿から入る
+  const eventCode = await createRoom(mc, 'party-event');
+  await mc.page.getByTestId('start-game').click();
+  await sakura.page.goto(`/room/${eventCode}`);
+  await sakura.page.getByTestId('join-roster-person').filter({ hasText: 'さくら' }).click();
+  await sakura.page.getByTestId('join-submit').click();
+
+  // 夕食の席の自分のチームから「このチームでゲームを遊ぶ」→ トップでゲームを選ぶ
+  await sakura.page.getByTestId('team-play').click();
+  await sakura.page.waitForURL(/\/$/);
+  await expect(sakura.page.getByTestId('team-play-banner')).toContainText('チーム A');
+  await sakura.page.goto('/play/unanimous');
+  await expect(sakura.page.getByTestId('create-team-label')).toContainText('チーム A');
+  await sakura.page.getByPlaceholder('例：みずき').fill('さくら');
+  await sakura.page.getByTestId('create-room').click();
+  await sakura.page.waitForURL(/\/room\/[A-Z0-9]{6}$/);
+  await expect(sakura.page.getByTestId('room-label')).toContainText('チーム A');
+  const code = await sakura.page.getByTestId('room-code').innerText();
+
+  const others = [await newPlayer(browser, 'かえで', 'phone'), await newPlayer(browser, 'ひまわり', 'phone')];
+  for (const p of others) await joinRoom(p, code);
+  const players = [sakura, ...others];
+  await sakura.page.getByRole('button', { name: '3ラウンド' }).click();
+  await sakura.page.getByTestId('start-game').click();
+  for (let round = 0; round < 3; round++) {
+    for (const p of players) {
+      await p.page.getByTestId('answer-input').fill('おにぎり');
+      await p.page.getByTestId('answer-submit').click();
+    }
+    await sakura.page.getByTestId('host-next').click();
+  }
+  await expect(sakura.page.getByText('結果発表！')).toBeVisible();
+
+  // 記録にチーム名が付く
+  const viewer = await sakura.context.newPage();
+  await viewer.goto('/results');
+  const row = viewer.getByTestId('result-row').filter({ hasText: '全員一致を目指せ！' }).first();
+  await expect(row.getByTestId('result-label')).toHaveText('チーム A');
+
+  // 懇親会の画面に戻れる（同じ人のまま）
+  await sakura.page.getByTestId('back-to-event').click();
+  await sakura.page.waitForURL(new RegExp(`/room/${eventCode}$`));
+  await expect(sakura.page.getByTestId('me-bar')).toContainText('さくら');
+
+  await closeAll([mc, ...players]);
 });

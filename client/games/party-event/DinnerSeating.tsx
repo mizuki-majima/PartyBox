@@ -1,5 +1,9 @@
+import { useNavigate } from 'react-router';
 import type { DinnerView } from '../../../shared/games/views';
-import { Card } from '../../components/ui';
+import { Icon } from '../../components/Icon';
+import { Button, Card } from '../../components/ui';
+import { setTeamPlay } from '../../lib/eventReturn';
+import { useRoomContext } from '../RoomContext';
 
 /** 所属の色（凡例の順）。名簿に無い名前は色なし */
 const TONES = [
@@ -14,7 +18,20 @@ const toneClass = (tone: number | null) => (tone === null ? 'bg-panel text-fg' :
  * 夕食の席。テーブル → チーム（破線の枠）→ 人（所属の色の丸）。
  * 受付で配る座席表と同じ並びにして、自分の席とチームの人がひと目で分かるようにする
  */
-export function DinnerSeating({ dinner }: { dinner: DinnerView }) {
+/**
+ * 「このチームでゲームを遊ぶ」: チーム名と戻り先を覚えて、トップのゲーム一覧へ。
+ * 話題に困ったチームが通常のゲームで遊び、勝者の記録にチームごとの1位を残すため
+ */
+export function useStartTeamPlay(): (team: string) => void {
+  const { room } = useRoomContext();
+  const navigate = useNavigate();
+  return (team) => {
+    setTeamPlay(room.code, team);
+    navigate('/');
+  };
+}
+
+export function DinnerSeating({ dinner, onTeamPlay }: { dinner: DinnerView; onTeamPlay?: (team: string) => void }) {
   return (
     <div className="flex flex-col gap-3" data-testid="dinner-seating">
       <h2 className="flex items-center gap-2 font-display text-2xl">
@@ -54,6 +71,11 @@ export function DinnerSeating({ dinner }: { dinner: DinnerView }) {
                         </li>
                       ))}
                     </ul>
+                    {mine && onTeamPlay && (
+                      <Button size="sm" className="mt-3" onClick={() => onTeamPlay(team.name)} data-testid="team-play">
+                        <Icon name="play" /> このチームでゲームを遊ぶ
+                      </Button>
+                    )}
                   </section>
                 );
               })}

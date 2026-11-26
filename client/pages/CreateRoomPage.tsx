@@ -5,6 +5,7 @@ import { LIMITS } from '../../shared/protocol';
 import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, TextInput } from '../components/ui';
 import { useFixedEventRoom } from '../lib/eventInfo';
+import { clearTeamPlay, getTeamPlay } from '../lib/eventReturn';
 import { getLastName, saveSession } from '../lib/session';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
@@ -18,6 +19,8 @@ export function CreateRoomPage() {
   const [name, setName] = useState(getLastName);
   const [loading, setLoading] = useState(false);
   const fixedEvent = useFixedEventRoom() === true && isEventGame(gameId);
+  // 懇親会の「このチームでゲームを遊ぶ」から来たら、ルームにチーム名を付ける（勝者の記録に残る）
+  const [team, setTeam] = useState(() => (isEventGame(gameId) ? null : (getTeamPlay()?.team ?? null)));
 
   if (!game) {
     return (
@@ -35,7 +38,7 @@ export function CreateRoomPage() {
       return;
     }
     setLoading(true);
-    const res = await request('room:create', { gameId: game.id, name: name.trim() });
+    const res = await request('room:create', { gameId: game.id, name: name.trim(), ...(team ? { label: team } : {}) });
     setLoading(false);
     if (!res.ok) {
       toast(res.error, 'error');
@@ -101,6 +104,20 @@ export function CreateRoomPage() {
         <Card className="animate-slide-up self-start">
           <h2 className="font-display text-2xl">ルームを作る</h2>
           <p className="mt-1 text-sm text-muted">ルームを作ったら、招待URLを友達に送りましょう。</p>
+          {team && (
+            <div className="ui-tile mt-4 flex flex-wrap items-center justify-between gap-2 px-3 py-2" data-testid="create-team-label">
+              <span className="text-base font-bold">{team} のルームとして作ります</span>
+              <button
+                className="min-h-11 text-sm font-bold text-muted underline underline-offset-4"
+                onClick={() => {
+                  clearTeamPlay();
+                  setTeam(null);
+                }}
+              >
+                チームを付けない
+              </button>
+            </div>
+          )}
           <label className="mt-6 block text-sm font-extrabold" htmlFor="name">
             あなたの名前
           </label>

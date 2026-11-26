@@ -59,6 +59,8 @@ export interface RoomView {
   youAreHost: boolean;
   /** 1人で試すためのデモのルームか（/demo/<id> で作る使い捨てのルーム） */
   demo: boolean;
+  /** ルームに付けたチーム名（懇親会の夕食のチームで遊ぶとき）。付けていなければ null */
+  label: string | null;
   serverNow: number;
 }
 
@@ -98,7 +100,8 @@ export interface GameAction {
 export interface ClientToServerEvents {
   'room:check': (p: { code: string }, ack: AckFn<{ room: RoomSummary }>) => void;
   /** demo: 催し物を1人で試すための使い捨てのルームにする（保存せず、誰もいなければ30分で片付ける） */
-  'room:create': (p: { gameId: GameId; name: string; demo?: boolean }, ack: AckFn<{ session: SessionInfo }>) => void;
+  /** label: 夕食のチームで遊ぶときのチーム名（勝者の記録に残す。懇親会のルームには付けない） */
+  'room:create': (p: { gameId: GameId; name: string; demo?: boolean; label?: string }, ack: AckFn<{ session: SessionInfo }>) => void;
   /**
    * personId: 懇親会で名簿から選んだ人。name は表示名（直してもよい）で、中では選んだ人として扱う。
    * その人をもう選んでいる人がつながっていれば 'PERSON_IN_USE' を返す。本人だと確かめたら takeover: true で送り直す

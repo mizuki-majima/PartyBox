@@ -10,7 +10,7 @@ import { useToast } from '../../lib/toast';
 import { HostUrl } from '../../pages/Lobby';
 import { useGame, useRoomContext } from '../RoomContext';
 import { BingoSection } from './BingoSection';
-import { DinnerSeating } from './DinnerSeating';
+import { DinnerSeating, useStartTeamPlay } from './DinnerSeating';
 import { MeBar, NowBanner } from './MeBar';
 import { QuizSection } from './QuizSection';
 import { SeatsSection } from './SeatsSection';
@@ -76,7 +76,7 @@ export function PartyEventScreen() {
       )}
 
       {game.section === 'none' && <Waiting isHost={game.isHost} />}
-      {game.section === 'none' && !game.isHost && game.dinner && <DinnerSeating dinner={game.dinner} />}
+      {game.section === 'none' && !game.isHost && game.dinner && <GuestDinner />}
       {game.section === 'quiz' && <QuizSection />}
       {game.section === 'seats' && <SeatsSection />}
       {game.section === 'bingo' && <BingoSection />}
@@ -141,6 +141,13 @@ function Invite() {
       </Modal>
     </>
   );
+}
+
+/** 待機画面の夕食の席（参加者）。自分のチームから、ゲームを遊びに行ける */
+function GuestDinner() {
+  const { game } = useGame<PartyEventView>();
+  const startTeamPlay = useStartTeamPlay();
+  return game.dinner ? <DinnerSeating dinner={game.dinner} onTeamPlay={startTeamPlay} /> : null;
 }
 
 /** 司会の画面から夕食の席を出す（受付で見せる・席を聞かれたとき用） */

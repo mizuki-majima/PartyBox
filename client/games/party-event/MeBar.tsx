@@ -6,7 +6,7 @@ import { Button, Modal, TextInput } from '../../components/ui';
 import { request } from '../../lib/socket';
 import { useToast } from '../../lib/toast';
 import { useGame } from '../RoomContext';
-import { DinnerSeating } from './DinnerSeating';
+import { DinnerSeating, useStartTeamPlay } from './DinnerSeating';
 import { PickMyName } from './SeatsSection';
 
 /**
@@ -15,6 +15,7 @@ import { PickMyName } from './SeatsSection';
  */
 export function MeBar() {
   const { game, me } = useGame<PartyEventView>();
+  const startTeamPlay = useStartTeamPlay();
   const [dinnerOpen, setDinnerOpen] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -57,7 +58,7 @@ export function MeBar() {
       </div>
 
       <Modal open={dinnerOpen} onClose={() => setDinnerOpen(false)}>
-        {game.dinner && <DinnerSeating dinner={game.dinner} />}
+        {game.dinner && <DinnerSeating dinner={game.dinner} onTeamPlay={startTeamPlay} />}
         <Button variant="secondary" block className="mt-4" onClick={() => setDinnerOpen(false)}>
           閉じる
         </Button>
