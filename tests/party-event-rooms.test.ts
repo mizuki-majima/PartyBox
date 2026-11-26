@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PartyEventView } from '../shared/games/views';
 import type { PartyServer } from '../server/app';
 import type { PersistedFile, PersistedRoom } from '../server/rooms/persist';
+import type { RoomSummary, SessionInfo } from '../shared/protocol';
 import { TestClient, setupRoom, sleep, startGame, startTestServer } from './helpers';
 
 /**
@@ -507,5 +508,114 @@ describe('当日の事故を防ぐ', () => {
     await back.join(code, 'たろう');
     await back.actionOk('seats:claim', { personId: 'p1' });
     await back.waitFor((v) => (v.game as unknown as PartyEventView)?.seats.myPersonId === 'p1', 3000, '選び直せた');
+  });
+});
+
+/* ================================================================== */
+describe('名簿から名前を選んで参加する', () => {
+  const ev = (c: TestClient) => c.view!.game as unknown as PartyEventView;
+
+  async function rosterOf(code: string) {
+    const c = await connect();
+    const { room } = await c.ok<{ room: RoomSummary }>('room:check', { code });
+    return { c, roster: room.roster! };
+  }
+
+  async function joinAs(c: TestClient, code: string, name: string, personId: string, takeover?: boolean) {
+    const res = await c.ok<{ session: SessionInfo }>('room:join', { code, name, personId, takeover });
+    c.session = res.session;
+    await c.waitFor((v) => (v.game as unknown as PartyEventView | null)?.seats?.myPersonId === personId, 3000, '名前の確定');
+  }
+
+  it('room:check で名簿（夕食のチームつき）が返る。通常のゲームには無い', async () => {
+    const { code } = await setupEvent(2);
+    const { c, roster } = await rosterOf(code);
+    expect(roster).toHaveLength(12);
+    expect(roster.find((p) => p.name === 'さくら')?.team).toBe('チーム A');
+
+    const normal = await setupRoom(server.port, 'unanimous', 2);
+    open.push(...normal.clients);
+    const { room } = await c.ok<{ room: RoomSummary }>('room:check', { code: normal.code });
+    expect(room.roster).toBeUndefined();
+  });
+
+  it('personId と直した表示名で入ると、表示名で参加し、座席の名前とクイズのチームは選んだ人のもの', async () => {
+    const { code } = await setupEvent(2);
+    const { c, roster } = await rosterOf(code);
+    const sakura = roster.find((p) => p.name === 'さくら')!;
+    await joinAs(c, code, 'さくらちゃん', sakura.id);
+    expect(c.view!.players.find((p) => p.id === c.id)?.name).toBe('さくらちゃん');
+    expect(ev(c).quiz.myTeam).toBe('チーム A');
+    expect(ev(c).dinner!.myTeam).toBe('チーム A');
+    expect(ev(c).seats.roster.find((p) => p.id === sakura.id)?.name).toBe('さくら'); // 座席は名簿の名前のまま
+  });
+
+  it('同じ名簿の人がつながっていれば PERSON_IN_USE、takeover なら前の画面は session:replaced で、カードは同じ', async () => {
+    const { code } = await setupEvent(2);
+    const { c: first, roster } = await rosterOf(code);
+    const p = roster[0];
+    await joinAs(first, code, p.name, p.id);
+    const card = ev(first).bingo.myCard!.cardId;
+
+    const second = await connect();
+    const res = await second.emit('room:join', { code, name: 'べつの名前', personId: p.id });
+    expect(res.ok).toBe(false);
+    expect(!res.ok && res.error).toBe('PERSON_IN_USE');
+
+    await joinAs(second, code, 'べつの名前', p.id, true);
+    expect(second.id).toBe(first.id);
+    expect(ev(second).bingo.myCard!.cardId).toBe(card);
+    await sleep(100);
+    expect(first.replaced).toBe(true);
+  });
+
+  it('切断中なら、表示名が違っても選んだ人として戻り、カードが同じ', async () => {
+    const { host, code } = await setupEvent(2);
+    const { c: first, roster } = await rosterOf(code);
+    const p = roster[1];
+    await joinAs(first, code, p.name, p.id);
+    const before = { id: first.id, card: ev(first).bingo.myCard!.cardId };
+    first.close();
+    await host.waitFor((v) => v.players.some((x) => x.id === before.id && !x.connected), 3000, '切断');
+
+    const again = await connect();
+    await joinAs(again, code, 'あだな', p.id);
+    expect(again.id).toBe(before.id);
+    expect(ev(again).bingo.myCard!.cardId).toBe(before.card);
+    expect(again.view!.players.find((x) => x.id === before.id)?.name).toBe('あだな');
+  });
+
+  it('切断中の司会が選んでいた名前で入っても、司会にはならない（新しい参加者として入り、名前だけ移る）', async () => {
+    const { host, clients, code } = await setupEvent(2);
+    const p = (await rosterOf(code)).roster[2];
+    await host.actionOk('seats:claim', { personId: p.id });
+    const hostId = host.id;
+    host.close();
+    await clients[1].waitFor((v) => v.players.some((x) => x.id === hostId && !x.connected), 3000, '司会の切断');
+
+    const c = await connect();
+    await joinAs(c, code, p.name, p.id);
+    expect(c.id).not.toBe(hostId);
+    expect(c.view!.youAreHost).toBe(false);
+  });
+
+  it('名簿に無い personId は参加させない', async () => {
+    const { host, code } = await setupEvent(2);
+    const c = await connect();
+    const res = await c.emit('room:join', { code, name: 'だれか', personId: 'p999' });
+    expect(res.ok).toBe(false);
+    expect(!res.ok && res.error).toBe('その名前は名簿にありません');
+    expect(host.view!.players).toHaveLength(2);
+  });
+
+  it('懇親会では開始後も表示名を変えられ、座席の名前は変わらない', async () => {
+    const { code } = await setupEvent(2);
+    const { c, roster } = await rosterOf(code);
+    const p = roster[3];
+    await joinAs(c, code, p.name, p.id);
+    await c.ok('room:rename', { name: 'ニックネーム' });
+    await c.waitFor((v) => v.players.find((x) => x.id === c.id)?.name === 'ニックネーム', 3000, '表示名');
+    expect(ev(c).seats.myPersonId).toBe(p.id);
+    expect(ev(c).seats.roster.find((x) => x.id === p.id)?.name).toBe(p.name);
   });
 });

@@ -133,9 +133,10 @@ export function useRoom(rawCode: string, hostToken?: string) {
     };
   }, [code, hostToken]);
 
+  /** opts.personId: 懇親会で名簿から選んだ人（name は表示名）。takeover: 別のスマホで参加中の本人だと確かめた */
   const join = useCallback(
-    async (name: string): Promise<string | null> => {
-      const res = await request('room:join', { code, name });
+    async (name: string, opts: { personId?: string; takeover?: boolean } = {}): Promise<string | null> => {
+      const res = await request('room:join', { code, name, ...opts });
       if (!res.ok) return res.error;
       saveSession(res.session);
       setState({ kind: 'joined' });

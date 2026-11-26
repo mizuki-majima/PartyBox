@@ -9,6 +9,7 @@ import {
   type SessionInfo,
 } from '../../shared/protocol';
 import { getEventConfig } from '../event/config';
+import { PartyEventGame } from '../games/party-event/PartyEventGame';
 import { getServerGame } from '../games/registry';
 import { ResultLog } from '../results';
 import { UserError } from '../games/types';
@@ -57,6 +58,11 @@ const EVENT_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
  */
 function isEventRoom(room: Room): boolean {
   return isEventGame(room.gameId);
+}
+
+/** 懇親会のルームで、開始ずみならその進行（名簿を引くため）。それ以外は null */
+function eventGameOf(room: Room): PartyEventGame | null {
+  return isEventRoom(room) && room.game instanceof PartyEventGame ? room.game : null;
 }
 
 export class RoomManager {
@@ -247,7 +253,9 @@ export class RoomManager {
 
     on('room:check', ({ code }) => {
       const room = this.getRoom(code);
-      return { room: room.summary() };
+      const event = eventGameOf(room);
+      // 懇親会は、入る前に名簿から自分を選んでもらう（名前の打ち間違い・同じ人の二重登録を防ぐ）
+      return { room: event ? { ...room.summary(), roster: event.joinRoster() } : room.summary() };
     });
 
     on('room:create', ({ gameId, name, demo }) => {
@@ -291,9 +299,13 @@ export class RoomManager {
       room.requestBroadcast();
     });
 
-    on('room:join', ({ code, name }) => {
+    on('room:join', ({ code, name, personId, takeover }) => {
       const room = this.getRoom(code);
       const cleanName = this.validateName(name);
+      const event = eventGameOf(room);
+      if (event && typeof personId === 'string' && personId) {
+        return { session: this.joinAsPerson(socket, room, event, cleanName, personId, takeover === true) };
+      }
       // 懇親会: 切断している人と同じ名前で入ってきたら、その人として続きから（別のブラウザで開き直した本人）。
       // 新しい人にすると、ビンゴのカードが別物になり、チームと選んだ名前も選び直しになる
       // （接続中の人が同じ名前を使っていれば、下で断る。同じ名前の人が2人つながらないように）
@@ -329,7 +341,8 @@ export class RoomManager {
 
     on('room:rename', ({ name }) => {
       const { room, player } = this.requireBinding(socket);
-      if (room.status !== 'lobby') throw new UserError('ゲーム中は名前を変更できません');
+      // 懇親会は始まったあとも表示名を直せる（名簿で選んだ人・座席・チームは変わらない）
+      if (room.status !== 'lobby' && !isEventRoom(room)) throw new UserError('ゲーム中は名前を変更できません');
       const cleanName = this.validateName(name);
       if (room.isNameTaken(cleanName, player.id)) throw new UserError('その名前はすでに使われています');
       player.name = cleanName;
@@ -456,6 +469,37 @@ export class RoomManager {
       players: view.players.map((p) => ({ name: p.name, score: view.scores[p.id] ?? 0, left: p.left })),
       note,
     });
+  }
+
+  /**
+   * 懇親会で、名簿から選んだ人として入る。name は表示名（直してもよい）。
+   * その人をもう選んでいるプレイヤーがいれば、そのプレイヤーとして戻す（別のブラウザで開き直した本人。
+   * ビンゴのカード・チーム・座席の名前を引き継ぐ）。つながっていれば、本人だと確かめてから（takeover）。
+   * 司会のプレイヤーは引き継がない（名前を選ぶだけで司会になれてしまうため）。新しい参加者として入り、名簿の人だけを移す
+   */
+  private joinAsPerson(socket: PartySocket, room: Room, event: PartyEventGame, name: string, personId: string, takeover: boolean): SessionInfo {
+    if (!event.hasPerson(personId)) throw new UserError('その名前は名簿にありません');
+    const ownerId = event.playerOfPerson(personId);
+    const owner = ownerId ? room.players.get(ownerId) : undefined;
+    if (owner?.connected && !takeover) throw new UserError('PERSON_IN_USE');
+    const resumable = owner && !room.isHostPlayer(owner.id) ? owner : undefined;
+    // 表示名は、ほかの接続中の人と重ねない（戻す本人の今の名前とは比べない）
+    if (room.isNameTaken(name, resumable?.id, true)) throw new UserError('その名前はすでに使われています');
+
+    if (resumable) {
+      // 前のブラウザに残っている参加情報では戻れないようにする（2つの画面で取り合いにならないように）
+      resumable.token = generateToken();
+      resumable.name = name;
+      room.setName(resumable.id, name);
+      this.attach(socket, room, resumable);
+      return this.session(room, resumable);
+    }
+    if (room.players.size >= room.meta.maxPlayers) throw new UserError('このルームは満員です');
+    const player = this.addPlayer(room, name);
+    this.attach(socket, room, player);
+    event.claimPerson(player.id, personId, true);
+    room.requestBroadcast();
+    return this.session(room, player);
   }
 
   private addPlayer(room: Room, name: string): Player {

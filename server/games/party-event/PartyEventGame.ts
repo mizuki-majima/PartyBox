@@ -275,6 +275,23 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
     if (team && this.cfg.quiz.teams.includes(team)) this.quizState.teamOf[playerId] = team;
   }
 
+  /** 参加するときに選ぶ名簿（欠席の人は除く）。夕食のチームつき */
+  joinRoster(): { id: string; name: string; team: string | null }[] {
+    return seats
+      .roster(this.seatsState, this.cfg.seats)
+      .filter((p) => !this.seatsState.absent.includes(p.id))
+      .map((p) => ({ id: p.id, name: p.name, team: this.cfg.dinner ? (dinner.teamOfName(this.cfg.dinner, p.name)?.team ?? null) : null }));
+  }
+
+  hasPerson(personId: string): boolean {
+    return seats.roster(this.seatsState, this.cfg.seats).some((p) => p.id === personId);
+  }
+
+  /** その名簿の人を選んでいるプレイヤー（いなければ null） */
+  playerOfPerson(personId: string): string | null {
+    return Object.keys(this.seatsState.claimed).find((id) => this.seatsState.claimed[id] === personId) ?? null;
+  }
+
   /** この人が名簿で選んだ名前（選んでいなければ null） */
   private claimedName(playerId: string): string | null {
     const personId = this.seatsState.claimed[playerId];
