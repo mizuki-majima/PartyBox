@@ -116,9 +116,15 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   await guestA.getByTestId('quiz-choices').getByRole('button').first().click(); // 正解
   await guestB.getByTestId('quiz-choices').getByRole('button').nth(2).click(); // 不正解
   await expect(host.getByTestId('quiz-host-answers')).toBeVisible();
+  // 回答タイムの間は、ほかのチームの回答は参加者に出ない（写せないように）
+  await expect(guestA.getByTestId('quiz-all-answers')).toHaveCount(0);
 
   await host.getByTestId('quiz-next').click(); // 答え
   await expect(guestA.getByTestId('quiz-answer')).toHaveText('北海道');
+  // 答えの段から、みんなの回答と正誤が見られる
+  await expect(guestA.getByTestId('quiz-all-answers')).toContainText('チーム A');
+  await expect(guestA.getByTestId('quiz-all-answers')).toContainText('チーム B');
+  await expect(guestA.getByTestId('quiz-all-answers')).toContainText('不正解');
   await expect(guestA.locator('body')).toContainText('北海道は全国の約2割');
   // 選択問題は自動採点される
   await expect(guestA.getByTestId('quiz-scores')).toContainText('1');

@@ -223,14 +223,18 @@ export interface QuizQuestionView {
   /** 答えと解説は reveal 以降か、司会にだけ入る。それ以外は null */
   answer: string | number | null;
   note: string | null;
+  /** この問題の点数（正解したチームに足す。既定 1。最後の問題を高くするなど） */
+  points: number;
 }
 
-/** どのチームが何と答えたか。司会の画面にだけ送る */
+/**
+ * どのチームが何と答えたか。司会には回答タイムから、参加者には答えの段から（回答タイム中は写せないように送らない）
+ */
 export interface QuizAnswerRow {
   team: string;
   text: string;
   choice: number | null;
-  /** 回答タイム開始からの秒数 */
+  /** 回答タイム開始からの秒数（司会にだけ。参加者には null） */
   seconds: number | null;
   correct: boolean | null;
 }

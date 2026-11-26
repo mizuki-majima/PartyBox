@@ -352,6 +352,38 @@ describe('クイズ', () => {
     for (let i = 0; i < 10 && s.phase !== phase; i++) quiz.next(s, cfg);
   };
 
+  it('正解した問題の points を足す（最後の問題 3 点）。問題のビューに点数が出る', () => {
+    const c: QuizConfig = { ...cfg, questions: [cfg.questions[0], { question: '最終問題', answer: 'こたえ', points: 3 }] };
+    const s = quiz.emptyQuiz();
+    quiz.grade(s, 1, 'A', true);
+    quiz.grade(s, 2, 'A', true);
+    quiz.grade(s, 2, 'B', true);
+    expect(quiz.scoresOf(s, c)).toEqual({ A: 4, B: 3 });
+
+    const t = quiz.emptyQuiz();
+    quiz.next(t, c);
+    expect(quiz.quizView(t, c, false, 'A').question?.points).toBe(1);
+    for (let i = 0; i < 10 && t.qno < 2; i++) quiz.next(t, c);
+    expect(quiz.quizView(t, c, false, 'A').question?.points).toBe(3);
+  });
+
+  it('参加者には回答タイム中は他チームの回答を見せず、答えの段から全チーム分を見せる', () => {
+    const s = quiz.emptyQuiz();
+    advanceTo(s, 'answering');
+    quiz.submitAnswer(s, 'B', { text: 'う', choice: 2, by: 'p2' });
+    quiz.submitAnswer(s, 'A', { text: 'い', choice: 1, by: 'p1' });
+    expect(quiz.quizView(s, cfg, false, 'A').answers).toBeNull();
+
+    quiz.next(s, cfg); // 締め切って答え（選択問題は自動採点）
+    const rows = quiz.quizView(s, cfg, false, 'A').answers!;
+    // チームの順に並べ、何秒で答えたかは司会だけ
+    expect(rows.map((r) => [r.team, r.text, r.correct])).toEqual([
+      ['A', 'い', true],
+      ['B', 'う', false],
+    ]);
+    expect(rows.every((r) => r.seconds === null)).toBe(true);
+  });
+
   it('idle → 問題 → 回答タイム → 答え → 次の問題 → 結果 と進む', () => {
     const s = quiz.emptyQuiz();
     expect(s.phase).toBe('idle');

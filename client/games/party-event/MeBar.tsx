@@ -139,7 +139,7 @@ function nowText(game: PartyEventView): string {
       if (q.phase === 'idle') return 'まもなくクイズです。そのまま待ちましょう';
       if (q.phase === 'question') return '問題を読みましょう（まだ答えられません）';
       if (q.phase === 'answering') return q.myTeam ? 'チームで相談して、下の答えを押しましょう' : '下で、自分のチームを押しましょう';
-      if (q.phase === 'reveal') return '答えを見てみましょう';
+      if (q.phase === 'reveal') return '答えと、みんなの回答を見てみましょう';
       return '結果発表です';
     }
     case 'seats':

@@ -162,14 +162,40 @@ export function resetQuiz(state: QuizState): void {
   // teamOf は残す（各自が選んだチームはそのまま）
 }
 
+/** その問題の点数（省いてあれば 1） */
+const pointsOf = (cfg: QuizConfig, qno: number): number => cfg.questions[qno - 1]?.points ?? 1;
+
 export function scoresOf(state: QuizState, cfg: QuizConfig): Record<string, number> {
   const scores: Record<string, number> = Object.fromEntries(cfg.teams.map((team) => [team, 0]));
-  for (const byTeam of Object.values(state.graded)) {
+  for (const [qno, byTeam] of Object.entries(state.graded)) {
     for (const [team, ok] of Object.entries(byTeam)) {
-      if (ok) scores[team] = (scores[team] ?? 0) + 1;
+      if (ok) scores[team] = (scores[team] ?? 0) + pointsOf(cfg, Number(qno));
     }
   }
   return scores;
+}
+
+/**
+ * どのチームが何と答えたか。
+ * 司会には回答タイムから（何秒で答えたかも。速い順）。参加者には答えの段から（チームの順。秒数は出さない）。
+ * 回答タイムの間に参加者へ送ると、ほかのチームの答えを写せてしまうので送らない
+ */
+function answerRows(state: QuizState, cfg: QuizConfig, isHost: boolean, revealed: boolean): QuizView['answers'] {
+  if (!isHost && !revealed) return null;
+  const forQno = answersFor(state, state.qno);
+  const rows = Object.entries(forQno).map(([team, a]) => ({
+    team,
+    text: a.text,
+    choice: a.choice,
+    seconds: isHost && state.startedAt ? Math.max(0, Math.round((a.at - state.startedAt) / 100) / 10) : null,
+    correct: state.graded[state.qno]?.[team] ?? null,
+  }));
+  if (isHost) return rows.sort((a, b) => (a.seconds ?? 0) - (b.seconds ?? 0));
+  const order = (team: string) => {
+    const i = cfg.teams.indexOf(team);
+    return i < 0 ? cfg.teams.length : i;
+  };
+  return rows.sort((a, b) => order(a.team) - order(b.team));
 }
 
 export function quizView(state: QuizState, cfg: QuizConfig, isHost: boolean, myTeam: string | null): QuizView {
@@ -200,21 +226,11 @@ export function quizView(state: QuizState, cfg: QuizConfig, isHost: boolean, myT
           // ここが肝心: 答えは reveal 以降か、司会にだけ
           answer: revealed || isHost ? question.answer : null,
           note: revealed || isHost ? (question.note ?? null) : null,
+          points: pointsOf(cfg, state.qno),
         }
       : null,
     answeredTeams: Object.keys(forQno),
-    // 「どのチームが何と答えたか・何秒で答えたか」は司会の画面だけ
-    answers: isHost
-      ? Object.entries(forQno)
-          .map(([team, a]) => ({
-            team,
-            text: a.text,
-            choice: a.choice,
-            seconds: state.startedAt ? Math.max(0, Math.round((a.at - state.startedAt) / 100) / 10) : null,
-            correct: state.graded[state.qno]?.[team] ?? null,
-          }))
-          .sort((a, b) => (a.seconds ?? 0) - (b.seconds ?? 0))
-      : null,
+    answers: answerRows(state, cfg, isHost, revealed),
     scores,
     ranking,
     myTeam,

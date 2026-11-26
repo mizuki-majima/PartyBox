@@ -59,6 +59,23 @@ describe('クイズの answer（選択問題は 1 始まり）', () => {
     expect(quiz.questions[1].answer).toBe('3776');
   });
 
+  it('points を省くと 1 点、書けばその点', () => {
+    writeQuiz([
+      { question: 'ふつう', answer: 'あ' },
+      { question: '最終問題', answer: 'い', points: 3 },
+    ]);
+    const { quiz } = loadEventConfig();
+    expect(quiz.questions[0].points ?? 1).toBe(1);
+    expect(quiz.questions[1].points).toBe(3);
+  });
+
+  it('points が 0 や 11 ならエラー', () => {
+    writeQuiz([{ question: '0点', answer: 'あ', points: 0 }]);
+    expect(() => loadEventConfig()).toThrow(/quiz\.json の形式が正しくありません/);
+    writeQuiz([{ question: '11点', answer: 'あ', points: 11 }]);
+    expect(() => loadEventConfig()).toThrow(/quiz\.json の形式が正しくありません/);
+  });
+
   it('同梱のサンプルも 1 始まりで書いてあり、第1問の正解は「北海道」', () => {
     // 置き場が空ならサンプルで動く
     const { quiz, source } = loadEventConfig();

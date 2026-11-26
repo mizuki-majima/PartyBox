@@ -77,8 +77,17 @@ function QuestionArea() {
   const revealed = q.phase === 'reveal';
   const myCorrect = q.myCorrect;
 
+  const final = q.qno === q.total && q.total > 1;
   return (
     <div className="flex flex-col gap-3">
+      {(final || question.points > 1) && (
+        // 最後の問題などで点数が高いことを、問題の前に大きく知らせる（逆転のチャンスで盛り上げる）
+        <p className="ui-tile flex items-center justify-center gap-2 bg-hi px-4 py-2 font-display text-xl text-on-hi" data-testid="quiz-points">
+          <Icon name="spark" />
+          {final ? '最終問題' : `第 ${q.qno} 問`}
+          {question.points > 1 && <span>この問題は {question.points} 点！</span>}
+        </p>
+      )}
       <QuestionCard label={`第 ${q.qno} 問`} text={question.question} accent="#f59e0b" />
 
       {q.phase === 'answering' && !game.isHost && <AnswerArea />}
@@ -125,7 +134,45 @@ function QuestionArea() {
           )}
         </Card>
       )}
+
+      {revealed && !game.isHost && q.answers && <AllAnswers />}
     </div>
+  );
+}
+
+/** 答えの段で、参加者にみんなの回答と正誤を見せる（回答タイム中はサーバーが送らない） */
+function AllAnswers() {
+  const { game } = useGame<PartyEventView>();
+  const q = game.quiz;
+  const rows = q.answers ?? [];
+  return (
+    <Card>
+      <SectionTitle>みんなの回答</SectionTitle>
+      {rows.length ? (
+        <ul className="flex flex-col gap-1.5" data-testid="quiz-all-answers">
+          {rows.map((a) => (
+            <li key={a.team} className={`ui-tile flex items-center gap-2 px-3 py-2 ${a.team === q.myTeam ? 'bg-hi/40' : ''}`}>
+              <span className="w-20 shrink-0 truncate text-sm font-extrabold text-muted">{a.team}</span>
+              <span className="min-w-0 flex-1 truncate text-base font-bold">{a.text}</span>
+              {/* 正誤は色だけでなく、印と言葉で */}
+              {a.correct === true && (
+                <span className="ui-badge inline-flex shrink-0 items-center gap-1 bg-ok px-2 py-0.5 text-sm font-extrabold text-on-ok">
+                  <Icon name="check" /> 正解
+                </span>
+              )}
+              {a.correct === false && (
+                <span className="ui-badge inline-flex shrink-0 items-center gap-1 bg-panel px-2 py-0.5 text-sm font-extrabold">
+                  <Icon name="close" /> 不正解
+                </span>
+              )}
+              {a.correct === null && <span className="shrink-0 text-sm text-muted">採点中</span>}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-base text-muted" data-testid="quiz-all-answers">答えたチームはありませんでした</p>
+      )}
+    </Card>
   );
 }
 
@@ -349,7 +396,10 @@ function Scores() {
           >
             <span className="font-display text-lg">{r.rank}</span>
             <span className="min-w-0 flex-1 truncate font-bold">{r.team}</span>
-            <span className="font-display text-xl">{r.score}</span>
+            <span className="font-display text-xl">
+              {r.score}
+              <span className="ml-0.5 text-sm">点</span>
+            </span>
           </li>
         ))}
       </ul>
@@ -368,7 +418,7 @@ function Ranking() {
       <p className="font-display text-4xl" data-testid="quiz-winner">
         {winners.length ? winners.map((r) => r.team).join('・') : '—'}
       </p>
-      <p className="mt-2 font-display text-xl">{winners[0]?.score ?? 0} 問正解</p>
+      <p className="mt-2 font-display text-xl">{winners[0]?.score ?? 0} 点</p>
     </Card>
   );
 }

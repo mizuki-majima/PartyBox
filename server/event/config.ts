@@ -39,6 +39,8 @@ const QuizQuestion = z
      */
     answer: z.union([z.number().int(), nonEmpty(300)]),
     note: z.string().max(500).optional(),
+    /** 正解したチームに足す点（省くと 1）。最後の問題を高くするなど */
+    points: z.number().int().min(1).max(10).optional(),
   })
   .superRefine((q, ctx) => {
     if (!q.choices) return;
