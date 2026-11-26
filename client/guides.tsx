@@ -10,7 +10,7 @@
  * - 点数や決まりは、サーバーの実装と同じことだけを書く（変えたらここも直す）
  */
 import type { ReactNode } from 'react';
-import type { GameId } from '../shared/games';
+import { type GameId, isEventGame } from '../shared/games';
 import { Icon, type IconName } from './components/Icon';
 
 interface GuideStep {
@@ -113,7 +113,7 @@ const GUIDES: Record<Exclude<GameId, 'party-event'>, Guide> = {
   'ad-dodge': {
     summary: 'じゃまな広告をよけて、ページの本物の「次へ」を押していき、誰がいちばん早く最後のページに着くかを競うゲームです。',
     steps: [
-      { title: 'スタートを待つ', text: '「ROUND」の画面のあと、全員いっしょに始まります。全員に同じページが、同じ順番で出ます。' },
+      { title: 'スタートを待つ', text: '全員が「準備OK」を押すと、3・2・1 で全員いっしょに始まります。全員に同じページが、同じ順番で出ます。' },
       { title: '本物を押す', text: '画面の中の、本物の「次へ」や「✕」を指で押します。押せたら次のページに進みます。' },
       { title: '広告に気をつける', text: '広告を押すと、広告のページが開きます。3秒たつと左上に「← 戻る」が出るので、それを押して戻ります。大きな「今すぐ受け取る」も広告です。' },
       { title: 'ゴール', text: '最後のページを抜けたらゴールです。全員がゴールするか、時間が切れると、そのラウンドの結果が出ます。' },
@@ -182,11 +182,33 @@ function Heading({ icon, children }: { icon: IconName; children: ReactNode }) {
  * くわしい遊び方。待機画面と、ゲーム中の「遊び方」のダイアログに出す。
  * 文字は読みやすい大きさ（本文は 16px 以上）にして、行の間をあける
  */
+/** 通常のゲームに共通の、始めるとき・ラウンドの合間のこと（準備の関門。server の BaseGame.openGate） */
+const START_STEPS = [
+  '遊び方の画面で「準備OK」を押します。全員そろうと、3・2・1 で始まります。',
+  '2ラウンド目からも、始まる前に同じように「準備OK」を押します。',
+  'ホストは、数えている間なら「止める」で止められます。押さない人がいて進めないときは「待たずに始める」を押します。',
+  'ホストは、2ラウンド目の前に「ここで終了」（ここまでの点で結果を出す）か「ロビーに戻る」（結果を残さずにゲームを選び直す）も選べます。',
+];
+
 export function GameGuide({ gameId, isHost = false, trouble = true }: { gameId: GameId; isHost?: boolean; trouble?: boolean }) {
   const guide = guideOf(gameId, isHost);
   return (
     <div className="flex flex-col gap-6 text-left text-base leading-relaxed" data-testid="game-guide">
       <p className="font-bold">{guide.summary}</p>
+
+      {!isEventGame(gameId) && (
+        <section>
+          <Heading icon="clock">始めるとき</Heading>
+          <ul className="flex flex-col gap-1.5">
+            {START_STEPS.map((line) => (
+              <li key={line} className="flex gap-2">
+                <span aria-hidden>・</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <Heading icon="play">やること（順番に）</Heading>

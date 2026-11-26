@@ -23,6 +23,7 @@ test('1人で試す: 入口 → 4人ぶんの画面 → ホストの枠で開始
 
   await frame(1).getByRole('button', { name: '2ラウンド' }).click();
   await frame(1).getByTestId('start-game').click();
+  for (let n = 1; n <= 4; n++) await frame(n).getByTestId('gate-ready').click();
   for (let n = 1; n <= 4; n++) {
     await frame(n).getByTestId('answer-input').fill(`答え${n}`);
     await frame(n).getByTestId('answer-submit').click();

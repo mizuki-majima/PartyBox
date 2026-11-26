@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeAll, createRoom, joinRoom, newPlayer, setupRoom } from './helpers';
+import { closeAll, createRoom, joinRoom, newPlayer, setupRoom, readyAll } from './helpers';
 
 /**
  * 勝者の記録。ゲームを最後まで遊ぶと、トップの1つ奥のページ（/results）に、終わった時刻と結果が残る。
@@ -9,8 +9,10 @@ test('勝者の記録: 最後まで遊んだゲームが、時刻と番号つき
   const { players, host } = await setupRoom(browser, 'unanimous', ['みずき', 'たろう', 'はな']);
   await host.page.getByRole('button', { name: '3ラウンド' }).click();
   await host.page.getByTestId('start-game').click();
+  await readyAll(players);
 
   for (let round = 0; round < 3; round++) {
+    if (round > 0) await readyAll(players);
     for (const p of players) {
       await p.page.getByTestId('answer-input').fill('おにぎり');
       await p.page.getByTestId('answer-submit').click();
@@ -85,7 +87,9 @@ test('勝者の記録: 夕食のチームでゲームを遊ぶと、ルームと
   const players = [sakura, ...others];
   await sakura.page.getByRole('button', { name: '3ラウンド' }).click();
   await sakura.page.getByTestId('start-game').click();
+  await readyAll(players);
   for (let round = 0; round < 3; round++) {
+    if (round > 0) await readyAll(players);
     for (const p of players) {
       await p.page.getByTestId('answer-input').fill('おにぎり');
       await p.page.getByTestId('answer-submit').click();

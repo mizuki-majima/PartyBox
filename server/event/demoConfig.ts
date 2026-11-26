@@ -49,13 +49,19 @@ export function demoEventConfig(real: EventConfig): EventConfig {
   const rosterNames = real.seats.participants.map((p) => (typeof p === 'string' ? p : p.name));
   const dinnerNames = real.dinner?.tables.flatMap((t) => t.teams.flatMap((m) => m.members)) ?? [];
   const realNames = new Set([...rosterNames, ...dinnerNames].map(nameKey));
+  // 本番の名簿が名字だけ（例: 2文字）のこともあるので、本番の名前を一部にでも含む仮名は使わない（1文字の名前は、まるごと同じときだけ避ける）
+  const realParts = [...realNames].filter((k) => [...k].length >= 2);
+  const clashes = (fake: string) => {
+    const k = nameKey(fake);
+    return realNames.has(k) || realParts.some((r) => k.includes(r));
+  };
 
   // 名前: 名簿の人 → 夕食にだけいる人（飛び入りなど）の順に、本番の名前と重ならない架空の名前を割り当てる
   // 名簿と夕食の席で書き方が揺れていても（全角の空白など）、アプリは同じ人とみなすので、同じ仮名にする
   let next = 0;
   const person = mapper(() => {
     let name = fakePersonName(next++);
-    while (realNames.has(nameKey(name))) name = fakePersonName(next++);
+    while (clashes(name)) name = fakePersonName(next++);
     return name;
   }, nameKey);
   // 所属: 「A社」「B社」…（名簿に出てきた順）。所属なしは所属なしのまま

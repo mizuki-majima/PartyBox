@@ -3,8 +3,9 @@ import type { TrialRole, TrialView } from '../../../shared/games/views';
 import { LIMITS } from '../../../shared/protocol';
 import { Confetti, GameOverPanel, HostNext, HostSkip, PhaseHeader, Scoreboard, StartSplash, SubmissionStatus } from '../../components/game';
 import { SpeakerPanel, StatementLog, TurnOrder } from '../../components/talk';
-import { Avatar, Button } from '../../components/ui';
+import { Avatar } from '../../components/ui';
 import { useGame } from '../RoomContext';
+import { ReadyGate } from '../../components/ReadyGate';
 
 const meta = getGameMeta('ten-sec-trial')!;
 
@@ -119,21 +120,14 @@ function Court() {
 }
 
 function BriefingPhase() {
-  const { game, act, room } = useGame<TrialView>();
-  const ready = game.ready.includes(room.youId);
   return (
     <div className="flex flex-col gap-4">
       <PhaseHeader icon="eye" title="事件と自分の役を確認しよう" sub="証拠カードは他の人には見えません。発言のネタにしよう！" />
       <CaseCard />
       <MyRoleCard />
       <Court />
-      {game.myRole && (
-        <Button size="xl" block onClick={() => act('ready')} disabled={ready} variant={ready ? 'secondary' : 'primary'} data-testid="ready">
-          {ready ? '✓ 準備OK' : '準備OK！'}
-        </Button>
-      )}
-      <SubmissionStatus targets={Object.keys(game.roles)} done={game.ready} label="準備" />
-      <HostSkip label="開廷する" />
+      {/* 時間では進まず、全員の「確認した！」で 3・2・1（準備の関門） */}
+      <ReadyGate readyLabel="確認した！" skipLabel="待たずに開廷する" />
     </div>
   );
 }

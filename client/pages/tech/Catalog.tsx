@@ -18,7 +18,7 @@ const rows: Row[] = [
   ...GAMES.map((g) => ({
     id: g.id,
     title: g.title,
-    kind: 'ルームで遊ぶ',
+    kind: g.hidden ? 'ルームで遊ぶ（一覧に出していない）' : 'ルームで遊ぶ',
     players: `${g.minPlayers}〜${g.maxPlayers}人`,
     time: g.estimatedTime,
     theme: themeOfGame(g.id),

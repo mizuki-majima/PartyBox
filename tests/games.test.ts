@@ -7,7 +7,7 @@ import { TurnSequence } from '../server/games/TurnSequence';
 import { decideVerdict, generateCase } from '../server/games/trial/TrialGame';
 import { scoreWhoseRound } from '../server/games/whose-answer/WhoseAnswerGame';
 import data from '../server/data/trial.json';
-import { setupRoom, startGame, startTestServer, type TestClient, TINY_PNG } from './helpers';
+import { passGate, setupRoom, startGame, startTestServer, type TestClient, TINY_PNG } from './helpers';
 
 let server: PartyServer;
 let open: TestClient[] = [];
@@ -80,6 +80,7 @@ describe('誰の答えでしょう？', () => {
     expect(res.game!.scores[a.id]).toBe(2);
 
     await host.actionOk('next');
+    await passGate(clients); // 2ラウンド目の頭は、全員の準備OKを待つ
     await host.waitPhase('ANSWER', (v) => v.game!.round === 2);
     for (const cl of clients) await cl.actionOk('answer', { text: `答え${cl.id}` });
     await host.waitPhase('GUESS');

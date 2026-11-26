@@ -110,7 +110,6 @@ export class TrialGame extends BaseGame<TrialPhase> {
   private roles: Record<string, TrialRole> = {};
   private truth: Verdict = 'innocent';
   private current: GeneratedCase | null = null;
-  private ready = new Set<string>();
   private turns = new TurnSequence();
   private votes = new Map<string, Verdict>();
   private result: TrialResult | null = null;
@@ -145,10 +144,10 @@ export class TrialGame extends BaseGame<TrialPhase> {
     this.truth = Math.random() < 0.5 ? 'guilty' : 'innocent';
     const template = this.cases[(round - 1) % this.cases.length];
     this.current = generateCase(template, this.ctx.playerName(rotated[0]), this.roles, this.truth);
-    this.ready.clear();
     this.votes.clear();
     this.result = null;
-    this.setPhase('BRIEFING', { duration: 30000, onEnd: () => this.startTestimony() });
+    // 事件と役職を読む画面は時間で進めず、全員の「確認した！」（準備の関門）で進む
+    this.openGate('BRIEFING', { roundHead: true, onGo: () => this.startTestimony() });
   }
 
   private startTestimony(): void {
@@ -209,13 +208,6 @@ export class TrialGame extends BaseGame<TrialPhase> {
 
   protected onAction(playerId: string, action: GameAction): void {
     switch (action.type) {
-      case 'ready': {
-        this.requirePhase('BRIEFING');
-        this.requireActive(playerId);
-        this.ready.add(playerId);
-        this.checkComplete();
-        return;
-      }
       case 'speak': {
         this.requirePhase('TESTIMONY');
         if (this.turns.current !== playerId) throw new UserError('今はあなたの番ではありません');
@@ -240,8 +232,7 @@ export class TrialGame extends BaseGame<TrialPhase> {
   }
 
   protected checkComplete(): void {
-    if (this.phase === 'BRIEFING' && pendingPlayers(this.active, this.ready).length === 0) this.advance();
-    else if (this.phase === 'VOTE' && pendingPlayers(this.voters, this.votes.keys()).length === 0) this.advance();
+    if (this.phase === 'VOTE' && pendingPlayers(this.voters, this.votes.keys()).length === 0) this.advance();
   }
 
   protected override onLeave(playerId: string): void {
@@ -277,8 +268,9 @@ export class TrialGame extends BaseGame<TrialPhase> {
     const inCase = this.phase !== 'START' && this.phase !== 'GAME_OVER';
     const myRole = inCase ? (this.roles[playerId] ?? null) : null;
     const secretVisible = inCase && this.phase !== 'VERDICT';
+    const base = this.baseView(playerId);
     return {
-      ...this.baseView(playerId),
+      ...base,
       gameId: 'ten-sec-trial',
       phase: this.phase,
       caseInfo: inCase ? (this.current?.info ?? null) : null,
@@ -286,7 +278,6 @@ export class TrialGame extends BaseGame<TrialPhase> {
       myRole,
       myGoal: myRole ? this.goalFor(myRole) : null,
       myCards: secretVisible ? (this.current?.cards[playerId] ?? []) : [],
-      ready: [...this.ready],
       order: this.phase === 'TESTIMONY' || this.phase === 'VOTE' ? this.turns.order : [],
       turnIndex: this.turns.index,
       statements: inCase ? this.turns.statements : [],

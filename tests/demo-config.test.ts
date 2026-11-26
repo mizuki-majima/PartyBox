@@ -147,6 +147,13 @@ describe('懇親会のデモの仮名のデータ', () => {
     expect(namesOf(demoEventConfig(real))).not.toContain(plain);
   });
 
+  it('本番の名簿が名字だけ・名前だけ（2文字）でも、それを含む仮名を使わない', () => {
+    const real: EventConfig = { ...REAL, seats: { ...REAL.seats, participants: ['佐藤', '翔太', '鈴木', ...REAL.seats.participants] } };
+    const names = namesOf(demoEventConfig(real));
+    for (const n of names) for (const part of ['佐藤', '翔太', '鈴木']) expect(n, n).not.toContain(part);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
   it('夕食の席が無ければ、無いまま', () => {
     expect(demoEventConfig({ ...REAL, dinner: null }).dinner).toBeNull();
   });

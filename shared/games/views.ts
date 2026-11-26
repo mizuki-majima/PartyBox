@@ -112,7 +112,6 @@ export interface LiarView extends GameViewBase {
   /** secret モードで自分が嘘つきなら true。ワードウルフでは常に null（本人も知らない） */
   amLiar: boolean | null;
   myTopic: string | null;
-  ready: string[];
   order: string[];
   turnIndex: number;
   /** いま何周目か（1 始まり）と、1つのお題で何周話すか */
@@ -202,7 +201,6 @@ export interface TrialView extends GameViewBase {
   myRole: TrialRole | null;
   myGoal: string | null;
   myCards: string[];
-  ready: string[];
   order: string[];
   turnIndex: number;
   statements: Statement[];

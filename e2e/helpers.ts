@@ -68,3 +68,8 @@ export async function shot(p: Player, name: string) {
 export async function closeAll(players: Player[]) {
   for (const p of players) await p.context.close();
 }
+
+/** 準備の関門: 全員が「準備OK」を押す（押せるようになるまで待つ）。そろうと 3・2・1 で進む */
+export async function readyAll(players: Player[]) {
+  for (const p of players) await p.page.getByTestId('gate-ready').click();
+}
