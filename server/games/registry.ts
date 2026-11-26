@@ -23,7 +23,7 @@ const definitions: ServerGameDefinition[] = [
   { id: 'grow-answer', create: (ctx, players, settings) => new GrowAnswerGame(ctx, players, settings) },
   { id: 'ten-sec-trial', create: (ctx, players, settings) => new TrialGame(ctx, players, settings) },
   { id: 'ad-dodge', create: (ctx, players, settings) => new AdDodgeGame(ctx, players, settings) },
-  { id: 'party-event', create: (ctx, players, settings, eventConfig) => new PartyEventGame(ctx, players, settings, eventConfig) },
+  { id: 'party-event', create: (ctx, players, settings) => new PartyEventGame(ctx, players, settings) },
 ];
 
 const registry = new Map<GameId, ServerGameDefinition>(definitions.map((d) => [d.id, d]));

@@ -112,7 +112,7 @@ describe('コードを知らない人に、名簿やクイズを見せない', (
     expect(server.manager.rooms.get(demo.session.code)!.demo).toBe(true);
   });
 
-  it('常設のルームがあっても懇親会のデモは作れ、名簿は本番と同じ人数の仮名になる（常設のルームの名簿はそのまま）', async () => {
+  it('常設のルームがあっても懇親会のデモは作れ、名簿は常設のルームと同じ（本名のまま。進み具合は別々）', async () => {
     const real = loadEventConfig().seats.participants.map((p) => (typeof p === 'string' ? p : p.name));
     const host = await connect();
     const res = await host.ok<{ session: { code: string } }>('room:create', { gameId: 'party-event', name: '司会', demo: true });
@@ -123,12 +123,12 @@ describe('コードを知らない人に、名簿やクイズを見せない', (
     const guest = await connect();
     const checked = await guest.ok<{ room: { roster?: { name: string }[] } }>('room:check', { code });
     const demoNames = checked.room.roster!.map((p) => p.name);
-    expect(demoNames).toHaveLength(real.length);
-    for (const name of real) expect(demoNames).not.toContain(name);
+    expect(demoNames).toEqual(real);
 
-    // 常設のルームは本番の名簿のまま
+    // 常設のルームも同じ名簿。デモは別のルームなので、常設のルームの進み具合には触れない
     const fixed = await guest.ok<{ room: { roster?: { name: string }[] } }>('room:check', { code: CODE });
-    expect(fixed.room.roster!.map((p) => p.name)).toEqual(expect.arrayContaining(real));
+    expect(fixed.room.roster!.map((p) => p.name)).toEqual(real);
+    expect(code).not.toBe(CODE);
   });
 
   it('入口の出し分け用の API は、常設のルームがあることだけを返す（コードは返さない）', async () => {

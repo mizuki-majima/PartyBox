@@ -106,7 +106,7 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
  */
 export function EventGameCard({ game }: { game: GameMeta }) {
   // 常設のルームがあるときは、ルームを作る入口を出さない（コードを入れて参加するだけ）。
-  // デモの入口は出す（名前・所属を仮名にしたデータで動くので、本番の名簿とクイズは見えない）
+  // デモの入口は出す（使い捨てのルームで、本番と同じ名簿・問題で動く。用意してあるルームには触れない）
   const fixed = useFixedEventRoom();
   return (
     <div
@@ -138,7 +138,7 @@ export function EventGameCard({ game }: { game: GameMeta }) {
               </Button>
             </Link>
             <p className="text-xs text-muted">
-              デモでは、司会と参加者の画面を並べて1人で進行を試せます（PC向け）。名前と会社名は仮名、問題はダミーで、人数やチームの数は本番と同じです。用意してあるルームには影響しません。
+              デモでは、司会と参加者の画面を並べて1人で進行を試せます（PC向け）。名簿と問題は本番と同じです。用意してあるルームには影響しません。
             </p>
           </>
         ) : (

@@ -223,9 +223,11 @@ export interface QuizQuestionView {
   question: string;
   /** 選択肢の問題なら選択肢。自由回答なら null */
   choices: string[] | null;
-  /** 答えと解説は reveal 以降か、司会にだけ入る。それ以外は null */
+  /** 答えと解説は reveal 以降か、司会にだけ入る。それ以外は null（答えを書いていない問題も null） */
   answer: string | number | null;
   note: string | null;
+  /** 司会が ○ を付ける問題か（自由回答と、答えを書いていない問題）。false なら締め切りで自動採点 */
+  hostGraded: boolean;
   /** この問題の点数（正解したチームに足す。既定 1。最後の問題を高くするなど） */
   points: number;
 }

@@ -1,4 +1,3 @@
-import type { EventConfig } from '../event/config';
 import { type GameId, type GameSettings, defaultSettings, getGameMeta } from '../../shared/games';
 import type { PlayerView, RoomStatus, RoomSummary, RoomView } from '../../shared/protocol';
 import type { GameContext, GameInstance } from '../games/types';
@@ -51,8 +50,6 @@ export class Room {
   readonly hostClaims = new Set<string>();
   /** 1人で試すためのデモのルーム。ディスクに保存せず、誰もいなくなったら早めに片付ける */
   demo = false;
-  /** 懇親会の名簿・問題をルームごとに変えるとき（常設のルームがあるサーバーのデモ = 仮名のデータ）。null なら置き場のデータ */
-  eventConfig: EventConfig | null = null;
   /** チーム名（懇親会の夕食のチームで遊ぶとき）。勝者の記録に残す */
   label: string | null = null;
   /**
