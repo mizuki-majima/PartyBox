@@ -7,6 +7,7 @@ import { Icon } from '../../components/Icon';
 import { Avatar, Button } from '../../components/ui';
 import { keepAwakeIn, useWakeLock } from '../../lib/wakeLock';
 import { useGame } from '../RoomContext';
+import { ReadyGate } from '../../components/ReadyGate';
 
 const meta = getGameMeta('liar')!;
 
@@ -70,19 +71,12 @@ function MyCard({ large = false }: { large?: boolean }) {
 }
 
 function RolePhase() {
-  const { game, act, room } = useGame<LiarView>();
-  const ready = game.ready.includes(room.youId);
   return (
     <div className="flex flex-col gap-5">
       <PhaseHeader icon="eye" title="自分のカードを確認しよう" sub="他の人に画面を見せないように！" />
       <MyCard large />
-      {game.me && (
-        <Button size="xl" block onClick={() => act('ready')} disabled={ready} variant={ready ? 'secondary' : 'primary'} data-testid="ready">
-          {ready ? '✓ 確認しました' : '確認した！'}
-        </Button>
-      )}
-      <SubmissionStatus targets={game.players.filter((p) => !p.left).map((p) => p.id)} done={game.ready} label="確認" />
-      <HostSkip />
+      {/* 時間では進まず、全員の「確認した！」で 3・2・1（準備の関門） */}
+      <ReadyGate readyLabel="確認した！" />
     </div>
   );
 }

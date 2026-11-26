@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeAll, setupRoom, shot } from './helpers';
+import { closeAll, setupRoom, shot, readyAll } from './helpers';
 
 test('全員一致を目指せ！: PCホスト + スマホ2台で作成→参加→リロード復帰→3ラウンド→結果→もう一回', async ({ browser }) => {
   const { players, host, code } = await setupRoom(browser, 'unanimous', ['みずき', 'たろう', 'はな']);
@@ -26,6 +26,7 @@ test('全員一致を目指せ！: PCホスト + スマホ2台で作成→参加
   await host.page.getByTestId('start-game').click();
   for (const p of players) await expect(p.page.getByText('GAME START')).toBeVisible();
   await shot(taro, 'game-start-phone');
+  await readyAll(players); // 開始の準備の関門
 
   const answers = [
     ['おにぎり', 'オニギリ', 'サンドイッチ'], // 2人一致 → 1点
@@ -35,6 +36,7 @@ test('全員一致を目指せ！: PCホスト + スマホ2台で作成→参加
   const expected = [1, 10, 0];
 
   for (let round = 0; round < 3; round++) {
+    if (round > 0) await readyAll(players); // 2ラウンド目からの頭も、全員の準備OK
     for (const p of players) await expect(p.page.getByTestId('answer-input')).toBeVisible({ timeout: 20_000 });
     const question = await host.page.getByTestId('question').innerText();
     for (const p of players) await expect(p.page.getByTestId('question')).toHaveText(question);
@@ -78,6 +80,8 @@ test('全員一致を目指せ！: PCホスト + スマホ2台で作成→参加
   await hana.page.getByRole('button', { name: '退出', exact: true }).click();
   await hana.page.getByRole('button', { name: '退出する' }).click();
   await hana.page.waitForURL(/\/$/);
+  // 開始の準備の関門: 抜けた人は待たず、残りの2人の準備OKで始まる
+  await readyAll([host, taro]);
   for (const p of [host, taro]) await expect(p.page.getByTestId('answer-input')).toBeVisible({ timeout: 20_000 });
   await host.page.getByTestId('answer-input').fill('いぬ');
   await host.page.getByTestId('answer-submit').click();

@@ -210,7 +210,6 @@ export class LiarGame extends BaseGame<LiarPhase> {
       mode: this.mode,
       amLiar: participant && inRound && this.mode === 'secret' ? isLiar : null,
       myTopic,
-      ready: base.gate?.ready ?? [],
       order: inRound ? this.turns.order : [],
       turnIndex: this.turns.index,
       lap: this.turns.lap,

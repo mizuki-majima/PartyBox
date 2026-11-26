@@ -17,6 +17,7 @@ import {
 import { Icon, type IconName } from '../../components/Icon';
 import { Avatar, Button, Card } from '../../components/ui';
 import { useGame } from '../RoomContext';
+import { ReadyGate } from '../../components/ReadyGate';
 
 const meta = getGameMeta('unanimous')!;
 
@@ -29,6 +30,7 @@ export function UnanimousScreen() {
       return (
         <RoundIntro round={game.round} total={game.totalRounds}>
           {game.question && <QuestionCard text={game.question} accent={meta.theme.to} />}
+          {game.gate && <ReadyGate />}
         </RoundIntro>
       );
     case 'ANSWER':

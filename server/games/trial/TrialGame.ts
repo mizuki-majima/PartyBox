@@ -278,7 +278,6 @@ export class TrialGame extends BaseGame<TrialPhase> {
       myRole,
       myGoal: myRole ? this.goalFor(myRole) : null,
       myCards: secretVisible ? (this.current?.cards[playerId] ?? []) : [],
-      ready: base.gate?.ready ?? [],
       order: this.phase === 'TESTIMONY' || this.phase === 'VOTE' ? this.turns.order : [],
       turnIndex: this.turns.index,
       statements: inCase ? this.turns.statements : [],

@@ -16,6 +16,7 @@ import {
 import { Icon } from '../../components/Icon';
 import { Avatar, Button } from '../../components/ui';
 import { useGame } from '../RoomContext';
+import { ReadyGate } from '../../components/ReadyGate';
 
 const meta = getGameMeta('whose-answer')!;
 
@@ -28,6 +29,7 @@ export function WhoseScreen() {
       return (
         <RoundIntro round={game.round} total={game.totalRounds}>
           {game.question && <QuestionCard label="質問" text={game.question} accent={meta.theme.from} />}
+          {game.gate && <ReadyGate />}
         </RoundIntro>
       );
     case 'ANSWER':
