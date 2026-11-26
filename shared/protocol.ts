@@ -43,6 +43,21 @@ export interface GameViewBase {
   me: string | null;
   /** 途中終了した場合の理由 */
   endReason: string | null;
+  /** 準備の関門（全員の「準備OK」を待つ画面）。関門でなければ null */
+  gate: GateView | null;
+}
+
+/**
+ * 準備の関門。全員（切れている人を除く）が「準備OK」を押すと、自動でカウントダウン（3秒）に入り、終わると進む。
+ * カウントダウン中はホストが止められる（全員の準備OKを取り消す）
+ */
+export interface GateView {
+  /** 準備OKを押した人 */
+  ready: string[];
+  /** カウントダウン中か（締切は deadline） */
+  counting: boolean;
+  /** ホストが「ここで終了」できるか（2ラウンド目からのラウンドの頭） */
+  canEnd: boolean;
 }
 
 export interface RoomView {

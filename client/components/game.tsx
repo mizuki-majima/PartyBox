@@ -5,6 +5,7 @@ import { useRemaining } from '../lib/clock';
 import { request } from '../lib/socket';
 import { useToast } from '../lib/toast';
 import { GameEmblem, Icon, type IconName } from './Icon';
+import { ReadyGate } from './ReadyGate';
 import { Avatar, Button, Card, TextInput } from './ui';
 
 /* ------------------------------------------------------------------ */
@@ -311,10 +312,8 @@ export function HostSkip({ label = 'スキップ' }: { label?: string }) {
 /* ------------------------------------------------------------------ */
 /* START 演出                                                           */
 /* ------------------------------------------------------------------ */
+/** ゲーム開始: 遊び方を出して、全員の「準備OK」を待つ（準備の関門。そろうと 3・2・1 で始まる） */
 export function StartSplash({ meta }: { meta: GameMeta }) {
-  const { room } = useRoomContext();
-  const remaining = useRemaining(room.game?.deadline ?? null);
-  const sec = remaining == null ? null : Math.ceil(remaining / 1000);
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
       <GameEmblem id={meta.id} className="animate-pop-in block h-32 w-40" />
@@ -330,12 +329,7 @@ export function StartSplash({ meta }: { meta: GameMeta }) {
           </li>
         ))}
       </ol>
-      {sec != null && sec > 0 && (
-        <p key={sec} className="animate-pop-in font-display text-5xl text-ok-ink">
-          {sec}
-        </p>
-      )}
-      <HostSkip label="すぐに始める" />
+      <ReadyGate skipLabel="待たずに始める" />
     </div>
   );
 }

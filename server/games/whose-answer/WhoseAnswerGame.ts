@@ -85,7 +85,9 @@ export class WhoseAnswerGame extends BaseGame<WhosePhase> {
     this.guesses.clear();
     this.locked.clear();
     this.result = null;
-    this.setPhase('ROUND_INTRO', { duration: 3000, onEnd: () => this.startAnswer() });
+    // 1ラウンド目は開始の準備の関門のすぐあとなので、今までどおり短く出して進む。2ラウンド目からは全員の準備OKを待つ
+    if (round === 1) this.setPhase('ROUND_INTRO', { duration: 3000, onEnd: () => this.startAnswer() });
+    else this.openGate('ROUND_INTRO', { roundHead: true, onGo: () => this.startAnswer() });
   }
 
   private startAnswer(): void {

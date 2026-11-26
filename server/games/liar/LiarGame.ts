@@ -54,7 +54,6 @@ export class LiarGame extends BaseGame<LiarPhase> {
   private topic: Topic | null = null;
   private liarTopic: string | null = null;
   private guessChoices: string[] = [];
-  private ready = new Set<string>();
   private turns = new TurnSequence();
   private votes = new Map<string, string>();
   private liarGuess: string | null = null;
@@ -85,12 +84,12 @@ export class LiarGame extends BaseGame<LiarPhase> {
     this.liarTopic = this.mode === 'wordwolf' ? pick(siblings).topic : null;
     const decoys = pickMany(siblings.map((t) => t.topic), GUESS_CHOICES - 1);
     this.guessChoices = shuffle([this.topic.topic, ...decoys]);
-    this.ready.clear();
     this.votes.clear();
     this.liarGuess = null;
     this.result = null;
     this.turns.reset(shuffle(this.active), this.laps);
-    this.setPhase('ROLE', { duration: 15000, onEnd: () => this.nextTurn() });
+    // 役割確認は時間で進めず、全員の「確認した！」（準備の関門）で進む
+    this.openGate('ROLE', { roundHead: true, onGo: () => this.nextTurn() });
   }
 
   private canSpeak = (id: string) => this.isActive(id) && this.ctx.isConnected(id);
@@ -145,13 +144,6 @@ export class LiarGame extends BaseGame<LiarPhase> {
 
   protected onAction(playerId: string, action: GameAction): void {
     switch (action.type) {
-      case 'ready': {
-        this.requirePhase('ROLE');
-        this.requireActive(playerId);
-        this.ready.add(playerId);
-        this.checkComplete();
-        return;
-      }
       case 'speak': {
         this.requirePhase('TALK');
         if (this.turns.current !== playerId) throw new UserError('今はあなたの番ではありません');
@@ -184,8 +176,7 @@ export class LiarGame extends BaseGame<LiarPhase> {
   }
 
   protected checkComplete(): void {
-    if (this.phase === 'ROLE' && pendingPlayers(this.active, this.ready).length === 0) this.advance();
-    else if (this.phase === 'VOTE' && pendingPlayers(this.active, this.votes.keys()).length === 0) this.advance();
+    if (this.phase === 'VOTE' && pendingPlayers(this.active, this.votes.keys()).length === 0) this.advance();
   }
 
   protected override onLeave(playerId: string): void {
@@ -211,14 +202,14 @@ export class LiarGame extends BaseGame<LiarPhase> {
       if (!isLiar) myTopic = this.topic?.topic ?? null;
       else if (this.mode === 'wordwolf') myTopic = this.liarTopic;
     }
+    const base = this.baseView(playerId);
     return {
-      ...this.baseView(playerId),
+      ...base,
       gameId: 'liar',
       phase: this.phase,
       mode: this.mode,
       amLiar: participant && inRound && this.mode === 'secret' ? isLiar : null,
       myTopic,
-      ready: [...this.ready],
       order: inRound ? this.turns.order : [],
       turnIndex: this.turns.index,
       lap: this.turns.lap,

@@ -7,6 +7,7 @@ import { Avatar } from '../../components/ui';
 import { useRemaining } from '../../lib/clock';
 import { useGame } from '../RoomContext';
 import { StageCanvas } from './Stage';
+import { ReadyGate } from '../../components/ReadyGate';
 
 const meta = getGameMeta('ad-dodge')!;
 
@@ -68,10 +69,16 @@ function Intro() {
           </li>
         </ul>
       </Window>
-      {sec != null && sec > 0 && (
-        <p key={sec} className="animate-pop-in font-display text-6xl text-on-accent [text-shadow:2px_2px_0_var(--t-shade)]">
-          {sec}
-        </p>
+      {/* 2ラウンド目からは準備の関門（数字も関門が出す）。1ラウンド目は今までどおりここで 3・2・1 */}
+      {game.gate ? (
+        <ReadyGate />
+      ) : (
+        sec != null &&
+        sec > 0 && (
+          <p key={sec} className="animate-pop-in font-display text-6xl text-on-accent [text-shadow:2px_2px_0_var(--t-shade)]">
+            {sec}
+          </p>
+        )
       )}
     </RoundIntro>
   );

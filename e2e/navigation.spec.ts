@@ -31,3 +31,11 @@ test('scrollTo が値を返す環境でも、画面遷移で落ちない', async
   expect(errors).toEqual([]);
   await context.close();
 });
+
+test('10秒裁判は一覧に出さない（トップとロビーのゲーム変更）。URL を直接開けば遊べる', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('game-card-whose-answer')).toBeVisible();
+  await expect(page.getByTestId('game-card-ten-sec-trial')).toHaveCount(0);
+  await page.goto('/play/ten-sec-trial');
+  await expect(page.getByTestId('create-room')).toBeVisible();
+});

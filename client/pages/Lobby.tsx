@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { GAMES, type GameMeta, type GameSettingDef, getGameMeta, isEventGame } from '../../shared/games';
+import { type GameMeta, type GameSettingDef, LISTED_GAMES, getGameMeta, isEventGame } from '../../shared/games';
 import { LIMITS } from '../../shared/protocol';
 import { GameEmblem, Icon } from '../components/Icon';
 import { Avatar, Badge, Button, Card, Modal, SectionTitle, TextInput } from '../components/ui';
@@ -354,7 +354,7 @@ function GameInfoCard({ meta }: { meta: GameMeta }) {
       <Modal open={picking} onClose={() => setPicking(false)}>
         <h2 className="font-display text-xl">ゲームを変更</h2>
         <div className="mt-4 grid gap-2">
-          {GAMES.map((g) => {
+          {LISTED_GAMES.map((g) => {
             const tooMany = room.players.length > g.maxPlayers;
             return (
               <button

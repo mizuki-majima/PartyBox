@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { closeAll, type Player, setupRoom, shot } from './helpers';
+import { closeAll, type Player, setupRoom, shot, readyAll } from './helpers';
 
 /**
  * 広告をすり抜けろ！
@@ -73,6 +73,7 @@ test('広告をすり抜けろ！: 同じページ → 広告でロック → �
   await host.page.getByRole('button', { name: '1ラウンド' }).click();
   await host.page.getByRole('button', { name: '5ページ' }).click();
   await host.page.getByTestId('start-game').click();
+  await readyAll(players);
   for (const p of players) await expect(p.page.getByTestId('ad-stage')).toBeVisible({ timeout: 20_000 });
   await expect(host.page.getByTestId('dev-badge')).toBeVisible();
 

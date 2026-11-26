@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PartyServer } from '../server/app';
-import { setupRoom, sleep, startTestServer, TestClient } from './helpers';
+import { passGate, setupRoom, sleep, startTestServer, TestClient } from './helpers';
 
 let server: PartyServer;
 const clients: TestClient[] = [];
@@ -161,6 +161,7 @@ describe('退出・再接続・ホスト権限', () => {
     const { host, clients: cs, code } = await setupRoom(server.port, 'liar', 4);
     clients.push(...cs);
     await host.ok('room:start');
+    await passGate(cs);
     await host.waitPhase('ROLE');
     const late = await connect();
     await late.join(code, 'おそい');

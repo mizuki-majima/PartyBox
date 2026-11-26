@@ -6,7 +6,7 @@ import type { WhoseView } from '../shared/games/views';
 import { type GameResult, type ResultsResponse, winnersByLabel } from '../shared/results';
 import type { PartyServer } from '../server/app';
 import { MAX_RESULTS, ResultLog, buildResult, rankPlayers } from '../server/results';
-import { TestClient, setupRoom, startGame, startTestServer } from './helpers';
+import { TestClient, passGate, setupRoom, startGame, startTestServer } from './helpers';
 
 /**
  * 勝者の記録。卓ごとに遊んだゲームが最後まで終わるたびに、「いつ・誰が1位か」を1件残す。
@@ -34,6 +34,7 @@ async function playWhose(rounds = 2, label?: string, demo?: boolean) {
   const [a] = clients;
   await startGame(host, clients, 'ANSWER');
   for (let round = 1; round <= rounds; round++) {
+    if (round > 1) await passGate(clients); // 2ラウンド目からの頭は、全員の準備OKを待つ
     await host.waitPhase('ANSWER', (v) => v.game!.round === round);
     for (const [i, cl] of clients.entries()) await cl.actionOk('answer', { text: `答え${round}-${i}` });
     await Promise.all(clients.map((x) => x.waitPhase('GUESS')));
@@ -176,9 +177,11 @@ describe('ゲームが終わると記録に残る', () => {
     const { host, clients } = await playWhose(2);
     const before = server.manager.results.list().length;
     await host.ok('room:restart');
+    await passGate(clients); // もう一回も、開始の準備の関門から
     await host.waitPhase('ANSWER', (v) => v.game!.round === 1);
     // 2回目は誰も答えずに時間切れで進める
     for (let round = 1; round <= 2; round++) {
+      if (round > 1) await passGate(clients);
       await host.waitPhase('RESULT', (v) => v.game!.round === round, 15_000);
       await host.actionOk('next');
     }
@@ -194,9 +197,14 @@ describe('ゲームが終わると記録に残る', () => {
     open.push(...clients);
     const before = server.manager.results.list().length;
     await host.ok('room:start');
+    await passGate(clients);
     for (;;) {
-      await host.waitFor((v) => v.game?.phase === 'ANSWER' || v.game?.phase === 'GAME_OVER', 15_000, 'ANSWER');
+      await host.waitFor((v) => v.game?.phase === 'ANSWER' || v.game?.phase === 'GAME_OVER' || (!!v.game?.gate && !v.game.gate.counting), 15_000, 'ANSWER');
       if (host.game.phase === 'GAME_OVER') break;
+      if (host.game.gate && !host.game.gate.counting) {
+        await passGate(clients); // 2ラウンド目からの頭
+        continue;
+      }
       for (const cl of clients) await cl.actionOk('answer', { text: 'おにぎり' });
       await host.waitPhase('REVEAL');
       await host.actionOk('next');

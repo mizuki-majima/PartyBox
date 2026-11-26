@@ -108,7 +108,9 @@ export class AdDodgeGame extends BaseGame<AdDodgePhase> {
     // 全員が同じ種から作ったページを遊ぶ（同じページが同じ順に出る）
     this.pages = generateRound(this.rng.int(0, 2 ** 31), this.pageCount, (ms) => this.ctx.scale(ms));
     this.racers = new Map(this.participants.map((id) => [id, newRacer(Date.now())]));
-    this.setPhase('ROUND_INTRO', { duration: 3000, onEnd: () => this.startRace() });
+    // 1ラウンド目は開始の準備の関門のすぐあとなので、今までどおり短く出して進む。2ラウンド目からは全員の準備OKを待つ
+    if (round === 1) this.setPhase('ROUND_INTRO', { duration: 3000, onEnd: () => this.startRace() });
+    else this.openGate('ROUND_INTRO', { roundHead: true, onGo: () => this.startRace() });
   }
 
   private startRace(): void {
