@@ -8,12 +8,14 @@
  * 置き場に入れるファイル:
  *   quiz.json / bingo.json / seats.json
  * 形式は party-app-aws の data/*.json と同じなので、そのまま持ってこられる。
+ * 夕食の席（dinner.json）と常設のルーム（room.json）は省略できる。
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 // サンプルはバンドルに取り込む（本番のデータが未設置でも必ず動くように）
 import bingoSample from './sample/bingo.json';
+import dinnerSample from './sample/dinner.json';
 import quizSample from './sample/quiz.json';
 import seatsSample from './sample/seats.json';
 
@@ -105,10 +107,34 @@ const FixedRoomConfig = z.object({
     .optional(),
 });
 
+/**
+ * 夕食の席（dinner.json）。決まった席に座る会で、テーブル → チーム → 人 の並びをそのまま画面に出す。
+ * members は名簿（seats.json）の名前で書く。名簿の所属から、legend の何番目の色で塗るかを決める。
+ * 名簿に無い名前も書ける（色なしで出す。当日の飛び入りなどで、起動を止めないため）
+ */
+const DinnerConfig = z.object({
+  title: nonEmpty(60).default('夕食の席'),
+  /** 所属の色分け。0 番目と 1 番目に別の色を当てる（画面のトークン tone-0 / tone-1 …） */
+  legend: z
+    .array(z.object({ label: nonEmpty(20), groups: z.array(nonEmpty(40)).min(1).max(10) }))
+    .max(4)
+    .default([]),
+  tables: z
+    .array(
+      z.object({
+        name: nonEmpty(20),
+        teams: z.array(z.object({ name: nonEmpty(20), members: z.array(nonEmpty(40)).min(1).max(20) })).min(1).max(10),
+      }),
+    )
+    .min(1)
+    .max(10),
+});
+
 export type QuizConfig = z.infer<typeof QuizConfig>;
 export type BingoConfig = z.infer<typeof BingoConfig>;
 export type SeatsConfig = z.infer<typeof SeatsConfig>;
 export type FixedRoomConfig = z.infer<typeof FixedRoomConfig>;
+export type DinnerConfig = z.infer<typeof DinnerConfig>;
 
 export interface EventConfig {
   quiz: QuizConfig;
@@ -116,6 +142,8 @@ export interface EventConfig {
   seats: SeatsConfig;
   /** 常設のルーム（room.json が置いてあるときだけ） */
   room: FixedRoomConfig | null;
+  /** 夕食の席（dinner.json が置いてあるときだけ。置き場が空の開発環境ではサンプル） */
+  dinner: DinnerConfig | null;
   /** 実際に読めた置き場（ログと司会画面の確認用） */
   source: string;
 }
@@ -179,11 +207,26 @@ export function loadEventConfig(): EventConfig {
     }
     room = parsed.data;
   }
+  // 夕食の席。置いてあるのに形式が違えば、ほかのファイルと同じく起動を失敗させる。
+  // 置いていなければ、本番（名簿を置き場から読めている）では出さない。サンプルの作りものの名前を本番に出さないため。
+  // 置き場が空（開発・試験）のときだけサンプルを使う
+  const rawDinner = readJson(dir, 'dinner.json');
+  let dinner: DinnerConfig | null = null;
+  if (rawDinner !== null) {
+    const parsed = DinnerConfig.safeParse(rawDinner);
+    if (!parsed.success) {
+      throw new Error(`${join(dir, 'dinner.json')} の形式が正しくありません: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(' / ')}`);
+    }
+    dinner = parsed.data;
+  } else if (fromDir === 0) {
+    dinner = DinnerConfig.parse(dinnerSample);
+  }
   return {
     quiz: quiz.value,
     bingo: bingo.value,
     seats: seats.value,
     room,
+    dinner,
     source: fromDir === 3 ? dir : fromDir === 0 ? 'サンプル（本番のデータが未設置）' : `${dir}（${3 - fromDir} 件はサンプル）`,
   };
 }

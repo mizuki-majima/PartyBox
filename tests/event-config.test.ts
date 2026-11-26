@@ -67,3 +67,33 @@ describe('クイズの answer（選択問題は 1 始まり）', () => {
     expect(q.choices![q.answer as number]).toBe('北海道');
   });
 });
+
+describe('夕食の席（dinner.json）', () => {
+  const writeDinner = (body: unknown) => writeFileSync(path.join(dir, 'dinner.json'), JSON.stringify(body));
+  const seatsBody = { participants: ['あ', 'い'], tables: [{ name: '1', seats: 2 }] };
+
+  it('置き場の dinner.json を読む（title を省くと「夕食の席」）', () => {
+    writeDinner({
+      legend: [{ label: '所属A', groups: ['A社'] }],
+      tables: [{ name: '卓1', teams: [{ name: 'チーム A', members: ['あ', 'い'] }] }],
+    });
+    const { dinner } = loadEventConfig();
+    expect(dinner?.title).toBe('夕食の席');
+    expect(dinner?.tables[0].teams[0].members).toEqual(['あ', 'い']);
+    expect(dinner?.legend[0].groups).toEqual(['A社']);
+  });
+
+  it('置き場に名簿があって dinner.json が無ければ null（サンプルの名前を本番に出さない）', () => {
+    writeFileSync(path.join(dir, 'seats.json'), JSON.stringify(seatsBody));
+    expect(loadEventConfig().dinner).toBeNull();
+  });
+
+  it('置き場が空ならサンプルを使う', () => {
+    expect(loadEventConfig().dinner?.tables.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('形式が違えば起動を失敗させる', () => {
+    writeDinner({ tables: [] });
+    expect(() => loadEventConfig()).toThrow(/dinner\.json の形式が正しくありません/);
+  });
+});
