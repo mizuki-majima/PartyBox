@@ -59,6 +59,7 @@ test('勝者の記録: 夕食のチームでゲームを遊ぶと、ルームと
   await sakura.page.getByTestId('join-submit').click();
 
   // 夕食の席の自分のチームから「このチームでゲームを遊ぶ」→ トップでゲームを選ぶ
+  await sakura.page.getByTestId('me-dinner-open').click();
   await sakura.page.getByTestId('team-play').click();
   await sakura.page.waitForURL(/\/$/);
   await expect(sakura.page.getByTestId('team-play-banner')).toContainText('チーム A');

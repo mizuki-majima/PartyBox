@@ -37,6 +37,7 @@ test('誰の答えでしょう？: 回答 → 推理（自分の回答は選べ�
 test('嘘つきは誰だ？: 役割確認 → 順番に発言 → 投票 → 正体公開', async ({ browser }) => {
   const { players, host } = await setupRoom(browser, 'liar', ['みずき', 'たろう', 'はな', 'けん']);
   await host.page.getByRole('button', { name: '2ラウンド' }).click();
+  await host.page.getByRole('button', { name: '1周' }).click(); // 1周（今までどおりの流れ）
   await host.page.getByRole('button', { name: '15秒' }).click();
   await start(host, players, 'ready');
   // 嘘つきカードは1人だけ、それ以外は同じお題
@@ -58,6 +59,8 @@ test('嘘つきは誰だ？: 役割確認 → 順番に発言 → 投票 → 正
     if (turn === 0) await shot(speaker, 'liar-talk-phone');
     await speaker.page.getByTestId('speak-submit').click();
     await expect(host.page.getByText(`発言${turn}`)).toBeVisible();
+    // 前の話し手の画面から発言の欄が消えてから、次の話し手を探す（古い画面を拾わないように）
+    await expect(speaker.page.getByTestId('speak-submit')).toHaveCount(0);
   }
   for (const p of players) await expect(p.page.getByTestId('vote-target').first()).toBeVisible();
   await shot(host, 'liar-vote-desktop');
@@ -109,6 +112,31 @@ test('回答を育てろ: 絵を描く → 説明 → 絵 → アルバム公開
   await closeAll(players);
 });
 
+test('嘘つきは誰だ？: 1つのお題で何周も話し、いま何周目かと周ごとの発言が見える', async ({ browser }) => {
+  const { players, host } = await setupRoom(browser, 'liar', ['みずき', 'たろう', 'はな', 'けん']);
+  // 既定は「1ラウンド・3周」
+  await expect(host.page.getByRole('button', { name: '3周' })).toHaveAttribute('aria-pressed', 'true');
+  // 試験の機械が遅くても、持ち時間切れで番が飛ばないように長めにする
+  await host.page.getByRole('button', { name: '30秒' }).click();
+  await start(host, players, 'ready');
+  for (const p of players) await p.page.getByTestId('ready').click();
+
+  await expect(host.page.getByTestId('liar-lap')).toContainText('1周目');
+  for (let turn = 0; turn < 5; turn++) {
+    const speaker = await findPage(players, 'speak-submit');
+    await speaker.page.getByTestId('speak-input').fill(`発言${turn}`);
+    await speaker.page.getByTestId('speak-submit').click();
+    await expect(host.page.getByText(`発言${turn}`)).toBeVisible();
+    // 前の話し手の画面から発言の欄が消えてから、次の話し手を探す（古い画面を拾わないように）
+    await expect(speaker.page.getByTestId('speak-submit')).toHaveCount(0);
+  }
+  // 4人が1回ずつ話したら2周目。投票にはまだ進まない
+  await expect(host.page.getByTestId('liar-lap')).toContainText('2周目');
+  await expect(host.page.getByTestId('vote-target')).toHaveCount(0);
+  await expect(host.page.getByTestId('statement-lap')).toHaveText(['1周目', '2周目']);
+  await closeAll(players);
+});
+
 test('10秒裁判: 事件と役職 → 10秒ずつ発言 → 投票 → 判決', async ({ browser }) => {
   const { players, host } = await setupRoom(browser, 'ten-sec-trial', ['みずき', 'たろう', 'はな', 'けん']);
   await host.page.getByRole('button', { name: '2件' }).click();
@@ -123,6 +151,7 @@ test('10秒裁判: 事件と役職 → 10秒ずつ発言 → 投票 → 判決',
     if (turn === 0) await shot(speaker, 'trial-testimony-phone');
     await speaker.page.getByTestId('speak-submit').click();
     await expect(host.page.getByText(`証言${turn}`)).toBeVisible();
+    await expect(speaker.page.getByTestId('speak-submit')).toHaveCount(0); // 古い画面を拾わないように
   }
   let voters = 0;
   for (const p of players) {

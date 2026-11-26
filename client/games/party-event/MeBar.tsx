@@ -28,34 +28,31 @@ export function MeBar() {
     if (person) setPickOpen(false);
   }, [person]);
 
+  // 表紙を軽くするため1行にする。夕食の席・表示名は押したときだけ開く
   return (
-    <div className="ui-tile flex flex-col gap-2 px-4 py-3" data-testid="me-bar">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-lg font-extrabold">
-          {display} さん
-          {person && person.name !== display && <span className="ml-2 text-sm font-bold text-muted">（名簿: {person.name}）</span>}
-        </p>
-        <button className="min-h-11 px-1 text-sm font-bold text-info-ink underline underline-offset-4" onClick={() => setRenaming(true)} data-testid="me-rename">
-          表示名を変える
-        </button>
-      </div>
-      {game.dinner?.myTeam && (
-        <p className="text-base font-bold">
-          夕食: {game.dinner.myTeam}
-          <span className="ml-1 text-muted">（{game.dinner.myTable}）</span>
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1" data-testid="me-bar">
+      <p className="text-base font-extrabold">
+        {display} さん
+        {game.dinner?.myTeam && (
+          <span className="ml-2 font-bold text-muted">
+            {game.dinner.myTeam}（{game.dinner.myTable}）
+          </span>
+        )}
+      </p>
+      <div className="ml-auto flex flex-wrap items-center gap-x-3">
         {!person && (
           <Button size="sm" onClick={() => setPickOpen(true)} data-testid="me-pick">
             <Icon name="users" /> 名簿から自分の名前を選ぶ
           </Button>
         )}
         {game.dinner && (
-          <Button size="sm" variant="secondary" onClick={() => setDinnerOpen(true)} data-testid="me-dinner-open">
-            <Icon name="seat" /> 夕食の席
-          </Button>
+          <button className="min-h-11 text-sm font-bold text-info-ink underline underline-offset-4" onClick={() => setDinnerOpen(true)} data-testid="me-dinner-open">
+            夕食の席
+          </button>
         )}
+        <button className="min-h-11 text-sm font-bold text-info-ink underline underline-offset-4" onClick={() => setRenaming(true)} data-testid="me-rename">
+          表示名を変える
+        </button>
       </div>
 
       <Modal open={dinnerOpen} onClose={() => setDinnerOpen(false)}>
@@ -124,11 +121,11 @@ function RenameModal({ open, current, onClose }: { open: boolean; current: strin
  */
 export function NowBanner() {
   const { game } = useGame<PartyEventView>();
-  const text = nowText(game);
+  // 大きな箱にせず、細い1行にする（表紙の主役はゲームそのもの）
   return (
-    <p className="ui-tile flex items-center gap-2 bg-hi px-4 py-3 text-lg font-extrabold text-on-hi" data-testid="now-banner" role="status">
-      <Icon name="spark" className="h-6 w-6 shrink-0" />
-      {text}
+    <p className="flex items-center gap-2 rounded-full bg-hi px-4 py-2 text-base font-extrabold text-on-hi" data-testid="now-banner" role="status">
+      <Icon name="spark" className="h-5 w-5 shrink-0" />
+      {nowText(game)}
     </p>
   );
 }
