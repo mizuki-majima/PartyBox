@@ -51,6 +51,8 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
   private onEnd: (() => void) | null = null;
   private disposed = false;
   private gate: GateState | null = null;
+  /** 関門の中（待つ・カウントダウン）からの setPhase か。それ以外の setPhase は関門を消す */
+  private keepGate = false;
 
   /** 準備の関門のカウントダウンの長さ（ルームの時間の倍率で縮む） */
   static readonly GATE_COUNTDOWN_MS = 3000;
@@ -114,6 +116,8 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
 
   protected setPhase(phase: P | 'START' | 'GAME_OVER', opts: PhaseOptions = {}): void {
     if (this.disposed) return;
+    // 関門の状態は、関門のフェーズの間だけ持つ（ゲームが途中で別のフェーズへ進めたら消す。残ると結果の画面で勝手に進む）
+    if (!this.keepGate) this.gate = null;
     this.clearTimer();
     this.phase = phase;
     this.onEnd = opts.onEnd ?? null;
@@ -159,14 +163,24 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
 
   /** 関門で待つ（時間なし。そろう・ホストの skip で beginCountdown） */
   private waitGate(phase: P | 'START'): void {
-    this.setPhase(phase, { onEnd: () => this.beginCountdown() });
+    this.gatePhase(phase, { onEnd: () => this.beginCountdown() });
+  }
+
+  /** 関門の中からのフェーズの設定（関門を消さない） */
+  private gatePhase(phase: P | 'START', opts: PhaseOptions): void {
+    this.keepGate = true;
+    try {
+      this.setPhase(phase, opts);
+    } finally {
+      this.keepGate = false;
+    }
   }
 
   private beginCountdown(): void {
     const g = this.gate;
     if (!g) return;
     g.counting = true;
-    this.setPhase(this.phase as P | 'START', {
+    this.gatePhase(this.phase as P | 'START', {
       duration: BaseGame.GATE_COUNTDOWN_MS,
       onEnd: () => {
         this.gate = null;
@@ -229,6 +243,9 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
     if (action.type === 'skip' || action.type === 'next') {
       if (!isHost) throw new UserError('ホストのみ操作できます');
       if (this.phase === 'GAME_OVER') return;
+      // 関門では、前の画面の「次へ」の二度押し（画面の更新が遅れて届く間）で準備OKを飛ばさない。
+      // 「待たずに始める／進む」（skip）は待っている間だけ受け、カウントダウン中は 3・2・1 を飛ばさない
+      if (this.gate && (action.type === 'next' || this.gate.counting)) return;
       this.advance();
       return;
     }

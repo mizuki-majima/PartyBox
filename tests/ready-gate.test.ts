@@ -169,3 +169,71 @@ describe('各ラウンドの頭の準備の関門と「ここで終了」', () =
     await r.host.waitPhase('TESTIMONY');
   });
 });
+
+describe('レビューの指摘（関門が別のフェーズに残らない・全員一致の最大点・次への二度押し）', () => {
+  it('嘘つき: 役割確認の途中で嘘つきが抜けて結果に進んだら、関門は消え、誰かが切れても勝手に次へ進まない', async () => {
+    const r = await setupRoom(server.port, 'liar', 5, { mode: 'secret', laps: 1, rounds: 2 });
+    open.push(...r.clients);
+    await startGame(r.host, r.clients, 'ROLE');
+    await Promise.all(r.clients.map((c) => c.waitFor((v) => typeof (v.game as any).amLiar === 'boolean', 3000, '役')));
+    const liar = r.clients.find((c) => c.game.amLiar === true)!;
+    const others = r.clients.filter((c) => c !== liar);
+    // 嘘つき以外の3人が「確認した！」、1人（last）はまだ
+    const last = others[others.length - 1];
+    for (const c of others.slice(0, 3)) await c.actionOk('ready');
+    // 嘘つきは毎回ちがう（ホストのこともある）ので、残る人の画面で見る
+    const watcher = others[0];
+    await liar.ok('room:leave');
+    await watcher.waitFor((v) => v.game!.phase !== 'ROLE', 3000, '役割確認の外');
+    const phase = watcher.game.phase;
+    expect(watcher.game.gate).toBeNull();
+    last.close();
+    await sleep(300);
+    expect(watcher.game.phase).toBe(phase); // ホストの「次へ」無しには進まない
+  });
+
+  it('全員一致: ここで終了すると、最大点も終わったラウンドのぶんになる（記録の最大点も）', async () => {
+    const r = await setupRoom(server.port, 'unanimous', 3, { rounds: 3 });
+    open.push(...r.clients);
+    await startGame(r.host, r.clients, 'ANSWER');
+    for (const c of r.clients) await c.actionOk('answer', { text: 'ねこ' });
+    await r.host.waitPhase('REVEAL');
+    await r.host.actionOk('next');
+    await r.host.waitFor((v) => v.game!.phase === 'ROUND_INTRO' && !!(v.game as any).gate && !(v.game as any).gate.counting, 3000, '2ラウンド目の頭');
+    await r.host.actionOk('gate:end');
+    await r.host.waitPhase('GAME_OVER');
+    expect(r.host.game.teamScore).toBeGreaterThan(0);
+    expect(r.host.game.maxScore).toBe(r.host.game.teamScore); // 1ラウンドだけ全員一致 = 満点
+    expect(server.manager.results.list().at(-1)!.note).toContain('最大 ' + r.host.game.maxScore + ' 点');
+  });
+
+  it('結果の画面の「次へ」の二度押しで、次の関門が誰も押さないままカウントダウンに入らない', async () => {
+    const { host, clients } = await room(3);
+    await playWhoseRound1(host, clients); // 最後に「次へ」を1回押している
+    await host.waitFor((v) => v.game!.phase === 'ROUND_INTRO' && !!(v.game as any).gate, 3000, '2ラウンド目の頭');
+    await host.actionOk('next'); // 2回目（画面の更新が遅れて届く間に、もう一度押した）
+    await sleep(100);
+    expect(gate(host)).toMatchObject({ counting: false, ready: [] });
+    expect(host.game.phase).toBe('ROUND_INTRO');
+  });
+});
+
+describe('カウントダウン中の「待たずに進む」（時間を縮めないサーバー）', () => {
+  it('カウントダウン中に届いた skip では、3・2・1 を飛ばさない', async () => {
+    const slow = await startTestServer({ timeScale: 1, disconnectGraceMs: 60_000 });
+    try {
+      const r = await setupRoom(slow.port, 'whose-answer', 3, { rounds: 2 });
+      await r.host.ok('room:start');
+      await Promise.all(r.clients.map((c) => c.waitFor((v) => !!(v.game as any)?.gate, 3000, '関門')));
+      for (const c of r.clients) await c.actionOk('ready');
+      await r.host.waitFor((v) => (v.game as any).gate?.counting === true, 3000, 'カウントダウン');
+      await r.host.actionOk('skip');
+      await sleep(200);
+      expect(r.host.game.phase).toBe('START');
+      expect(gate(r.host)!.counting).toBe(true);
+      for (const c of r.clients) c.close();
+    } finally {
+      await slow.close();
+    }
+  });
+});
