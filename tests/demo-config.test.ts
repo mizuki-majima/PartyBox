@@ -63,7 +63,7 @@ describe('懇親会のデモの仮名のデータ', () => {
     expect(demoEventConfig(REAL).room).toBeNull();
   });
 
-  it('人数・所属の内訳・テーブルと席・夕食のチームと人数・問題の数と正解の番号と点数・景品の数は本番と同じ', () => {
+  it('人数・所属の内訳・テーブルと席・夕食のチームと人数・問題の数と選択肢の数と点数・景品の数は本番と同じ', () => {
     const demo = demoEventConfig(REAL);
     expect(demo.seats.participants).toHaveLength(5);
     // 所属は「同じ会社の人は同じ仮名」で、内訳（2人・1人・1人・所属なし1人）が同じ
@@ -75,11 +75,13 @@ describe('懇親会のデモの仮名のデータ', () => {
     expect(demo.dinner!.tables.map((t) => t.teams.map((m) => m.members.length))).toEqual([[2, 1], [3]]);
     expect(demo.dinner!.legend.map((l) => l.groups.length)).toEqual([2, 1]);
     expect(demo.quiz.secondsPerQuestion).toBe(25);
-    expect(demo.quiz.questions.map((q) => [q.choices?.length ?? 0, q.answer, q.points])).toEqual([
-      [3, 1, 1],
-      [0, expect.any(String), undefined],
-      [4, 3, 3],
+    expect(demo.quiz.questions.map((q) => [q.choices?.length ?? 0, typeof q.answer, q.points])).toEqual([
+      [3, 'number', 1],
+      [0, 'string', undefined],
+      [4, 'number', 3],
     ]);
+    // 選択問題の正解は、選択肢の範囲の中
+    for (const q of demo.quiz.questions) if (q.choices) expect(q.answer as number).toBeLessThan(q.choices.length);
     expect(demo.bingo.prizes).toHaveLength(3);
     expect(demo.bingo.winnersCount).toBe(3);
   });
@@ -114,6 +116,35 @@ describe('懇親会のデモの仮名のデータ', () => {
     expect(new Set(first12.map((n) => n.split(' ')[0])).size).toBe(12);
     const many = Array.from({ length: 1200 }, (_, i) => fakePersonName(i));
     expect(new Set(many).size).toBe(1200);
+  });
+
+  it('選択問題の正解の番号は本番と切り離す（本番の答えを変えても、デモの正解は変わらない）', () => {
+    // 選択肢は並べ替えずに配るので、番号を本番と同じにすると、デモから本番の答えが読めてしまう
+    const shifted: EventConfig = {
+      ...REAL,
+      quiz: {
+        ...REAL.quiz,
+        questions: REAL.quiz.questions.map((q) => (q.choices ? { ...q, answer: ((q.answer as number) + 1) % q.choices.length } : q)),
+      },
+    };
+    expect(demoEventConfig(shifted).quiz.questions.map((q) => q.answer)).toEqual(demoEventConfig(REAL).quiz.questions.map((q) => q.answer));
+  });
+
+  it('名前の書き方の揺れ（全角の空白・空白なし）は、本番と同じく同じ人として扱う', () => {
+    const real: EventConfig = {
+      ...REAL,
+      dinner: { ...REAL.dinner!, tables: [{ name: '一卓', teams: [{ name: 'ほげチーム', members: ['山本　一郎', '森田三奈'] }] }] },
+    };
+    const demo = demoEventConfig(real);
+    const names = namesOf(demo);
+    expect(demo.dinner!.tables[0].teams[0].members).toEqual([names[0], names[2]]);
+  });
+
+  it('本番の名簿の名前と、書き方が違うだけ（全角の空白など）の仮名も使わない', () => {
+    const plain = fakePersonName(0);
+    const clash = plain.replace(' ', '　');
+    const real: EventConfig = { ...REAL, seats: { ...REAL.seats, participants: [clash, ...REAL.seats.participants] } };
+    expect(namesOf(demoEventConfig(real))).not.toContain(plain);
   });
 
   it('夕食の席が無ければ、無いまま', () => {
