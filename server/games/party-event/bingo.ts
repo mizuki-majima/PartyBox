@@ -2,10 +2,13 @@
  * ビンゴの規則（party-app-aws backend/src/bingo.mjs の移植）
  *
  * - 抽選はすべてサーバーで引く
- * - 「ビンゴ！」の判定は呼ばれた番号だけで行う。参加者のタップは当てにしない
+ * - 「ビンゴ！」の受付の判定は呼ばれた番号だけで行う。参加者のタップは当てにしない
+ * - 参加者は、読み上げられた番号のマスを自分で押して開ける（リハーサルで「自分で押したい」となったため）。
+ *   開けたマスは、画面の見た目と「ビンゴ！」ボタンを出すかどうかにだけ使う
  */
 import type { BingoView, BingoCardView } from '../../../shared/games/views';
 import type { BingoConfig } from '../../event/config';
+import { UserError } from '../types';
 import { MAX_NUMBER, cardCells, drawIndex, judgeCard, labelOf, newCardId } from './cards';
 
 export interface BingoClaimEntry {
@@ -22,10 +25,21 @@ export interface BingoState {
   prizes: BingoView['prizes'];
   /** プレイヤーID → カードID。入室した順に配る */
   cards: Record<string, string>;
+  /** カードID → 参加者が自分で開けた番号。これを書く前の保存ファイルには無い（読み戻すと空になる） */
+  punched?: Record<string, number[]>;
 }
 
 export function emptyBingo(): BingoState {
-  return { called: [], claims: [], prizes: null, cards: {} };
+  return { called: [], claims: [], prizes: null, cards: {}, punched: {} };
+}
+
+/** 参加者がマスを押して開ける。読まれていない番号・カードに無い番号は開けない */
+export function punch(state: BingoState, cfg: BingoConfig, cardId: string, n: number): void {
+  if (!cardCells(cfg.seed, cardId).includes(n) || n === 0) throw new UserError('その番号はカードにありません');
+  if (!state.called.includes(n)) throw new UserError('まだ読まれていない番号です');
+  const mine = state.punched?.[cardId] ?? [];
+  if (mine.includes(n)) return;
+  state.punched = { ...(state.punched ?? {}), [cardId]: [...mine, n] };
 }
 
 /** まだカードを持っていなければ配る。他の人とぶつからないIDにする */
@@ -104,12 +118,18 @@ export function resetBingo(state: BingoState): void {
   state.called = [];
   state.claims = [];
   state.prizes = null;
+  state.punched = {};
   // 配ったカードは残す（参加者の手元のカードと食い違わないように）
 }
 
-export function cardView(cfg: BingoConfig, state: BingoState, cardId: string): BingoCardView {
+/**
+ * mode が 'opened' なら、参加者が開けたマス（開けた番号のうち、いまも呼ばれている番号。司会が「戻す」をした番号は外す）で判定する。
+ * 'called' なら、呼ばれた番号で判定する（司会がカードを確かめるとき）
+ */
+export function cardView(cfg: BingoConfig, state: BingoState, cardId: string, mode: 'opened' | 'called'): BingoCardView {
   const cells = cardCells(cfg.seed, cardId);
-  const { marked, lines, bingo, reach } = judgeCard(cells, state.called);
+  const numbers = mode === 'called' ? state.called : (state.punched?.[cardId] ?? []).filter((n) => state.called.includes(n));
+  const { marked, lines, bingo, reach } = judgeCard(cells, numbers);
   return { cardId, cells, marked, lines: lines.length, bingo, reach };
 }
 
@@ -137,9 +157,9 @@ export function bingoView(
     })),
     prizes: state.prizes,
     prizeList: [...cfg.prizes],
-    myCard: myCardId ? cardView(cfg, state, myCardId) : null,
+    myCard: myCardId ? cardView(cfg, state, myCardId, 'opened') : null,
     // 受付ずみかはカードで見る（名前は同じ人がいることがある）
     myRank: myCardId ? state.claims.findIndex((c) => c.cardId === myCardId) + 1 || null : null,
-    inspected: isHost && inspectedId ? cardView(cfg, state, inspectedId) : null,
+    inspected: isHost && inspectedId ? cardView(cfg, state, inspectedId, 'called') : null,
   };
 }

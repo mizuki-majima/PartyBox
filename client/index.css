@@ -55,6 +55,16 @@
   --color-warn: var(--t-warn);
   --color-warn-ink: var(--t-warn-ink);
   --color-on-warn: var(--t-on-warn);
+
+  /* 夕食の席の所属の色（凡例の順）。決めていないテーマは、ほかの意味の色を借りる */
+  --color-tone-0: var(--t-tone-0, var(--t-accent));
+  --color-on-tone-0: var(--t-on-tone-0, var(--t-on-accent));
+  --color-tone-1: var(--t-tone-1, var(--t-info));
+  --color-on-tone-1: var(--t-on-tone-1, var(--t-fg));
+  --color-tone-2: var(--t-tone-2, var(--t-hi));
+  --color-on-tone-2: var(--t-on-tone-2, var(--t-on-hi));
+  --color-tone-3: var(--t-tone-3, var(--t-ok));
+  --color-on-tone-3: var(--t-on-tone-3, var(--t-on-ok));
 }
 
 @theme {
@@ -63,6 +73,7 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-wiggle: wiggle 0.6s ease-in-out;
   --animate-stamp: stamp 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+  --animate-reel: reel 0.14s ease-out both;
 }
 
 @keyframes pop-in {
@@ -85,6 +96,11 @@
 @keyframes stamp {
   0% { opacity: 0; transform: scale(2.2) rotate(-12deg); }
   100% { opacity: 1; transform: scale(1) rotate(-6deg); }
+}
+/* 座席のくじ: テーブル名がスロットのように上から落ちてくる */
+@keyframes reel {
+  from { opacity: 0.2; transform: translateY(-60%); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes confetti-fall {
   0% { transform: translate3d(0, -10vh, 0) rotate(0); opacity: 1; }

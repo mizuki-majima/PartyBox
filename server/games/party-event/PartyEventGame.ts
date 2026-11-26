@@ -16,6 +16,7 @@ import { type EventConfig, getEventConfig } from '../../event/config';
 import { BaseGame } from '../BaseGame';
 import { type GameContext, UserError } from '../types';
 import * as bingo from './bingo';
+import * as dinner from './dinner';
 import * as quiz from './quiz';
 import * as seats from './seats';
 import { isCardId, normalizeCardId } from './cards';
@@ -100,6 +101,10 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
   restore(snap: PartyEventSnapshot): void {
     this.section = SECTIONS.includes(snap.section) ? snap.section : 'none';
     this.quizState = { ...quiz.emptyQuiz(), ...snap.quiz };
+    // チーム名を変えたあと（例: 夕食のチームに揃えた）に読み戻すと、前のチーム名が残る。設定に無いものはチーム無しにする
+    this.quizState.teamOf = Object.fromEntries(
+      Object.entries(this.quizState.teamOf).filter(([, team]) => this.cfg.quiz.teams.includes(team)),
+    );
     this.bingoState = { ...bingo.emptyBingo(), ...snap.bingo };
     this.seatsState = { ...seats.emptySeats(), ...snap.seats };
     // 回答タイムの途中で落ちた場合、締切はもう当てにならないので締め切っておく
@@ -223,7 +228,7 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       }
       case 'quiz:answer': {
         const team = this.quizState.teamOf[playerId];
-        if (!team) throw new UserError('先にチームを選んでください');
+        if (!team || !this.cfg.quiz.teams.includes(team)) throw new UserError('先にチームを選んでください');
         if (!quiz.acceptingAnswers(this.quizState, Number(action.qno))) throw new UserError('いまは回答できません');
         const question = quiz.currentQuestion(this.quizState, this.cfg.quiz);
         if (!question) throw new UserError('問題がありません');
@@ -240,6 +245,12 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
         }
         return;
       }
+      case 'bingo:punch': {
+        const cardId = this.bingoState.cards[playerId];
+        if (!cardId) throw new UserError('カードがまだ配られていません');
+        bingo.punch(this.bingoState, this.cfg.bingo, cardId, Number(action.number));
+        return;
+      }
       case 'bingo:claim': {
         const cardId = this.bingoState.cards[playerId];
         if (!cardId) throw new UserError('カードがまだ配られていません');
@@ -250,8 +261,14 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       }
       case 'seats:claim':
         // personId が空なら選び直し。takeover は「別のスマホで選ばれているが本人です」と確かめたとき
-        seats.claim(this.seatsState, this.cfg.seats, playerId, String(action.personId ?? ''), action.takeover === true);
+        this.claimPerson(playerId, String(action.personId ?? ''), action.takeover === true);
         return;
+      case 'seats:drawSelf': {
+        // 参加者が自分でくじを引く。司会が座席決めを出している間だけ（早く押して、名前を選ぶ前の人より先に決まらないように）
+        if (this.section !== 'seats') throw new UserError('いまはくじを引けません');
+        seats.drawSelf(this.seatsState, this.cfg.seats, this.seatsState.claimed[playerId] ?? '');
+        return;
+      }
       case 'seats:addSelf':
         // 名簿に無い人が、自分の名前を足してくじに入る
         seats.addSelf(this.seatsState, this.cfg.seats, playerId, String(action.name ?? ''), String(action.group ?? ''));
@@ -259,6 +276,45 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       default:
         throw new UserError(isHost ? 'その操作はできません' : 'その操作は司会のみです');
     }
+  }
+
+  /**
+   * 名簿の人を自分として選ぶ（座席決めの名前）。
+   * 夕食の席でその人のチームが分かり、同じ名前のクイズのチームがあれば、クイズのチームもそれにする
+   * （参加者が自分でチームを選ばなくてよいように。あとから「変える」で選び直すことはできる）
+   */
+  claimPerson(playerId: string, personId: string, takeover: boolean): void {
+    seats.claim(this.seatsState, this.cfg.seats, playerId, personId, takeover);
+    if (!personId || !this.cfg.dinner) return;
+    const person = seats.roster(this.seatsState, this.cfg.seats).find((p) => p.id === personId);
+    const team = person ? dinner.teamOfName(this.cfg.dinner, person.name)?.team : undefined;
+    if (team && this.cfg.quiz.teams.includes(team)) this.quizState.teamOf[playerId] = team;
+  }
+
+  /**
+   * 参加するときに選ぶ名簿。夕食のチームつき。
+   * 欠席にされた人も出す（遅れて来た・間違えて欠席にされた本人が、入ってから司会に声をかけられるように。座席のくじには入らない）
+   */
+  joinRoster(): { id: string; name: string; team: string | null }[] {
+    return seats
+      .roster(this.seatsState, this.cfg.seats)
+      .map((p) => ({ id: p.id, name: p.name, team: this.cfg.dinner ? (dinner.teamOfName(this.cfg.dinner, p.name)?.team ?? null) : null }));
+  }
+
+  hasPerson(personId: string): boolean {
+    return seats.roster(this.seatsState, this.cfg.seats).some((p) => p.id === personId);
+  }
+
+  /** その名簿の人を選んでいるプレイヤー（いなければ null） */
+  playerOfPerson(personId: string): string | null {
+    return Object.keys(this.seatsState.claimed).find((id) => this.seatsState.claimed[id] === personId) ?? null;
+  }
+
+  /** この人が名簿で選んだ名前（選んでいなければ null） */
+  private claimedName(playerId: string): string | null {
+    const personId = this.seatsState.claimed[playerId];
+    if (!personId) return null;
+    return seats.roster(this.seatsState, this.cfg.seats).find((p) => p.id === personId)?.name ?? null;
   }
 
   /* ---------------- ビュー ---------------- */
@@ -278,6 +334,9 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       quiz: quiz.quizView(this.quizState, this.cfg.quiz, isHost, this.quizState.teamOf[playerId] ?? null),
       bingo: bingo.bingoView(this.bingoState, this.cfg.bingo, isHost, this.bingoState.cards[playerId] ?? null, this.inspected),
       seats: seats.seatsView(this.seatsState, this.cfg.seats, this.seatsState.claimed[playerId] ?? null),
+      dinner: this.cfg.dinner
+        ? dinner.dinnerView(this.cfg.dinner, seats.roster(this.seatsState, this.cfg.seats), this.claimedName(playerId))
+        : null,
     };
   }
 }

@@ -24,10 +24,33 @@ export interface GameResult {
   ranking: GameResultRow[];
   /** 順位の付かないゲームの結果のひとこと（チーム得点など） */
   note: string | null;
+  /** 遊んだチーム（懇親会の夕食のチームのルームで遊んだとき）。付けていない記録・古い記録には無い */
+  label?: string;
 }
 
 export interface ResultsResponse {
   /** 古い順（終わった順） */
   results: GameResult[];
   serverNow: number;
+}
+
+/** チームごとの1位（同じチームで遊んだゲームの1位を、終わった順に） */
+export interface TeamWins {
+  label: string;
+  wins: { gameId: GameId; winners: string[]; at: number }[];
+}
+
+/**
+ * 夕食のチームで遊んだ記録を、チームごとにまとめる（勝者の記録のページの上に出す）。
+ * 順位の付くゲームで1位がいる記録だけ。チーム名の無い記録は入れない。チームの並びは名前順（数字は数として）
+ */
+export function winnersByLabel(results: GameResult[]): TeamWins[] {
+  const byLabel = new Map<string, TeamWins['wins']>();
+  for (const r of [...results].sort((a, b) => a.at - b.at)) {
+    if (!r.label || !r.ranked || !r.winners.length) continue;
+    byLabel.set(r.label, [...(byLabel.get(r.label) ?? []), { gameId: r.gameId, winners: r.winners, at: r.at }]);
+  }
+  return [...byLabel.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'ja', { numeric: true }))
+    .map(([label, wins]) => ({ label, wins }));
 }

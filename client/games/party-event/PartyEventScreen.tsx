@@ -4,12 +4,15 @@ import { createPortal } from 'react-dom';
 import type { EventSection, PartyEventView } from '../../../shared/games/views';
 import { GameEmblem, Icon, type IconName } from '../../components/Icon';
 import { Button, Card, Modal } from '../../components/ui';
+import { rememberEventRoom } from '../../lib/eventReturn';
 import { SEAT } from '../../lib/session';
 import { HowTo } from '../../guides';
 import { useToast } from '../../lib/toast';
 import { HostUrl } from '../../pages/Lobby';
 import { useGame, useRoomContext } from '../RoomContext';
 import { BingoSection } from './BingoSection';
+import { DinnerSeating, useStartTeamPlay } from './DinnerSeating';
+import { MeBar, NowBanner } from './MeBar';
 import { QuizSection } from './QuizSection';
 import { SeatsSection } from './SeatsSection';
 
@@ -24,7 +27,11 @@ const SECTIONS: { id: EventSection; icon: IconName; label: string }[] = [
  * 司会は上の切り替えでいつでも行き来でき、どの企画の状態も消えない。
  */
 export function PartyEventScreen() {
-  const { game, act } = useGame<PartyEventView>();
+  const { game, act, room } = useGame<PartyEventView>();
+  // 招待で入った通常のゲームのルームからも「懇親会の画面に戻る」を出せるように、このルームを覚えておく
+  useEffect(() => {
+    rememberEventRoom(room.code);
+  }, [room.code]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,10 +69,19 @@ export function PartyEventScreen() {
             司会の画面です。ここでの操作が参加者全員の画面に出ます
           </p>
           <Invite />
+          {game.dinner && <HostDinner />}
         </Card>
       )}
 
+      {!game.isHost && (
+        <>
+          <MeBar />
+          <NowBanner />
+        </>
+      )}
+
       {game.section === 'none' && <Waiting isHost={game.isHost} />}
+      {game.section === 'none' && !game.isHost && game.dinner && <GuestDinner />}
       {game.section === 'quiz' && <QuizSection />}
       {game.section === 'seats' && <SeatsSection />}
       {game.section === 'bingo' && <BingoSection />}
@@ -124,6 +140,32 @@ function Invite() {
           </div>
         </div>
         <HostUrl />
+        <Button variant="secondary" block className="mt-4" onClick={() => setOpen(false)}>
+          閉じる
+        </Button>
+      </Modal>
+    </>
+  );
+}
+
+/** 待機画面の夕食の席（参加者）。自分のチームから、ゲームを遊びに行ける */
+function GuestDinner() {
+  const { game } = useGame<PartyEventView>();
+  const startTeamPlay = useStartTeamPlay();
+  return game.dinner ? <DinnerSeating dinner={game.dinner} onTeamPlay={startTeamPlay} /> : null;
+}
+
+/** 司会の画面から夕食の席を出す（受付で見せる・席を聞かれたとき用） */
+function HostDinner() {
+  const { game } = useGame<PartyEventView>();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="secondary" block className="mt-2" onClick={() => setOpen(true)} data-testid="host-dinner-open">
+        <Icon name="seat" /> 夕食の席
+      </Button>
+      <Modal open={open} onClose={() => setOpen(false)}>
+        {game.dinner && <DinnerSeating dinner={game.dinner} />}
         <Button variant="secondary" block className="mt-4" onClick={() => setOpen(false)}>
           閉じる
         </Button>

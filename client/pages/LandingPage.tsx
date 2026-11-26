@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { EVENT_GAMES, GAMES, SOLO_GAMES } from '../../shared/games';
 import { EventGameCard, GameCard, SoloGameCard } from '../components/GameCard';
+import { TeamPlayBar } from '../components/TeamPlayBar';
 import { GameEmblem, Icon, type IconName } from '../components/Icon';
 import { Button, Logo } from '../components/ui';
 
@@ -64,6 +65,11 @@ export function LandingPage() {
           </Link>
         </div>
       </header>
+
+      {/* 懇親会の「このチームでゲームを遊ぶ」から来たとき */}
+      <div className="pt-3">
+        <TeamPlayBar />
+      </div>
 
       {/* Hero: 左揃えの大きな見出しだけで見せる */}
       <section className="mx-auto max-w-6xl px-4 pt-10 pb-14 sm:px-6 sm:pt-16 sm:pb-20">

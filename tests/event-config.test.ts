@@ -59,11 +59,58 @@ describe('クイズの answer（選択問題は 1 始まり）', () => {
     expect(quiz.questions[1].answer).toBe('3776');
   });
 
+  it('points を省くと 1 点、書けばその点', () => {
+    writeQuiz([
+      { question: 'ふつう', answer: 'あ' },
+      { question: '最終問題', answer: 'い', points: 3 },
+    ]);
+    const { quiz } = loadEventConfig();
+    expect(quiz.questions[0].points ?? 1).toBe(1);
+    expect(quiz.questions[1].points).toBe(3);
+  });
+
+  it('points が 0 や 11 ならエラー', () => {
+    writeQuiz([{ question: '0点', answer: 'あ', points: 0 }]);
+    expect(() => loadEventConfig()).toThrow(/quiz\.json の形式が正しくありません/);
+    writeQuiz([{ question: '11点', answer: 'あ', points: 11 }]);
+    expect(() => loadEventConfig()).toThrow(/quiz\.json の形式が正しくありません/);
+  });
+
   it('同梱のサンプルも 1 始まりで書いてあり、第1問の正解は「北海道」', () => {
     // 置き場が空ならサンプルで動く
     const { quiz, source } = loadEventConfig();
     expect(source).toContain('サンプル');
     const q = quiz.questions[0];
     expect(q.choices![q.answer as number]).toBe('北海道');
+  });
+});
+
+describe('夕食の席（dinner.json）', () => {
+  const writeDinner = (body: unknown) => writeFileSync(path.join(dir, 'dinner.json'), JSON.stringify(body));
+  const seatsBody = { participants: ['あ', 'い'], tables: [{ name: '1', seats: 2 }] };
+
+  it('置き場の dinner.json を読む（title を省くと「夕食の席」）', () => {
+    writeDinner({
+      legend: [{ label: '所属A', groups: ['A社'] }],
+      tables: [{ name: '卓1', teams: [{ name: 'チーム A', members: ['あ', 'い'] }] }],
+    });
+    const { dinner } = loadEventConfig();
+    expect(dinner?.title).toBe('夕食の席');
+    expect(dinner?.tables[0].teams[0].members).toEqual(['あ', 'い']);
+    expect(dinner?.legend[0].groups).toEqual(['A社']);
+  });
+
+  it('置き場に名簿があって dinner.json が無ければ null（サンプルの名前を本番に出さない）', () => {
+    writeFileSync(path.join(dir, 'seats.json'), JSON.stringify(seatsBody));
+    expect(loadEventConfig().dinner).toBeNull();
+  });
+
+  it('置き場が空ならサンプルを使う', () => {
+    expect(loadEventConfig().dinner?.tables.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('形式が違えば起動を失敗させる', () => {
+    writeDinner({ tables: [] });
+    expect(() => loadEventConfig()).toThrow(/dinner\.json の形式が正しくありません/);
   });
 });

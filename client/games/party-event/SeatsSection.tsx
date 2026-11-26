@@ -1,14 +1,25 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { PartyEventView, SeatsRosterEntry } from '../../../shared/games/views';
+import { Confetti } from '../../components/game';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
 import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
+import { useSeatReveal } from './seatReveal';
 
 export function SeatsSection() {
-  const { game } = useGame<PartyEventView>();
+  const { game, room } = useGame<PartyEventView>();
   const s = game.seats;
+  const me = s.myPersonId ? s.roster.find((p) => p.id === s.myPersonId) : null;
+  // 自分の席の演出（参加者だけ）。回っている間は、一覧と「いま引いた人」に結果を先に出さない（ネタばれしないように）
+  const reveal = useSeatReveal(
+    room.code,
+    game.isHost ? null : (me?.id ?? null),
+    game.isHost ? null : (me?.table ?? null),
+    s.tables.map((t) => t.name),
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -17,7 +28,7 @@ export function SeatsSection() {
         <p className="mt-2 font-display text-2xl">
           {s.drawn} / {s.drawn + s.remaining} 人
         </p>
-        {s.last && (
+        {s.last && !reveal.spinning && (
           <div key={s.last.id} className="ui-tile animate-pop-in mt-3 bg-hi px-4 py-3 text-on-hi">
             <p className="text-sm">いま引いた人</p>
             <p className="font-display text-2xl" data-testid="seats-last">
@@ -30,25 +41,26 @@ export function SeatsSection() {
         )}
       </Card>
 
+      {/* 参加者は、押すもの（くじ・名簿）を説明より上に出す（リハーサルで、どこを押すか分からなくなったため） */}
+      {game.isHost ? <HostControls /> : <MySeat reveal={reveal} />}
+
       {!game.isHost && (
         <HowTo
           title="座席決めのやり方"
           testId="event-howto-seats"
           steps={
             s.myPersonId
-              ? ['このまま待ちます。司会がくじを引くと、あなたのテーブルが大きく出ます。', '出たテーブルに移動してください。']
+              ? ['「くじを引く」を押します。テーブル名が回って、あなたの席が決まります。', '出たテーブルに移動してください。']
               : [
-                  '下の名簿から、自分の名前を押します（名前の一部を入れると、さがしやすくなります）。',
+                  '名簿から、自分の名前を押します（名前の一部を入れると、さがしやすくなります）。',
                   '名前が無いときは、「名簿に名前が無い方はこちら」から自分で足せます。',
-                  '選んだら待つだけです。司会がくじを引くと、テーブルが出ます。',
+                  '名前を選んだら、「くじを引く」を押します。',
                 ]
           }
         />
       )}
 
-      {game.isHost ? <HostControls /> : <MySeat />}
-
-      <Tables />
+      {!reveal.spinning && <Tables />}
       {game.isHost && <Roster />}
     </div>
   );
@@ -57,10 +69,11 @@ export function SeatsSection() {
 /* ------------------------------------------------------------------ */
 /* 参加者                                                               */
 /* ------------------------------------------------------------------ */
-function MySeat() {
+function MySeat({ reveal }: { reveal: ReturnType<typeof useSeatReveal> }) {
   const { game, act } = useGame<PartyEventView>();
   const s = game.seats;
   const me = s.myPersonId ? s.roster.find((p) => p.id === s.myPersonId) : null;
+  const [drawing, setDrawing] = useState(false);
 
   if (!me) return <PickMyName />;
 
@@ -77,12 +90,27 @@ function MySeat() {
   }
 
   if (me.table == null) {
+    // 参加者が自分でくじを引く（司会が「1人引く」で引くこともある）
     return (
-      <Card className="py-10 text-center">
-        <p className="text-sm text-muted">{me.name} さん</p>
-        <Icon name="seat" className="animate-float mx-auto mt-3 !block h-12 w-12" />
-        <p className="mt-3 font-display text-xl">くじを待っています</p>
-        <button className="mt-4 min-h-11 px-3 text-xs font-bold text-muted underline" onClick={() => act('seats:claim', { personId: '' })}>
+      <Card className="py-8 text-center">
+        <p className="text-base text-muted">{me.name} さん</p>
+        <p className="mt-2 font-display text-2xl">くじを引いてください</p>
+        <p className="mt-1 text-base text-fg/75">押すと、あなたのテーブルが決まります。</p>
+        <Button
+          size="xl"
+          block
+          className="mt-5"
+          loading={drawing}
+          onClick={async () => {
+            setDrawing(true);
+            await act('seats:drawSelf');
+            setDrawing(false);
+          }}
+          data-testid="seats-draw-self"
+        >
+          <Icon name="seat" /> くじを引く
+        </Button>
+        <button className="mt-4 min-h-11 px-3 text-sm font-bold text-muted underline" onClick={() => act('seats:claim', { personId: '' })}>
           名前を選び直す
         </button>
       </Card>
@@ -90,12 +118,36 @@ function MySeat() {
   }
 
   const table = s.tables[me.table];
+  const tableName = table?.name ?? `テーブル ${me.table + 1}`;
+
+  if (reveal.spinning) {
+    // 結果が出るまでのドキドキ: テーブル名がスロットのように回って、だんだん遅くなって止まる
+    return (
+      <Card className="py-10 text-center">
+        <div data-testid="seats-reveal-spinning" aria-live="polite">
+          <p className="text-base text-muted">{me.name} さんの席は……</p>
+          <div className="mx-auto mt-4 flex h-28 max-w-xs items-center justify-center overflow-hidden rounded-2xl border-[3px] border-line bg-panel-3">
+            <span key={reveal.label ?? ''} className="animate-reel font-display text-4xl">
+              {reveal.label ?? '？'}
+            </span>
+          </div>
+          <p className="mt-4 flex items-center justify-center gap-2 text-lg font-extrabold">
+            <span className="event-squares animate-pulse" aria-hidden />
+            くじを引いています
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   const mates = table?.people.filter((p) => p.id !== me.id) ?? [];
   return (
     <Card className="animate-pop-in bg-ok/15 text-center">
-      <p className="text-sm text-muted">{me.name} さんの席は</p>
-      <p className="mt-2 font-display text-5xl" data-testid="my-table">
-        {table?.name ?? `テーブル ${me.table + 1}`}
+      {/* 紙吹雪は body 直下に出す（登場アニメーションの付いたカードの中だと、fixed がカード基準になり画面全体に降らない） */}
+      {reveal.justRevealed && createPortal(<Confetti count={40} />, document.body)}
+      <p className="text-base text-muted">{me.name} さんの席は</p>
+      <p className={`mt-2 font-display text-5xl ${reveal.justRevealed ? 'animate-stamp' : ''}`} data-testid="my-table">
+        {tableName}
       </p>
       {mates.length > 0 && (
         <>
@@ -116,7 +168,8 @@ function MySeat() {
 /** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす（サーバーの nameKey と同じ） */
 const nameKey = (name: string) => name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 
-function PickMyName() {
+/** 名簿から自分を選ぶ（座席決めの画面と、「あなた」の帯から開く） */
+export function PickMyName() {
   const { game, act } = useGame<PartyEventView>();
   const [q, setQ] = useState('');
   const [adding, setAdding] = useState(false);
@@ -274,8 +327,8 @@ function HostControls() {
           </Button>
         </div>
         <p className="text-xs text-fg/70">
-          くじは下の「くじに入る人」（名前を選んだ人・名前を足した人・司会がくじに入れた人）だけから引きます。
-          みんなが名前を選び終わってから引いてください。
+          参加者は、自分のスマホの「くじを引く」で席を決めます。スマホが無い人は、下の「名前を選んでいない人」からくじに入れて、「1人引く」で引いてください。
+          司会のくじは、下の「くじに入る人」（名前を選んだ人・名前を足した人・司会がくじに入れた人）だけから引きます。
         </p>
         <div>
           <SectionTitle>名簿に無い人を足す</SectionTitle>

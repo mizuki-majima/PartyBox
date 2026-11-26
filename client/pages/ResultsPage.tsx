@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { getGameMeta } from '../../shared/games';
-import type { GameResult, ResultsResponse } from '../../shared/results';
+import { type GameResult, type ResultsResponse, winnersByLabel } from '../../shared/results';
 import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Logo, Spinner } from '../components/ui';
 import { loadThemeFonts, themeOfGame } from '../themes';
@@ -162,6 +162,8 @@ export function ResultsPage() {
               </div>
             )}
 
+            {load.kind === 'ready' && <ByTeam results={results.filter((r) => scope === 'all' || dayKey(r.at) === today)} />}
+
             <ol className="flex flex-col" data-testid="results-list">
               {rows.map(({ result, day, no }, i) => (
                 <ResultRow
@@ -177,6 +179,36 @@ export function ResultsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+/** チームごとの1位（夕食のチームで遊んだ記録だけ）。各チームの代表を決めやすいように、いちばん上にまとめる */
+function ByTeam({ results }: { results: GameResult[] }) {
+  const teams = winnersByLabel(results);
+  if (!teams.length) return null;
+  return (
+    <section className="mb-6 border-t-4 border-line pt-3" data-testid="results-by-team">
+      <h2 className="font-display text-2xl">チームごとの1位</h2>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+        {teams.map((t) => (
+          <li key={t.label} className="border-2 border-line p-3">
+            <p className="font-display text-xl">{t.label}</p>
+            <ol className="mt-2 flex flex-col gap-1">
+              {t.wins.map((w, i) => (
+                <li key={`${w.at}-${i}`} className="flex flex-wrap items-baseline gap-x-2 text-base">
+                  <span className="text-sm text-muted tabular-nums">{timeOf(w.at)}</span>
+                  <span className="text-sm font-bold">{getGameMeta(w.gameId)?.title ?? w.gameId}</span>
+                  <span className="font-extrabold">
+                    <Icon name="crown" className="mr-0.5 inline-block h-[1em] w-[1em] align-[-0.1em]" />
+                    {w.winners.join('・')}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -202,6 +234,11 @@ function ResultRow({ result, no, dayHeading }: { result: GameResult; no: number;
               <GameEmblem id={result.gameId} className="h-7 w-9" />
             </span>
             <span className="truncate text-sm font-bold">{meta?.title ?? result.gameId}</span>
+            {result.label && (
+              <span className="shrink-0 border-2 border-line px-2 py-0.5 text-xs font-extrabold" data-testid="result-label">
+                {result.label}
+              </span>
+            )}
           </div>
 
           {result.ranked ? (

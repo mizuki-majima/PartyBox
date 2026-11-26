@@ -11,7 +11,9 @@ import { getLastName } from '../lib/session';
 import { useToast } from '../lib/toast';
 import { useRoom } from '../lib/useRoom';
 import { themeOfGame } from '../themes';
+import { TeamPlayBar } from '../components/TeamPlayBar';
 import { Lobby } from './Lobby';
+import { RosterJoin } from './RosterJoin';
 
 export function RoomPage() {
   const { code = '', hostToken } = useParams();
@@ -80,6 +82,7 @@ export function RoomPage() {
               navigate('/');
             }}
           />
+          {!isEventGame(view!.gameId) && <TeamPlayBar inRoom label={view!.label} />}
           {view!.demo && (
             // ヘッダーはスマホ幅で詰まっているので、デモの目印は下の帯に出す
             <div className="mx-auto max-w-5xl px-3 pb-3 sm:px-6">
@@ -148,12 +151,21 @@ function RoomHeader({ onLeave }: { onLeave: () => void }) {
   );
 }
 
-function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: string) => Promise<string | null> }) {
+function JoinForm({
+  summary,
+  onJoin,
+}: {
+  summary: RoomSummary;
+  onJoin: (name: string, opts?: { personId?: string; takeover?: boolean }) => Promise<string | null>;
+}) {
   const game = getGameMeta(summary.gameId)!;
   const [name, setName] = useState(getLastName);
   const [loading, setLoading] = useState(false);
+  // 懇親会は名簿から選んで入る。名簿に無い人だけ、名前を打って入る
+  const [free, setFree] = useState(false);
   const toast = useToast();
   const full = summary.playerCount >= summary.maxPlayers;
+  const roster = isEventGame(summary.gameId) && !free && summary.roster?.length ? summary.roster : null;
 
   const submit = async () => {
     if (!name.trim()) {
@@ -191,7 +203,7 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
               (isEventGame(summary.gameId) ? (
                 // 懇親会は途中から来た人もすぐ参加者になる
                 <p className="mb-4 rounded-xl bg-ok/10 px-4 py-2 text-sm font-bold text-ok-ink" data-testid="join-event-note">
-                  もう始まっています。名前を入れると、すぐに参加できます。
+                  {roster ? 'もう始まっています。名前を選ぶと、すぐに参加できます。' : 'もう始まっています。名前を入れると、すぐに参加できます。'}
                 </p>
               ) : (
                 <p className="mb-4 rounded-xl bg-warn/15 px-4 py-2 text-sm font-bold text-warn-ink">
@@ -200,6 +212,8 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
               ))}
             {full ? (
               <p className="rounded-xl bg-danger/15 px-4 py-3 text-center font-bold text-danger-ink">このルームは満員です</p>
+            ) : roster ? (
+              <RosterJoin roster={roster} onJoin={onJoin} onFree={() => setFree(true)} />
             ) : (
               <>
                 <label className="block text-sm font-extrabold" htmlFor="join-name">
@@ -226,6 +240,15 @@ function JoinForm({ summary, onJoin }: { summary: RoomSummary; onJoin: (name: st
                 <Button size="xl" block className="mt-5" onClick={submit} loading={loading} data-testid="join-submit">
                   参加する
                 </Button>
+                {free && (
+                  <button
+                    className="mt-4 min-h-11 w-full py-2 text-sm font-bold text-info-ink underline underline-offset-4"
+                    onClick={() => setFree(false)}
+                    data-testid="join-roster-back"
+                  >
+                    名簿から自分の名前を選ぶ
+                  </button>
+                )}
               </>
             )}
           </div>

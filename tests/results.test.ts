@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { WhoseView } from '../shared/games/views';
-import type { ResultsResponse } from '../shared/results';
+import { type GameResult, type ResultsResponse, winnersByLabel } from '../shared/results';
 import type { PartyServer } from '../server/app';
 import { MAX_RESULTS, ResultLog, buildResult, rankPlayers } from '../server/results';
-import { type TestClient, setupRoom, startGame, startTestServer } from './helpers';
+import { TestClient, setupRoom, startGame, startTestServer } from './helpers';
 
 /**
  * 勝者の記録。卓ごとに遊んだゲームが最後まで終わるたびに、「いつ・誰が1位か」を1件残す。
@@ -28,8 +28,8 @@ afterAll(async () => {
 const nameOf = (c: TestClient) => c.view!.players.find((p) => p.id === c.id)!.name;
 
 /** 「誰の答えでしょう？」を、1人目だけが全部当てる形で最後まで遊ぶ（1人目が単独1位になる） */
-async function playWhose(rounds = 2) {
-  const { host, clients } = await setupRoom(server.port, 'whose-answer', 3, { rounds });
+async function playWhose(rounds = 2, label?: string) {
+  const { host, clients } = await setupRoom(server.port, 'whose-answer', 3, { rounds }, label);
   open.push(...clients);
   const [a] = clients;
   await startGame(host, clients, 'ANSWER');
@@ -97,6 +97,40 @@ describe('順位の付け方', () => {
 });
 
 /* ================================================================== */
+describe('チームごとの1位', () => {
+  const r = (id: string, label: string | undefined, gameId: GameResult['gameId'], winners: string[], at: number, ranked = true): GameResult => ({
+    id,
+    at,
+    gameId,
+    ranked,
+    winners,
+    ranking: [],
+    note: null,
+    ...(label ? { label } : {}),
+  });
+
+  it('チーム名ごとに、順位の付くゲームの1位を終わった順にまとめる（チーム名の無い記録・順位の無いゲームは入れない）', () => {
+    const out = winnersByLabel([
+      r('1', 'チーム B', 'liar', ['い'], 2),
+      r('2', 'チーム A', 'whose-answer', ['あ'], 1),
+      r('3', undefined, 'liar', ['う'], 3),
+      r('4', 'チーム A', 'unanimous', [], 4, false),
+      r('5', 'チーム A', 'liar', ['え', 'お'], 5),
+    ]);
+    expect(out).toEqual([
+      {
+        label: 'チーム A',
+        wins: [
+          { gameId: 'whose-answer', winners: ['あ'], at: 1 },
+          { gameId: 'liar', winners: ['え', 'お'], at: 5 },
+        ],
+      },
+      { label: 'チーム B', wins: [{ gameId: 'liar', winners: ['い'], at: 2 }] },
+    ]);
+  });
+});
+
+/* ================================================================== */
 describe('ゲームが終わると記録に残る', () => {
   it('最後まで遊ぶと、終わった時刻・ゲーム・1位の人・全員の順位が1件残り、/api/results で読める', async () => {
     const before = server.manager.results.list().length;
@@ -122,6 +156,20 @@ describe('ゲームが終わると記録に残る', () => {
     expect(body.results.at(-1)).toEqual(result);
     // ルームコードや再接続の合言葉など、名前と点数以外は出さない
     expect(Object.keys(body.results.at(-1)!).sort()).toEqual(['at', 'gameId', 'id', 'note', 'ranked', 'ranking', 'winners']);
+  });
+
+  it('チーム名（label）を付けて作ったルームは、画面と結果に label が残る', async () => {
+    const { host } = await playWhose(2, '  チーム A  ');
+    expect(host.view!.label).toBe('チーム A');
+    expect(server.manager.results.list().at(-1)!.label).toBe('チーム A');
+  });
+
+  it('懇親会のルームには label を付けない', async () => {
+    const c = await TestClient.connect(server.port);
+    open.push(c);
+    await c.create('party-event', 'しかい', 'チーム A');
+    await c.waitFor((v) => v.code === c.session!.code, 3000, '作成');
+    expect(c.view!.label).toBeNull();
   });
 
   it('「もう一回」で遊ぶと、もう1件残る（終わった順に並ぶ）', async () => {
@@ -209,6 +257,15 @@ describe('記録の保存', () => {
     expect(again.list().map((r) => r.winners[0])).toEqual(['あ', 'い']);
     again.add(input('う'));
     expect(new ResultLog(true).list()).toHaveLength(3);
+  });
+
+  it('label の無い古い記録も読める（label を付けたものだけ記録に入る）', () => {
+    const log = new ResultLog(true);
+    log.add(input('き'));
+    log.add({ ...input('く'), label: 'チーム B' });
+    const again = new ResultLog(true).list();
+    expect(again.at(-2)!.label).toBeUndefined();
+    expect(again.at(-1)!.label).toBe('チーム B');
   });
 
   it('上限を超えたら、古いものから捨てる', () => {

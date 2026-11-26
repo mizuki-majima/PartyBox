@@ -57,8 +57,8 @@ function chosenIds(state: SeatsState): Set<string> {
   return new Set([...Object.values(state.claimed), ...byHost, ...state.present]);
 }
 
-/** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす */
-function nameKey(name: string): string {
+/** 名前の比べ方。空白・全角半角・大文字小文字の違いは同じとみなす（夕食の席の引き当てにも使う） */
+export function nameKey(name: string): string {
   return name.normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 }
 
@@ -105,6 +105,22 @@ export function drawOne(state: SeatsState, cfg: SeatsConfig): DrawnPerson | null
   if (!rest.length) return null;
 
   const person = rest[drawIndex(rest.length)];
+  const table = chooseTable(state, cfg, people, person.group);
+  state.assign[person.id] = table;
+  state.order.push(person.id);
+  return { ...person, table };
+}
+
+/**
+ * 参加者が自分のスマホでくじを引く（自分の席だけを決める）。
+ * 入れるテーブルは司会のくじと同じ決め方（同じ所属が少ない → 人数が少ない → 前のテーブル）
+ */
+export function drawSelf(state: SeatsState, cfg: SeatsConfig, personId: string): DrawnPerson {
+  const people = roster(state, cfg);
+  const person = people.find((p) => p.id === personId);
+  if (!person || !chosenIds(state).has(personId)) throw new UserError('先に名簿から自分の名前を選んでください');
+  if (state.absent.includes(personId)) throw new UserError('欠席になっています。司会に声をかけてください');
+  if (personId in state.assign) throw new UserError('もう席が決まっています');
   const table = chooseTable(state, cfg, people, person.group);
   state.assign[person.id] = table;
   state.order.push(person.id);

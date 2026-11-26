@@ -280,6 +280,40 @@ describe('座席決め（通信の中身）', () => {
     expect(view(clients[2]).seats.myPersonId).toBe('p2');
   });
 
+  it('名簿で名前を選ぶと、夕食のチームと同じ名前のクイズのチームに入り、夕食の席に自分の印が付く', async () => {
+    const { clients } = await setupEvent();
+    const guest = clients[1];
+    // サンプルの夕食の席では、さくら は「チーム A」。サンプルのクイズにも「チーム A」がある
+    const sakura = view(guest).seats.roster.find((p) => p.name === 'さくら')!;
+    await guest.actionOk('seats:claim', { personId: sakura.id });
+    await guest.waitFor((v) => (v.game as unknown as PartyEventView).quiz.myTeam === 'チーム A', 3000, 'クイズのチーム');
+    const d = view(guest).dinner!;
+    expect(d.myTeam).toBe('チーム A');
+    expect(d.tables[0].teams[0].members.find((m) => m.name === 'さくら')?.you).toBe(true);
+    // ほかの人の画面では、さくら に自分の印は付かない
+    expect(view(clients[2]).dinner!.tables[0].teams[0].members.find((m) => m.name === 'さくら')?.you).toBe(false);
+  });
+
+  it('参加者は座席決めを出している間だけ自分でくじを引け、2回目は弾かれる', async () => {
+    const { host, clients } = await setupEvent();
+    const guest = clients[1];
+    await guest.actionOk('seats:claim', { personId: 'p1' });
+    // 司会が座席決めを出していない間は引けない
+    const early = await guest.action('seats:drawSelf');
+    expect(early.ok).toBe(false);
+    expect(!early.ok && early.error).toBe('いまはくじを引けません');
+    expect(view(guest).seats.drawn).toBe(0);
+
+    await host.actionOk('event:section', { section: 'seats' });
+    await guest.actionOk('seats:drawSelf');
+    await guest.waitFor((v) => (v.game as unknown as PartyEventView).seats.drawn === 1, 3000, 'くじ');
+    const me = view(guest).seats.roster.find((p) => p.id === 'p1')!;
+    expect(me.table).not.toBeNull();
+    expect(view(guest).seats.last?.id).toBe('p1');
+    expect((await guest.action('seats:drawSelf')).ok).toBe(false);
+    expect(view(guest).seats.drawn).toBe(1);
+  });
+
   it('別のスマホで選ばれている名前は、本人だと確かめると、こちらのスマホに移る', async () => {
     const { host, clients } = await setupEvent();
     await host.actionOk('event:section', { section: 'seats' });
@@ -353,6 +387,36 @@ describe('再起動をまたぐ保存', () => {
     expect(v.bingo.myCard?.cardId).toBe(cardId); // 手元のカードが変わらない
     expect(v.seats.drawn).toBe(1);
     expect(v.quiz.qno).toBe(1);
+  });
+
+  it('開けたマス（punched）の無い古い保存を読み戻しても、マスを開けられる', () => {
+    const cfg = loadEventConfig();
+    const game = new PartyEventGame(ctx(), ['p1'], {}, cfg);
+    const cardId = game.viewFor('p1', false).bingo.myCard!.cardId;
+    const cells = game.viewFor('p1', false).bingo.myCard!.cells;
+    const n = cells.find((x) => x !== 0)!;
+    game.restore({
+      section: 'bingo',
+      quiz: { phase: 'idle', qno: 0, startedAt: null, deadline: null, graded: {}, answers: {}, teamOf: {} },
+      bingo: { called: [n], claims: [], prizes: null, cards: { p1: cardId } },
+      seats: { assign: {}, absent: [], order: [], extras: [], claimed: {}, present: [], selfAdded: {} },
+    });
+    game.handleAction('p1', { type: 'bingo:punch', number: n }, false);
+    const card = game.viewFor('p1', false).bingo.myCard!;
+    expect(card.marked[cells.indexOf(n)]).toBe(true);
+  });
+
+  it('保存に残った設定に無いチーム名は、読み戻すとチーム無しになり、そのチームでは答えられない', () => {
+    const cfg = loadEventConfig();
+    const game = new PartyEventGame(ctx(), ['p1'], {}, cfg);
+    game.restore({
+      section: 'quiz',
+      quiz: { phase: 'answering', qno: 1, startedAt: Date.now(), deadline: Date.now() + 60_000, graded: {}, answers: {}, teamOf: { p1: 'チーム Z' } },
+      bingo: { called: [], claims: [], prizes: null, cards: {} },
+      seats: { assign: {}, absent: [], order: [], extras: [], claimed: {}, present: [], selfAdded: {} },
+    });
+    expect(game.viewFor('p1', false).quiz.myTeam).toBeNull();
+    expect(() => game.handleAction('p1', { type: 'quiz:answer', qno: 1, choice: 0 }, false)).toThrow('先にチームを選んでください');
   });
 
   it('回答タイムの途中で落ちた場合は締め切った状態で戻す', () => {

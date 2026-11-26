@@ -35,6 +35,8 @@ export interface ResultInput {
   players: { name: string; score: number; left: boolean }[];
   /** 順位の付かないゲームの結果のひとこと（チーム得点など） */
   note?: string | null;
+  /** 遊んだチーム（ルームに付けたチーム名） */
+  label?: string | null;
   at?: number;
 }
 
@@ -65,6 +67,8 @@ export function buildResult(input: ResultInput, id: string): GameResult {
     winners: ranked ? ranking.filter((r) => r.rank === 1 && !r.left).map((r) => r.name) : [],
     ranking,
     note: input.note ?? null,
+    // チーム名は付けたときだけ入れる（付けていない記録の形は今までと同じ）
+    ...(input.label ? { label: input.label } : {}),
   };
 }
 

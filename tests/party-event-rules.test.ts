@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { BingoConfig, QuizConfig, SeatsConfig } from '../server/event/config';
+import type { BingoConfig, DinnerConfig, QuizConfig, SeatsConfig } from '../server/event/config';
 import * as bingo from '../server/games/party-event/bingo';
 import { cardCells, judgeCard, labelOf, normalizeCardId } from '../server/games/party-event/cards';
+import * as dinner from '../server/games/party-event/dinner';
 import * as quiz from '../server/games/party-event/quiz';
 import * as seats from '../server/games/party-event/seats';
 
@@ -56,6 +57,56 @@ describe('ビンゴのカード', () => {
 /* ================================================================== */
 describe('ビンゴの進行', () => {
   const cfg: BingoConfig = { title: 'ビンゴ', seed: 'party', winnersCount: 2, prizes: ['景品A', '景品B'] };
+
+  // AB23 の1行目（cardCells('party', 'AB23') の先頭5つ）。74 は AB23 に無い番号
+  const ROW1 = [12, 21, 35, 58, 61];
+
+  it('呼ばれた番号だけ開けられ、開けたマスで列を判定する', () => {
+    const s = bingo.emptyBingo();
+    expect(cardCells('party', 'AB23').slice(0, 5)).toEqual(ROW1);
+    expect(() => bingo.punch(s, cfg, 'AB23', ROW1[0])).toThrow('まだ読まれていない番号です');
+    expect(() => bingo.punch(s, cfg, 'AB23', 74)).toThrow('その番号はカードにありません');
+
+    s.called.push(...ROW1);
+    // 呼ばれただけでは開かない（自分で押す）。司会の確かめは呼ばれた番号で見る
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').bingo).toBe(false);
+    expect(bingo.cardView(cfg, s, 'AB23', 'called').bingo).toBe(true);
+
+    for (const n of ROW1.slice(0, 4)) bingo.punch(s, cfg, 'AB23', n);
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').reach).toBeGreaterThan(0);
+    bingo.punch(s, cfg, 'AB23', ROW1[4]);
+    bingo.punch(s, cfg, 'AB23', ROW1[4]); // 2回押しても同じ
+    const v = bingo.cardView(cfg, s, 'AB23', 'opened');
+    expect(v.bingo).toBe(true);
+    expect(v.marked.slice(0, 5)).toEqual([true, true, true, true, true]);
+    expect(v.marked[12]).toBe(true); // まん中の FREE は最初から開いている
+    expect(s.punched?.AB23).toHaveLength(5);
+  });
+
+  it('戻した番号のマスは開いていない扱いになる', () => {
+    const s = bingo.emptyBingo();
+    s.called.push(ROW1[0]);
+    bingo.punch(s, cfg, 'AB23', ROW1[0]);
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').marked[0]).toBe(true);
+    bingo.undoDraw(s);
+    expect(bingo.cardView(cfg, s, 'AB23', 'opened').marked[0]).toBe(false);
+  });
+
+  it('受付の判定は呼ばれた番号のまま（開けていなくても、そろっていれば受け付ける）', () => {
+    const s = bingo.emptyBingo();
+    s.called.push(...ROW1);
+    const res = bingo.claim(s, cfg, 'AB23', 'なまえ');
+    expect(res.rejected).toBe(false);
+    expect(res.rank).toBe(1);
+  });
+
+  it('やり直すと開けたマスも消える', () => {
+    const s = bingo.emptyBingo();
+    s.called.push(ROW1[0]);
+    bingo.punch(s, cfg, 'AB23', ROW1[0]);
+    bingo.resetBingo(s);
+    expect(s.punched).toEqual({});
+  });
 
   it('75個引いたら終わり、戻すと引き直せる', () => {
     const s = bingo.emptyBingo();
@@ -140,6 +191,38 @@ describe('座席決め', () => {
     for (const p of seats.roster(s, cfg)) seats.markPresent(s, p.id, true);
     return s;
   };
+
+  it('自分のくじは自分の席だけを決め、所属が偏らない入れ方を使う', () => {
+    const s = seats.emptySeats();
+    // A社の2人が自分で名前を選んで、それぞれ自分でくじを引く
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    seats.claim(s, cfg, 'player2', 'p2', false);
+    const first = seats.drawSelf(s, cfg, 'p1');
+    expect(first.id).toBe('p1');
+    expect(s.order).toEqual(['p1']);
+    const second = seats.drawSelf(s, cfg, 'p2');
+    // 同じ所属は別のテーブルに入る
+    expect(second.table).not.toBe(first.table);
+    expect(Object.keys(s.assign).sort()).toEqual(['p1', 'p2']);
+  });
+
+  it('自分のくじの2回目はエラーで、席は変わらない', () => {
+    const s = seats.emptySeats();
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    const { table } = seats.drawSelf(s, cfg, 'p1');
+    expect(() => seats.drawSelf(s, cfg, 'p1')).toThrow('もう席が決まっています');
+    expect(s.assign.p1).toBe(table);
+    expect(s.order).toEqual(['p1']);
+  });
+
+  it('欠席・名前を選んでいない人は自分のくじを引けない', () => {
+    const s = seats.emptySeats();
+    expect(() => seats.drawSelf(s, cfg, 'p1')).toThrow('先に名簿から自分の名前を選んでください');
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    seats.markAbsent(s, 'p1', true);
+    expect(() => seats.drawSelf(s, cfg, 'p1')).toThrow('欠席になっています。司会に声をかけてください');
+    expect(s.order).toEqual([]);
+  });
 
   it('全員引くと席が決まり、同じ所属が固まらない', () => {
     const s = allHere();
@@ -351,6 +434,47 @@ describe('クイズ', () => {
     for (let i = 0; i < 10 && s.phase !== phase; i++) quiz.next(s, cfg);
   };
 
+  it('正解した問題の points を足す（最後の問題 3 点）。問題のビューに点数が出る', () => {
+    const c: QuizConfig = { ...cfg, questions: [cfg.questions[0], { question: '最終問題', answer: 'こたえ', points: 3 }] };
+    const s = quiz.emptyQuiz();
+    quiz.grade(s, 1, 'A', true);
+    quiz.grade(s, 2, 'A', true);
+    quiz.grade(s, 2, 'B', true);
+    expect(quiz.scoresOf(s, c)).toEqual({ A: 4, B: 3 });
+
+    const t = quiz.emptyQuiz();
+    quiz.next(t, c);
+    expect(quiz.quizView(t, c, false, 'A').question?.points).toBe(1);
+    for (let i = 0; i < 10 && t.qno < 2; i++) quiz.next(t, c);
+    expect(quiz.quizView(t, c, false, 'A').question?.points).toBe(3);
+  });
+
+  it('参加者には回答タイム中は他チームの回答を見せず、答えの段から全チーム分を見せる', () => {
+    const s = quiz.emptyQuiz();
+    advanceTo(s, 'answering');
+    quiz.submitAnswer(s, 'B', { text: 'う', choice: 2, by: 'p2' });
+    quiz.submitAnswer(s, 'A', { text: 'い', choice: 1, by: 'p1' });
+    expect(quiz.quizView(s, cfg, false, 'A').answers).toBeNull();
+
+    quiz.next(s, cfg); // 締め切って答え（選択問題は自動採点）
+    const rows = quiz.quizView(s, cfg, false, 'A').answers!;
+    // チームの順に並べ、何秒で答えたかは司会だけ
+    expect(rows.map((r) => [r.team, r.text, r.correct])).toEqual([
+      ['A', 'い', true],
+      ['B', 'う', false],
+    ]);
+    expect(rows.every((r) => r.seconds === null)).toBe(true);
+  });
+
+  it('設定に無いチーム（古い保存に残ったチーム名）は、得点と順位に出さない', () => {
+    const s = quiz.emptyQuiz();
+    s.graded = { 1: { A: true, 旧チーム: true } };
+    expect(quiz.scoresOf(s, cfg)).toEqual({ A: 1, B: 0 });
+    expect(quiz.quizView(s, cfg, true, null).ranking.map((r) => r.team)).toEqual(['A', 'B']);
+    // 自分のチームが設定に無ければ、チーム無しとして見せる
+    expect(quiz.quizView(s, cfg, false, '旧チーム').myTeam).toBeNull();
+  });
+
   it('idle → 問題 → 回答タイム → 答え → 次の問題 → 結果 と進む', () => {
     const s = quiz.emptyQuiz();
     expect(s.phase).toBe('idle');
@@ -438,5 +562,57 @@ describe('クイズ', () => {
     quiz.grade(s, 1, 'A', true);
     quiz.grade(s, 1, 'B', true);
     expect(quiz.quizView(s, cfg, false, null).ranking.map((r) => r.rank)).toEqual([1, 1]);
+  });
+});
+
+/* ================================================================== */
+describe('夕食の席', () => {
+  const cfg: DinnerConfig = {
+    title: '夕食の席',
+    legend: [
+      { label: '甲', groups: ['A社'] },
+      { label: '乙', groups: ['B社', 'C社'] },
+    ],
+    tables: [
+      {
+        name: '1卓目',
+        teams: [
+          { name: 'チーム A', members: ['山田 太郎', 'すずき'] },
+          { name: 'チーム B', members: ['たなか', 'ゲスト'] },
+        ],
+      },
+    ],
+  };
+  const roster = [
+    { id: 'p1', name: '山田 太郎', group: 'A社' },
+    { id: 'p2', name: 'すずき', group: 'B社' },
+    { id: 'p3', name: 'たなか', group: 'C社' },
+  ];
+
+  it('名前から夕食のチームを引く（全角・空白の違いは同じ）', () => {
+    expect(dinner.teamOfName(cfg, '山田太郎')).toEqual({ table: '1卓目', team: 'チーム A' });
+    expect(dinner.teamOfName(cfg, '　たなか ')).toEqual({ table: '1卓目', team: 'チーム B' });
+    expect(dinner.teamOfName(cfg, 'いないひと')).toBeNull();
+  });
+
+  it('所属の色は legend の順、名簿に無い名前は tone null。凡例に人数が付く', () => {
+    const v = dinner.dinnerView(cfg, roster, null);
+    const [a, b] = v.tables[0].teams;
+    expect(a.members.map((m) => m.tone)).toEqual([0, 1]);
+    expect(b.members.map((m) => m.tone)).toEqual([1, null]);
+    expect(v.legend).toEqual([
+      { label: '甲', tone: 0, count: 1 },
+      { label: '乙', tone: 1, count: 2 },
+    ]);
+    expect(v.tables[0].count).toBe(4);
+  });
+
+  it('自分の名前に you が付き、myTeam / myTable が入る', () => {
+    const v = dinner.dinnerView(cfg, roster, 'たなか');
+    expect(v.tables[0].teams[1].members[0].you).toBe(true);
+    expect(v.tables[0].teams[0].members.some((m) => m.you)).toBe(false);
+    expect(v.myTeam).toBe('チーム B');
+    expect(v.myTable).toBe('1卓目');
+    expect(dinner.dinnerView(cfg, roster, null).myTeam).toBeNull();
   });
 });
