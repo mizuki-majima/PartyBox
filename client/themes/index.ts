@@ -29,6 +29,7 @@ export const THEMES = {
   liar: { chrome: '#0e0e10', fonts: () => import('./fonts/liar') },
   'grow-answer': { chrome: '#d9c7a3', fonts: () => import('./fonts/grow-answer') },
   'ten-sec-trial': { chrome: '#f4efe4', fonts: () => import('./fonts/ten-sec-trial') },
+  'ad-dodge': { chrome: '#008080', fonts: () => import('./fonts/ad-dodge') },
 } as const satisfies Record<string, { chrome: string; fonts: () => Promise<unknown> }>;
 
 export type ThemeName = keyof typeof THEMES;
@@ -42,6 +43,7 @@ export const GAME_THEMES: Record<GameId, ThemeName> = {
   liar: 'liar',
   'grow-answer': 'grow-answer',
   'ten-sec-trial': 'ten-sec-trial',
+  'ad-dodge': 'ad-dodge',
   'party-event': 'party-event',
 };
 

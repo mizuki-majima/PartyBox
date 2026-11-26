@@ -9,10 +9,19 @@ import { Button } from './ui';
 const CARD_CLASS =
   'group animate-slide-up relative flex flex-col border-t-4 border-b border-line bg-panel transition-colors hover:bg-fg hover:text-bg';
 
-type CardContent = Pick<GameMeta, 'title' | 'tagline' | 'description' | 'category' | 'estimatedTime'> & {
+type CardContent = Pick<GameMeta, 'title' | 'tagline' | 'description' | 'category' | 'estimatedTime' | 'inDevelopment'> & {
   id: string;
   players: string;
 };
+
+/** 作っている途中のゲームの印。遊べるが、見た目や決まりが変わることがあると分かるように */
+export function DevBadge({ className = '' }: { className?: string }) {
+  return (
+    <span className={`ui-badge inline-flex shrink-0 items-center border border-current px-1.5 py-0.5 text-xs font-extrabold ${className}`} data-testid="dev-badge">
+      開発中
+    </span>
+  );
+}
 
 /**
  * そのゲームのデザインの見本。入れ子の data-theme で、中だけがそのゲームのトークン（色・フォント・模様）になる。
@@ -57,7 +66,10 @@ function CardBody({ game, index }: { game: CardContent; index: number }) {
       <Swatch id={game.id} title={game.title} className="h-28" />
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-baseline justify-between gap-2 text-xs font-bold">
-          <span className="tracking-[0.2em] uppercase">{game.category}</span>
+          <span className="inline-flex items-center gap-2">
+            <span className="tracking-[0.2em] uppercase">{game.category}</span>
+            {game.inDevelopment && <DevBadge />}
+          </span>
           <span className="font-display tabular-nums">{String(index + 1).padStart(2, '0')}</span>
         </div>
         <h3 className="font-display text-2xl leading-tight">{game.title}</h3>

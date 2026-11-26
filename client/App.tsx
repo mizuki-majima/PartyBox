@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router';
-import { Button, FullScreenMessage } from './components/ui';
+import { Button, FullScreenMessage, Spinner } from './components/ui';
 import { CreateRoomPage } from './pages/CreateRoomPage';
 import { DemoPage } from './pages/DemoPage';
 import { JoinPage } from './pages/JoinPage';
 import { LandingPage } from './pages/LandingPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { RoomPage } from './pages/RoomPage';
+
+// 技術者向けのページは文章と図が多いので、開いたときだけ読み込む（遊ぶ人のスマホで最初に読むぶんを増やさない）
+const TechPage = lazy(() => import('./pages/TechPage').then((m) => ({ default: m.TechPage })));
 
 /**
  * プロンプト・グランプリは SPA の外のページ（/grand-prix/）。開発サーバーでは末尾のスラッシュが無いと
@@ -53,6 +56,21 @@ export function App() {
         <Route path="/join" element={<JoinPage />} />
         {/* 勝者の記録（卓ごとに遊んだゲームの1位を、終わった順に） */}
         <Route path="/results" element={<ResultsPage />} />
+        {/* 技術者向け: システム構成・シーケンス図（開発中） */}
+        <Route
+          path="/tech"
+          element={
+            <Suspense
+              fallback={
+                <div className="flex min-h-dvh items-center justify-center">
+                  <Spinner className="h-8 w-8" />
+                </div>
+              }
+            >
+              <TechPage />
+            </Suspense>
+          }
+        />
         <Route path="/room/:code" element={<RoomPage />} />
         {/* 司会用URL。合言葉を知っている人だけが進行できる（懇親会など） */}
         <Route path="/room/:code/h/:hostToken" element={<RoomPage />} />

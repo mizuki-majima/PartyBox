@@ -27,6 +27,8 @@ export default defineConfig({
       PARTYBOX_TIME_SCALE: '0.5',
       // 試験の保存先は使い捨ての場所にする（本番の /opt/partybox/state を触らない）
       PARTYBOX_STATE_DIR: '.e2e-state',
+      // 広告をすり抜けろ！: 押せば進める場所を画面に持たせる（本物の判定はサーバーだけが持つので、試験からは分からない）
+      PARTYBOX_AD_DODGE_REVEAL: '1',
     },
   },
 });

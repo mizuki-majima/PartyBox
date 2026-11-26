@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getGameMeta, isEventGame } from '../../shared/games';
 import { TimerBar } from '../components/game';
+import { DevBadge } from '../components/GameCard';
 import { GameEmblem, Icon } from '../components/Icon';
 import { Button, Modal } from '../components/ui';
 import { GameGuide } from '../guides';
@@ -27,12 +28,16 @@ export function GameShell() {
   const [guideOpen, setGuideOpen] = useState(false);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+    <div className="mx-auto flex max-w-3xl flex-col gap-4" data-game-shell>
       <div className="ui-bar sticky top-0 z-10 -mx-3 flex flex-col gap-2 px-3 py-2 sm:mx-0 sm:px-4" data-edge="top">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <GameEmblem id={meta.id} className="h-8 w-10" />
-            <span className="truncate font-extrabold">{meta.title}</span>
+            {/* 「開発中」は題の下に小さく出す（スマホでは横に並べると題が切れるため） */}
+            <span className="flex min-w-0 flex-col items-start leading-tight">
+              <span className="max-w-full truncate font-extrabold">{meta.title}</span>
+              {meta.inDevelopment && <DevBadge className="!px-1 !py-0 text-[10px]" />}
+            </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {showRound && (
