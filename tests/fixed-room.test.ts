@@ -97,11 +97,10 @@ describe('コードを入れるだけで入れる', () => {
 
 /* ================================================================== */
 describe('コードを知らない人に、名簿やクイズを見せない', () => {
-  it('常設のルームがある間は、懇親会のルームもデモも新しく作れない（通常のゲームは作れる）', async () => {
+  it('常設のルームがある間は、懇親会のルームは新しく作れない（通常のゲームは作れる）', async () => {
     const c = await connect();
     const res = await c.emit('room:create', { gameId: 'party-event', name: 'だれか' });
     expect(res).toMatchObject({ ok: false, error: expect.stringContaining('コードで参加') });
-    expect((await c.emit('room:create', { gameId: 'party-event', name: 'だれか', demo: true })).ok).toBe(false);
 
     const d = await connect();
     await d.create('unanimous', 'みずき'); // 卓ごとのゲームは今までどおり
@@ -111,6 +110,25 @@ describe('コードを知らない人に、名簿やクイズを見せない', (
     const e = await connect();
     const demo = await e.ok<{ session: { code: string } }>('room:create', { gameId: 'unanimous', name: 'みずき', demo: true });
     expect(server.manager.rooms.get(demo.session.code)!.demo).toBe(true);
+  });
+
+  it('常設のルームがあっても懇親会のデモは作れ、名簿は本番と同じ人数の仮名になる（常設のルームの名簿はそのまま）', async () => {
+    const real = loadEventConfig().seats.participants.map((p) => (typeof p === 'string' ? p : p.name));
+    const host = await connect();
+    const res = await host.ok<{ session: { code: string } }>('room:create', { gameId: 'party-event', name: '司会', demo: true });
+    const code = res.session.code;
+    expect(server.manager.rooms.get(code)!.demo).toBe(true);
+    await host.ok('room:start');
+
+    const guest = await connect();
+    const checked = await guest.ok<{ room: { roster?: { name: string }[] } }>('room:check', { code });
+    const demoNames = checked.room.roster!.map((p) => p.name);
+    expect(demoNames).toHaveLength(real.length);
+    for (const name of real) expect(demoNames).not.toContain(name);
+
+    // 常設のルームは本番の名簿のまま
+    const fixed = await guest.ok<{ room: { roster?: { name: string }[] } }>('room:check', { code: CODE });
+    expect(fixed.room.roster!.map((p) => p.name)).toEqual(expect.arrayContaining(real));
   });
 
   it('入口の出し分け用の API は、常設のルームがあることだけを返す（コードは返さない）', async () => {

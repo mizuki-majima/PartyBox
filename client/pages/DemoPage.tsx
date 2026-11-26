@@ -4,6 +4,7 @@ import { type GameMeta, getGameMeta, isEventGame } from '../../shared/games';
 import { Icon } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, Spinner } from '../components/ui';
 import { type DemoRoom, GUEST_COUNTS, HOST_SEAT, addDemoGuests, closeDemoRoom, createDemoRoom, guestSeat } from '../lib/demo';
+import { useFixedEventRoom } from '../lib/eventInfo';
 import { useToast } from '../lib/toast';
 import { Frame, JoinQr } from './demo/DemoParts';
 import { GameDemo } from './demo/GameDemo';
@@ -51,6 +52,8 @@ function saveCount(n: number): void {
 }
 
 function Demo({ meta }: { meta: GameMeta }) {
+  // 常設のルームがあるサーバーでは、デモは仮名のデータで動く（server/event/demoConfig.ts）
+  const fixed = useFixedEventRoom() === true;
   const toast = useToast();
   const [count, setCount] = useState(loadCount);
   const [room, setRoom] = useState<DemoRoom | null>(null);
@@ -163,6 +166,11 @@ function Demo({ meta }: { meta: GameMeta }) {
             このデモは使い捨てのルームなので、本番のルームには影響しません（誰もいなくなって30分で消えます）。
             <span className="lg:hidden">PCの大きな画面で開くのがおすすめです。</span>
           </p>
+          {fixed && (
+            <p className="mt-2 text-sm font-bold" data-testid="demo-pseudonym-note">
+              ルームが用意してあるので、デモは名前と会社名を仮名、問題をダミーにして動かしています（人数・チーム・テーブル・問題の数と点数は本番と同じです）。
+            </p>
+          )}
         </Card>
       </section>
 
