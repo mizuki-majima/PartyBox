@@ -15,7 +15,7 @@ import { PickMyName } from './SeatsSection';
  * 「夕食の席」「表示名を変える」をいつでも出せるようにする（リハーサルで、自分がどこの誰として入っているか分からなくなったため）
  */
 export function MeBar() {
-  const { game, me } = useGame<PartyEventView>();
+  const { game, me, room } = useGame<PartyEventView>();
   const startTeamPlay = useStartTeamPlay();
   const [dinnerOpen, setDinnerOpen] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
@@ -56,7 +56,8 @@ export function MeBar() {
       </div>
 
       <Modal open={dinnerOpen} onClose={() => setDinnerOpen(false)}>
-        {game.dinner && <DinnerSeating dinner={game.dinner} onTeamPlay={startTeamPlay} />}
+        {/* デモでは「このチームでゲームを遊ぶ」を出さない（端末にデモのチーム名が残り、次に作る本物のルームに付くため） */}
+        {game.dinner && <DinnerSeating dinner={game.dinner} onTeamPlay={room.demo ? undefined : startTeamPlay} />}
         <Button variant="secondary" block className="mt-4" onClick={() => setDinnerOpen(false)}>
           閉じる
         </Button>

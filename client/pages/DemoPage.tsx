@@ -1,14 +1,17 @@
-import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { type GameMeta, getGameMeta, isEventGame } from '../../shared/games';
 import { Icon } from '../components/Icon';
-import { Button, Card, FullScreenMessage, Logo, Modal, Spinner } from '../components/ui';
+import { Button, Card, FullScreenMessage, Logo, Spinner } from '../components/ui';
 import { type DemoRoom, GUEST_COUNTS, HOST_SEAT, addDemoGuests, closeDemoRoom, createDemoRoom, guestSeat } from '../lib/demo';
+import { useFixedEventRoom } from '../lib/eventInfo';
 import { useToast } from '../lib/toast';
+import { Frame, JoinQr } from './demo/DemoParts';
+import { GameDemo } from './demo/GameDemo';
 
 /**
- * 1人で試すデモ（/demo/<id>）。懇親会のような、司会が進行する催し物向け。
+ * 1人で試すデモ（/demo/<id>）。懇親会は司会と参加者の画面を、通常のゲームは全員ぶんの画面を並べる
+ * （通常のゲームは ./demo/GameDemo.tsx）。以下の Demo は懇親会のような、司会が進行する催し物向け。
  *
  * 司会の画面と参加者の画面（1〜5台）を並べて、同時に動かせる。どの枠も本物の画面で、
  * 本物のサーバーに繋がる。使い捨てのデモ用ルームを作るので、本番のルームには触れない。
@@ -16,7 +19,7 @@ import { useToast } from '../lib/toast';
 export function DemoPage() {
   const { gameId = '' } = useParams();
   const meta = getGameMeta(gameId);
-  if (!meta || !isEventGame(meta.id)) {
+  if (!meta) {
     return (
       <FullScreenMessage icon="search" title="デモが見つかりません">
         <Link to="/">
@@ -25,7 +28,7 @@ export function DemoPage() {
       </FullScreenMessage>
     );
   }
-  return <Demo meta={meta} />;
+  return isEventGame(meta.id) ? <Demo meta={meta} /> : <GameDemo meta={meta} />;
 }
 
 const COUNT_KEY = 'partybox:demo:guests';
@@ -49,6 +52,8 @@ function saveCount(n: number): void {
 }
 
 function Demo({ meta }: { meta: GameMeta }) {
+  // 常設のルームがあるサーバーでは、デモは仮名のデータで動く（server/event/demoConfig.ts）
+  const fixed = useFixedEventRoom() === true;
   const toast = useToast();
   const [count, setCount] = useState(loadCount);
   const [room, setRoom] = useState<DemoRoom | null>(null);
@@ -161,6 +166,11 @@ function Demo({ meta }: { meta: GameMeta }) {
             このデモは使い捨てのルームなので、本番のルームには影響しません（誰もいなくなって30分で消えます）。
             <span className="lg:hidden">PCの大きな画面で開くのがおすすめです。</span>
           </p>
+          {fixed && (
+            <p className="mt-2 text-sm font-bold" data-testid="demo-pseudonym-note">
+              ルームが用意してあるので、デモは名前と会社名を仮名、問題をダミーにして動かしています（人数・チーム・テーブル・問題の数と点数は本番と同じです）。
+            </p>
+          )}
         </Card>
       </section>
 
@@ -212,68 +222,5 @@ function Demo({ meta }: { meta: GameMeta }) {
 
       {room && <JoinQr open={showQr} onClose={() => setShowQr(false)} code={room.code} />}
     </div>
-  );
-}
-
-function Frame({
-  label,
-  title,
-  src,
-  className = '',
-  frameClassName = '',
-}: {
-  label: string;
-  title: string;
-  src: string;
-  className?: string;
-  frameClassName?: string;
-}) {
-  return (
-    <figure className={`min-w-0 ${className}`}>
-      <figcaption className="mb-1.5 border-t-4 border-line px-1 pt-1 text-sm font-extrabold">{label}</figcaption>
-      <iframe
-        src={src}
-        title={title}
-        className={`block w-full bg-bg ring-1 ring-line ${frameClassName}`}
-        data-testid={`demo-frame-${title}`}
-      />
-    </figure>
-  );
-}
-
-/** 手元のスマホからもデモのルームに入れるように（入った人は参加者として加わる） */
-function JoinQr({ open, onClose, code }: { open: boolean; onClose: () => void; code: string }) {
-  const url = `${location.origin}/room/${code}`;
-  const [qr, setQr] = useState<string | null>(null);
-  const toast = useToast();
-
-  useEffect(() => {
-    QRCode.toDataURL(url, { margin: 1, width: 360, color: { dark: '#0f0c24', light: '#ffffff' } })
-      .then(setQr)
-      .catch(() => setQr(null));
-  }, [url]);
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast('招待URLをコピーしました', 'success');
-    } catch {
-      toast('コピーできませんでした', 'error');
-    }
-  };
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <h2 className="font-display text-xl">スマホで参加する</h2>
-      <p className="mt-1 text-sm text-muted">読み取ると、このデモに参加者として加わります。</p>
-      {qr && <img src={qr} alt="デモのルームの招待QRコード" className="mx-auto mt-4 w-56 border border-line bg-[#fff] p-2" />}
-      <p className="mt-3 text-center font-display text-2xl tracking-[0.15em]">{code}</p>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Button variant="secondary" onClick={copy}>
-          URLをコピー
-        </Button>
-        <Button onClick={onClose}>閉じる</Button>
-      </div>
-    </Modal>
   );
 }

@@ -99,6 +99,12 @@ export function CreateRoomPage() {
                 <Icon name="key" /> コードを入れて参加する
               </Button>
             </Link>
+            <Link to={`/demo/${gameId}`} className="mt-3 block">
+              <Button size="lg" block variant="secondary">
+                <Icon name="eye" /> まずはデモで試す
+              </Button>
+            </Link>
+            <p className="mt-2 text-center text-xs text-muted">デモは名前と会社名が仮名、問題がダミーです（人数やチームの数は本番と同じ）</p>
           </Card>
         ) : (
         <Card className="animate-slide-up self-start">
@@ -136,12 +142,21 @@ export function CreateRoomPage() {
           <Button size="xl" block className="mt-5" onClick={create} loading={loading} data-testid="create-room">
             <Icon name="home" /> ルームを作る
           </Button>
-          {isEventGame(game.id) && (
+          {isEventGame(game.id) ? (
             <Link to={`/demo/${game.id}`} className="mt-3 block">
               <Button size="lg" block variant="secondary">
                 <Icon name="eye" /> まずはデモで試す
               </Button>
             </Link>
+          ) : (
+            <>
+              <Link to={`/demo/${game.id}`} className="mt-3 block" data-testid="solo-demo-link">
+                <Button size="lg" block variant="secondary">
+                  <Icon name="eye" /> 1人で試す
+                </Button>
+              </Link>
+              <p className="mt-2 text-center text-xs text-muted">全員ぶんの画面を並べて、1人で遊んでみられます（PC向け・勝者の記録には残りません）</p>
+            </>
           )}
           <div className="mt-6 border-t border-line pt-5 text-center text-sm text-muted">
             招待された方は{' '}

@@ -1,6 +1,7 @@
 import type { GameId } from '../../shared/games';
 import type { Ack } from '../../shared/protocol';
 import { clearSession, loadSession, saveSession } from './session';
+import { SOLO_MAX, soloName, soloSeat } from './soloDemo';
 import { type PartySocket, openSocket, requestOn } from './socket';
 
 /**
@@ -78,21 +79,65 @@ export async function addDemoGuests(room: DemoRoom, upTo: number): Promise<DemoR
   return { ...room, guests };
 }
 
-/** 使い終わったデモのルームを閉じる（失敗しても、誰もいなければ30分で片付くので気にしない） */
-export async function closeDemoRoom(room: DemoRoom): Promise<void> {
-  const session = loadSession(room.code, HOST_SEAT);
-  if (session) {
-    let s: PartySocket | null = null;
-    try {
-      s = await openSocket();
-      const res = await requestOn(s, 'room:rejoin', { code: room.code, playerId: session.playerId, token: session.token });
-      if (res.ok) await requestOn(s, 'room:close', {});
-    } catch {
-      /* 片付けは任意 */
-    } finally {
-      s?.disconnect();
-    }
+/** ホストの枠のセッションで入り直して、ルームを閉じる（失敗しても、誰もいなければ30分で片付くので気にしない） */
+async function closeAsHost(code: string, seat: string): Promise<void> {
+  const session = loadSession(code, seat);
+  if (!session) return;
+  let s: PartySocket | null = null;
+  try {
+    s = await openSocket();
+    const res = await requestOn(s, 'room:rejoin', { code, playerId: session.playerId, token: session.token });
+    if (res.ok) await requestOn(s, 'room:close', {});
+  } catch {
+    /* 片付けは任意 */
+  } finally {
+    s?.disconnect();
   }
+}
+
+/** 使い終わったデモのルームを閉じる */
+export async function closeDemoRoom(room: DemoRoom): Promise<void> {
+  await closeAsHost(room.code, HOST_SEAT);
   clearSession(room.code, HOST_SEAT);
   for (let n = 1; n <= MAX_GUESTS; n++) clearSession(room.code, guestSeat(n));
+}
+
+/* ---------------- 通常のゲームを1人で試す ---------------- */
+
+/** 通常のゲームのデモのルーム。全員ぶんの枠（1人目がホスト）を並べる */
+export interface SoloDemoRoom {
+  code: string;
+  /** 入れた人数（枠 1〜players） */
+  players: number;
+}
+
+/**
+ * 通常のゲームのデモのルームを作り、全員を入れて、ロビーのまま返す（設定と開始は、ホストの枠で本人に押してもらう）。
+ * 各枠のセッションを保存してからソケットを閉じ、そのあと各枠の iframe（/room/<CODE>?seat=<枠>）が同じ人として入り直す。
+ * 通常のゲームは切断して3分で外れ、ホストは30秒で移るが、枠は数秒で入り直すので間に合う
+ */
+export async function createSoloDemoRoom(gameId: GameId, players: number): Promise<SoloDemoRoom> {
+  const opened: PartySocket[] = [];
+  try {
+    const host = await openSocket();
+    opened.push(host);
+    const created = unwrap(await requestOn(host, 'room:create', { gameId, name: soloName(1), demo: true }));
+    const { code } = created.session;
+    saveSession(created.session, soloSeat(1));
+    for (let n = 2; n <= players; n++) {
+      const s = await openSocket();
+      opened.push(s);
+      const joined = unwrap(await requestOn(s, 'room:join', { code, name: soloName(n) }));
+      saveSession(joined.session, soloSeat(n));
+    }
+    return { code, players };
+  } finally {
+    for (const s of opened) s.disconnect();
+  }
+}
+
+/** 使い終わった通常のゲームのデモのルームを閉じ、全部の枠のセッションを消す */
+export async function closeSoloDemoRoom(room: SoloDemoRoom): Promise<void> {
+  await closeAsHost(room.code, soloSeat(1));
+  for (let n = 1; n <= SOLO_MAX; n++) clearSession(room.code, soloSeat(n));
 }

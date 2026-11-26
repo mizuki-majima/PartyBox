@@ -27,10 +27,11 @@ const SECTIONS: { id: EventSection; icon: IconName; label: string }[] = [
  */
 export function PartyEventScreen() {
   const { game, act, room } = useGame<PartyEventView>();
-  // 招待で入った通常のゲームのルームからも「懇親会の画面に戻る」を出せるように、このルームを覚えておく
+  // 招待で入った通常のゲームのルームからも「懇親会の画面に戻る」を出せるように、このルームを覚えておく。
+  // デモは覚えない（本番のルームに入った端末でデモを開いたとき、戻り先がデモのルームに書き換わらないように）
   useEffect(() => {
-    rememberEventRoom(room.code);
-  }, [room.code]);
+    if (!room.demo) rememberEventRoom(room.code);
+  }, [room.code, room.demo]);
 
   return (
     <div className="flex flex-col gap-4">

@@ -199,6 +199,16 @@ test('懇親会: トップの欄からデモを開くと、司会と参加者の
   await page.getByTestId('demo-guests-5').click();
   await expect(guest(5).getByTestId('bingo-last')).toHaveText(drawn);
 
+  // デモの枠は、端末に「最後に開いた懇親会」を覚えない（本番のルームに入った端末でデモを開いても、
+  // 卓のゲームからの「懇親会の画面に戻る」がデモのルームを指さないように）
+  expect(await page.evaluate(() => localStorage.getItem('partybox:lastEventRoom'))).toBeNull();
+  // デモの枠では「このチームでゲームを遊ぶ」を出さない（本物のルームにデモのチーム名が付かないように）
+  await guest(1).getByTestId('me-pick').click();
+  await guest(1).getByTestId('seats-roster-pick').getByRole('button', { name: /さくら/ }).click();
+  await guest(1).getByTestId('me-dinner-open').click();
+  await expect(guest(1).getByTestId('dinner-seating')).toBeVisible();
+  await expect(guest(1).getByTestId('team-play')).toHaveCount(0);
+
   await page.context().close();
 });
 

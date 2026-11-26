@@ -9,6 +9,7 @@ import {
   type SessionInfo,
 } from '../../shared/protocol';
 import { getEventConfig } from '../event/config';
+import { demoEventConfig } from '../event/demoConfig';
 import { PartyEventGame } from '../games/party-event/PartyEventGame';
 import { getServerGame } from '../games/registry';
 import { ResultLog } from '../results';
@@ -260,9 +261,10 @@ export class RoomManager {
 
     on('room:create', ({ gameId, name, demo, label }) => {
       if (!isGameId(gameId)) throw new UserError('ゲームが見つかりません');
-      // 常設のルームがあるときは、懇親会のルーム・デモを新しく作らせない。
-      // 作れると、コードを知らない人でも名簿とクイズ（答え）を見られてしまう
-      if (isEventGame(gameId) && this.hasFixedRoom()) {
+      // 常設のルームがあるときは、懇親会のルームを新しく作らせない。
+      // 作れると、コードを知らない人でも名簿とクイズ（答え）を見られてしまう。
+      // デモだけは作れる（名簿・問題は、本番のデータから作った仮名のデータにする。下の eventConfig）
+      if (isEventGame(gameId) && this.hasFixedRoom() && demo !== true) {
         throw new UserError('懇親会のルームは用意してあります。トップの「コードで参加」から、ルームコードを入れて参加してください');
       }
       const cleanName = this.validateName(name);
@@ -273,10 +275,12 @@ export class RoomManager {
         onChange: () => this.persister.schedule(),
         onGameOver: (r) => this.recordResult(r),
       });
-      // デモは催し物を1人で試すためのもの（通常のゲームはそのまま遊べるので作らない）
-      room.demo = demo === true && isEventGame(gameId);
-      // 夕食のチームで遊ぶときのチーム名。懇親会のルームには付けない（勝者の記録に残さないルームのため）
-      room.label = isEventGame(gameId) ? null : cleanText(String(label ?? ''), 20) || null;
+      // デモは1人で試すための使い捨てのルーム（懇親会も通常のゲームも）。保存せず、勝者の記録に残さない
+      room.demo = demo === true;
+      // 常設のルームがあるサーバーの懇親会のデモは、仮名のデータで動かす（人数や構成は本番とそろう。server/event/demoConfig.ts）
+      if (room.demo && isEventGame(gameId) && this.hasFixedRoom()) room.eventConfig = demoEventConfig(getEventConfig());
+      // 夕食のチームで遊ぶときのチーム名。懇親会とデモのルームには付けない（勝者の記録に残さないルームのため）
+      room.label = isEventGame(gameId) || room.demo ? null : cleanText(String(label ?? ''), 20) || null;
       this.rooms.set(code, room);
       const player = this.addPlayer(room, cleanName);
       room.hostId = player.id;
@@ -443,7 +447,7 @@ export class RoomManager {
 
     room.game?.dispose();
     room.clearImages();
-    room.game = def.create(room.context, participants, room.settings);
+    room.game = def.create(room.context, participants, room.settings, room.eventConfig ?? undefined);
     room.status = 'playing';
     room.game.start();
     room.requestBroadcast();
