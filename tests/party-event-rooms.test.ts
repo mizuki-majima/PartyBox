@@ -166,10 +166,18 @@ describe('デモのルーム', () => {
     expect(guest.view!.demo).toBe(true);
   });
 
-  it('通常のゲームでは demo を付けてもデモにならない', async () => {
+  it('通常のゲームでも demo を付けるとデモになり、全員の画面に demo が届く', async () => {
     const host = await connect();
     const res = await host.ok<{ session: { code: string } }>('room:create', { gameId: 'unanimous', name: 'みずき', demo: true });
-    expect(server.manager.rooms.get(res.session.code)!.demo).toBe(false);
+    expect(server.manager.rooms.get(res.session.code)!.demo).toBe(true);
+    const guest = await connect();
+    await guest.join(res.session.code, 'たろう');
+    await guest.waitFor((v) => v.code === res.session.code, 3000, '参加');
+    expect(guest.view!.demo).toBe(true);
+    // demo を付けなければ、今までどおりデモではない
+    const plain = await connect();
+    const res2 = await plain.ok<{ session: { code: string } }>('room:create', { gameId: 'unanimous', name: 'たろう' });
+    expect(server.manager.rooms.get(res2.session.code)!.demo).toBe(false);
   });
 
   it('デモのルームはディスクに保存しない（本番のルームは保存する）', async () => {

@@ -28,8 +28,8 @@ afterAll(async () => {
 const nameOf = (c: TestClient) => c.view!.players.find((p) => p.id === c.id)!.name;
 
 /** 「誰の答えでしょう？」を、1人目だけが全部当てる形で最後まで遊ぶ（1人目が単独1位になる） */
-async function playWhose(rounds = 2, label?: string) {
-  const { host, clients } = await setupRoom(server.port, 'whose-answer', 3, { rounds }, label);
+async function playWhose(rounds = 2, label?: string, demo?: boolean) {
+  const { host, clients } = await setupRoom(server.port, 'whose-answer', 3, { rounds }, label, demo);
   open.push(...clients);
   const [a] = clients;
   await startGame(host, clients, 'ANSWER');
@@ -205,6 +205,13 @@ describe('ゲームが終わると記録に残る', () => {
     expect(list).toHaveLength(before + 1);
     expect(list.at(-1)).toMatchObject({ gameId: 'unanimous', ranked: false, winners: [] });
     expect(list.at(-1)!.note).toMatch(/^チーム得点 \d+ 点/);
+  });
+
+  it('デモのルーム（1人で試す）で最後まで遊んでも残さない', async () => {
+    const before = server.manager.results.list().length;
+    const { host } = await playWhose(2, undefined, true);
+    expect(host.view!.demo).toBe(true);
+    expect(server.manager.results.list()).toHaveLength(before);
   });
 
   it('途中で打ち切られたゲーム（人数が足りなくなった）は残さない', async () => {

@@ -65,8 +65,8 @@ export class TestClient {
     return res as T;
   }
 
-  async create(gameId: GameId, name: string, label?: string): Promise<string> {
-    const res = await this.ok<{ session: SessionInfo }>('room:create', { gameId, name, label });
+  async create(gameId: GameId, name: string, label?: string, demo?: boolean): Promise<string> {
+    const res = await this.ok<{ session: SessionInfo }>('room:create', { gameId, name, label, demo });
     this.session = res.session;
     return res.session.code;
   }
@@ -119,10 +119,10 @@ export class TestClient {
 }
 
 /** ホスト1人 + 参加者 n-1 人でルームを作る */
-export async function setupRoom(port: number, gameId: GameId, count: number, settings?: object, label?: string) {
+export async function setupRoom(port: number, gameId: GameId, count: number, settings?: object, label?: string, demo?: boolean) {
   const names = ['みずき', 'たろう', 'はな', 'けん', 'ゆい', 'そら', 'りく', 'めい', 'かい', 'のあ'];
   const host = await TestClient.connect(port);
-  const code = await host.create(gameId, names[0], label);
+  const code = await host.create(gameId, names[0], label, demo);
   const clients = [host];
   for (let i = 1; i < count; i++) {
     const c = await TestClient.connect(port);

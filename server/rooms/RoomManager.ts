@@ -273,10 +273,10 @@ export class RoomManager {
         onChange: () => this.persister.schedule(),
         onGameOver: (r) => this.recordResult(r),
       });
-      // デモは催し物を1人で試すためのもの（通常のゲームはそのまま遊べるので作らない）
-      room.demo = demo === true && isEventGame(gameId);
-      // 夕食のチームで遊ぶときのチーム名。懇親会のルームには付けない（勝者の記録に残さないルームのため）
-      room.label = isEventGame(gameId) ? null : cleanText(String(label ?? ''), 20) || null;
+      // デモは1人で試すための使い捨てのルーム（懇親会も通常のゲームも）。保存せず、勝者の記録に残さない
+      room.demo = demo === true;
+      // 夕食のチームで遊ぶときのチーム名。懇親会とデモのルームには付けない（勝者の記録に残さないルームのため）
+      room.label = isEventGame(gameId) || room.demo ? null : cleanText(String(label ?? ''), 20) || null;
       this.rooms.set(code, room);
       const player = this.addPlayer(room, cleanName);
       room.hostId = player.id;

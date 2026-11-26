@@ -106,6 +106,11 @@ describe('コードを知らない人に、名簿やクイズを見せない', (
     const d = await connect();
     await d.create('unanimous', 'みずき'); // 卓ごとのゲームは今までどおり
     expect(d.view?.gameId ?? 'unanimous').toBe('unanimous');
+
+    // 通常のゲームの「1人で試す」（デモ）も作れる（止めるのは懇親会だけ）
+    const e = await connect();
+    const demo = await e.ok<{ session: { code: string } }>('room:create', { gameId: 'unanimous', name: 'みずき', demo: true });
+    expect(server.manager.rooms.get(demo.session.code)!.demo).toBe(true);
   });
 
   it('入口の出し分け用の API は、常設のルームがあることだけを返す（コードは返さない）', async () => {
