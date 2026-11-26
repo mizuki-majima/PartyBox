@@ -144,7 +144,7 @@ function nowText(game: PartyEventView): string {
     }
     case 'seats':
       if (!me) return '名簿から、自分の名前を押しましょう';
-      if (me.table == null) return 'そのまま待ちましょう。くじが引かれると、席が出ます';
+      if (me.table == null) return '下の「くじを引く」を押しましょう';
       return '出たテーブルへ移動しましょう';
     case 'bingo':
       return '読み上げられた番号を待ちましょう。そろったら「ビンゴ！」を押します';

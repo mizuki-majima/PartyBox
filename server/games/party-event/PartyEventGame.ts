@@ -253,6 +253,12 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
         // personId が空なら選び直し。takeover は「別のスマホで選ばれているが本人です」と確かめたとき
         this.claimPerson(playerId, String(action.personId ?? ''), action.takeover === true);
         return;
+      case 'seats:drawSelf': {
+        // 参加者が自分でくじを引く。司会が座席決めを出している間だけ（早く押して、名前を選ぶ前の人より先に決まらないように）
+        if (this.section !== 'seats') throw new UserError('いまはくじを引けません');
+        seats.drawSelf(this.seatsState, this.cfg.seats, this.seatsState.claimed[playerId] ?? '');
+        return;
+      }
       case 'seats:addSelf':
         // 名簿に無い人が、自分の名前を足してくじに入る
         seats.addSelf(this.seatsState, this.cfg.seats, playerId, String(action.name ?? ''), String(action.group ?? ''));

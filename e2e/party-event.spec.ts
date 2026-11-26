@@ -72,26 +72,29 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   await expect(guestA.getByTestId('seats-roster-pick')).toBeVisible();
   // 参加者が名簿から自分を選ぶ
   await guestA.getByTestId('seats-roster-pick').getByRole('button').first().click();
-  await expect(guestA.getByText('くじを待っています')).toBeVisible();
+  await expect(guestA.getByText('くじを引いてください')).toBeVisible();
   // 名簿に無い人は、自分の名前を足してくじに入る
   await guestB.getByTestId('seats-add-open').click();
   await guestB.getByTestId('seats-add-name').fill('とびいり');
   await guestB.getByTestId('seats-add-self').getByRole('button', { name: 'その他' }).click();
   await guestB.getByTestId('seats-add-submit').click();
-  await expect(guestB.getByText('くじを待っています')).toBeVisible();
+  await expect(guestB.getByText('くじを引いてください')).toBeVisible();
   // くじに入るのは、名前を選んだ2人だけ（名簿の残りの人は引かれない）
   await expect(host.getByTestId('seats-draw')).toContainText('残り 2');
 
-  await host.getByTestId('seats-draw').click();
+  // 参加者が自分でくじを引く。結果が出るまで、テーブル名が回る演出が入る
+  await guestA.getByTestId('seats-draw-self').click();
+  await expect(guestA.getByTestId('seats-reveal-spinning')).toBeVisible();
+  await expect(guestA.getByTestId('my-table')).toBeVisible();
   await expect(host.getByTestId('seats-last')).toBeVisible();
   await expect(guestB.getByTestId('seats-tables')).toBeVisible();
+  await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
 
-  // 残り全員引けば、選んだ人・足した人の席が出る
+  // 自分で引かない人（スマホが無い人など）は、司会が引く
   // 「残り全員」は、押し間違えると1人ずつの抽選が一度に終わるので、確かめてから引く
   await host.getByTestId('seats-draw-all').click();
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1'); // 確かめるまでは引かない
   await host.getByTestId('seats-draw-all-confirm').click();
-  await expect(guestA.getByTestId('my-table')).toBeVisible();
   await expect(guestB.getByTestId('my-table')).toBeVisible();
   await expect(host.getByTestId('seats-draw')).toContainText('残り 0');
 
@@ -238,7 +241,7 @@ test('懇親会: 始めたあとも招待QRを出せ、途中参加・名前の�
   const firstName = guestA.getByTestId('seats-roster-pick').getByRole('button').first();
   const name = (await firstName.locator('span').first().innerText()).trim();
   await firstName.click();
-  await expect(guestA.getByText('くじを待っています')).toBeVisible();
+  await expect(guestA.getByText('くじを引いてください')).toBeVisible();
 
   await guestA2.goto(`/room/${code}`);
   await fillFreeName(guestA2, 'たなか'); // 前のブラウザはつながったままなので、同じ名前では入れない
@@ -247,10 +250,10 @@ test('懇親会: 始めたあとも招待QRを出せ、途中参加・名前の�
   await guestA.context().close(); // 前のブラウザを閉じた
   // 切断が伝われば、同じ名前で入れる。同じ人として戻るので、選んだ名前はそのまま（選び直しは要らない）
   await expect(async () => {
-    if (!(await guestA2.getByText('くじを待っています').isVisible())) {
+    if (!(await guestA2.getByText('くじを引いてください').isVisible())) {
       await guestA2.getByTestId('join-submit').click({ timeout: 1000 });
     }
-    await expect(guestA2.getByText('くじを待っています')).toBeVisible({ timeout: 1000 });
+    await expect(guestA2.getByText('くじを引いてください')).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 10_000 });
   await expect(guestA2.getByText(`${name} さん`)).toBeVisible();
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
@@ -264,7 +267,7 @@ test('懇親会: 始めたあとも招待QRを出せ、途中参加・名前の�
   await expect(taken).toContainText('選ばれています');
   await taken.click();
   await guestB.getByTestId('seats-takeover').click();
-  await expect(guestB.getByText('くじを待っています')).toBeVisible();
+  await expect(guestB.getByText('くじを引いてください')).toBeVisible();
   await expect(guestA2.getByTestId('seats-roster-pick')).toBeVisible(); // 前のスマホは選び直しになる
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
   await guestB.context().close();
@@ -444,7 +447,7 @@ test('懇親会: 始まったルームには名簿から名前を選んで入り
   await guest2.getByTestId('join-submit').click();
   await guest2.getByTestId('join-takeover').click();
   await expect(guest2.getByTestId('me-bar')).toContainText('さくら さん');
-  await expect(guest2.getByText('くじを待っています')).toBeVisible();
+  await expect(guest2.getByText('くじを引いてください')).toBeVisible();
   await expect(guest.getByTestId('resume-here')).toBeVisible();
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
 

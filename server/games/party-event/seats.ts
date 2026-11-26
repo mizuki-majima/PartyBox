@@ -111,6 +111,22 @@ export function drawOne(state: SeatsState, cfg: SeatsConfig): DrawnPerson | null
   return { ...person, table };
 }
 
+/**
+ * 参加者が自分のスマホでくじを引く（自分の席だけを決める）。
+ * 入れるテーブルは司会のくじと同じ決め方（同じ所属が少ない → 人数が少ない → 前のテーブル）
+ */
+export function drawSelf(state: SeatsState, cfg: SeatsConfig, personId: string): DrawnPerson {
+  const people = roster(state, cfg);
+  const person = people.find((p) => p.id === personId);
+  if (!person || !chosenIds(state).has(personId)) throw new UserError('先に名簿から自分の名前を選んでください');
+  if (state.absent.includes(personId)) throw new UserError('欠席になっています。司会に声をかけてください');
+  if (personId in state.assign) throw new UserError('もう席が決まっています');
+  const table = chooseTable(state, cfg, people, person.group);
+  state.assign[person.id] = table;
+  state.order.push(person.id);
+  return { ...person, table };
+}
+
 /** 時間が足りないときに残り全員を一度に決める */
 export function drawAll(state: SeatsState, cfg: SeatsConfig): DrawnPerson[] {
   const drawn: DrawnPerson[] = [];

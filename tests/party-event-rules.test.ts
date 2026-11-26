@@ -142,6 +142,38 @@ describe('座席決め', () => {
     return s;
   };
 
+  it('自分のくじは自分の席だけを決め、所属が偏らない入れ方を使う', () => {
+    const s = seats.emptySeats();
+    // A社の2人が自分で名前を選んで、それぞれ自分でくじを引く
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    seats.claim(s, cfg, 'player2', 'p2', false);
+    const first = seats.drawSelf(s, cfg, 'p1');
+    expect(first.id).toBe('p1');
+    expect(s.order).toEqual(['p1']);
+    const second = seats.drawSelf(s, cfg, 'p2');
+    // 同じ所属は別のテーブルに入る
+    expect(second.table).not.toBe(first.table);
+    expect(Object.keys(s.assign).sort()).toEqual(['p1', 'p2']);
+  });
+
+  it('自分のくじの2回目はエラーで、席は変わらない', () => {
+    const s = seats.emptySeats();
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    const { table } = seats.drawSelf(s, cfg, 'p1');
+    expect(() => seats.drawSelf(s, cfg, 'p1')).toThrow('もう席が決まっています');
+    expect(s.assign.p1).toBe(table);
+    expect(s.order).toEqual(['p1']);
+  });
+
+  it('欠席・名前を選んでいない人は自分のくじを引けない', () => {
+    const s = seats.emptySeats();
+    expect(() => seats.drawSelf(s, cfg, 'p1')).toThrow('先に名簿から自分の名前を選んでください');
+    seats.claim(s, cfg, 'player1', 'p1', false);
+    seats.markAbsent(s, 'p1', true);
+    expect(() => seats.drawSelf(s, cfg, 'p1')).toThrow('欠席になっています。司会に声をかけてください');
+    expect(s.order).toEqual([]);
+  });
+
   it('全員引くと席が決まり、同じ所属が固まらない', () => {
     const s = allHere();
     expect(seats.drawAll(s, cfg)).toHaveLength(8);

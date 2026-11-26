@@ -294,6 +294,26 @@ describe('座席決め（通信の中身）', () => {
     expect(view(clients[2]).dinner!.tables[0].teams[0].members.find((m) => m.name === 'さくら')?.you).toBe(false);
   });
 
+  it('参加者は座席決めを出している間だけ自分でくじを引け、2回目は弾かれる', async () => {
+    const { host, clients } = await setupEvent();
+    const guest = clients[1];
+    await guest.actionOk('seats:claim', { personId: 'p1' });
+    // 司会が座席決めを出していない間は引けない
+    const early = await guest.action('seats:drawSelf');
+    expect(early.ok).toBe(false);
+    expect(!early.ok && early.error).toBe('いまはくじを引けません');
+    expect(view(guest).seats.drawn).toBe(0);
+
+    await host.actionOk('event:section', { section: 'seats' });
+    await guest.actionOk('seats:drawSelf');
+    await guest.waitFor((v) => (v.game as unknown as PartyEventView).seats.drawn === 1, 3000, 'くじ');
+    const me = view(guest).seats.roster.find((p) => p.id === 'p1')!;
+    expect(me.table).not.toBeNull();
+    expect(view(guest).seats.last?.id).toBe('p1');
+    expect((await guest.action('seats:drawSelf')).ok).toBe(false);
+    expect(view(guest).seats.drawn).toBe(1);
+  });
+
   it('別のスマホで選ばれている名前は、本人だと確かめると、こちらのスマホに移る', async () => {
     const { host, clients } = await setupEvent();
     await host.actionOk('event:section', { section: 'seats' });
