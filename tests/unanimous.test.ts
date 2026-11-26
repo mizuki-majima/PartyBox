@@ -101,6 +101,7 @@ describe('全員一致を目指せ！ 通しプレイ', () => {
     await host.waitFor((v) => (v.game as UnanimousView).result?.groups.length === 2);
 
     await host.actionOk('next');
+    await passGate(clients); // 2ラウンド目からの頭は、全員の準備OKを待つ
     await Promise.all(clients.map((c) => c.waitPhase('ANSWER', (v) => v.game!.round === 2)));
     expect(g(host).teamScore).toBe(3);
     expect(g(host).question).not.toBe(q1);
@@ -116,6 +117,7 @@ describe('全員一致を目指せ！ 通しプレイ', () => {
     await host.actionOk('next');
 
     // ラウンド3: 全員一致
+    await passGate(clients);
     await host.waitPhase('ANSWER', (v) => v.game!.round === 3);
     for (const c of clients) await c.actionOk('answer', { text: 'ねこ' });
     const reveal3 = await host.waitPhase('REVEAL');

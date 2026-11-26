@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { PartyServer } from '../server/app';
-import { TestClient, setupRoom, sleep, startTestServer } from './helpers';
+import { TestClient, passGate, setupRoom, sleep, startGame, startTestServer } from './helpers';
 
 /**
  * 準備の関門。ゲーム開始・説明を読む画面・各ラウンドの頭は、時間では進まず、
@@ -92,6 +92,14 @@ describe('ゲーム開始の準備の関門', () => {
     await host.waitFor((v) => (v.game as any).gate?.counting === true, 3000, 'カウントダウン');
   });
 
+  it('ここで終了は、ゲーム開始の関門では受け付けない', async () => {
+    const { host } = await room(3);
+    await host.ok('room:start');
+    await host.waitPhase('START');
+    expect((await host.action('gate:end')).ok).toBe(false);
+    expect(host.game.phase).toBe('START');
+  });
+
   it('カウントダウン中に人が抜けて最少人数を下回ると、打ち切る', async () => {
     const r = await setupRoom(server.port, 'ad-dodge', 2, { rounds: 1 });
     open.push(...r.clients);
@@ -102,5 +110,62 @@ describe('ゲーム開始の準備の関門', () => {
     await r.clients[1].ok('room:leave');
     await r.host.waitPhase('GAME_OVER');
     expect(r.host.game.endReason).toBeTruthy();
+  });
+});
+
+/** 誰の答えでしょう？の1ラウンド目を、全員が答えて確定するところまで進める */
+async function playWhoseRound1(host: TestClient, clients: TestClient[]) {
+  await startGame(host, clients, 'ANSWER');
+  for (const [i, c] of clients.entries()) await c.actionOk('answer', { text: `答え${i}` });
+  await host.waitPhase('GUESS');
+  for (const c of clients) await c.actionOk('lock');
+  await host.waitPhase('RESULT', (v) => v.game!.round === 1);
+  await host.actionOk('next');
+}
+
+describe('各ラウンドの頭の準備の関門と「ここで終了」', () => {
+  it('2ラウンド目の頭は、全員の準備OKまで待つ', async () => {
+    const { host, clients } = await room(3);
+    await playWhoseRound1(host, clients);
+    await host.waitPhase('ROUND_INTRO', (v) => v.game!.round === 2);
+    expect(gate(host)).toMatchObject({ counting: false, canEnd: true });
+    expect(host.game.deadline).toBeNull();
+    await sleep(300);
+    expect(host.game.phase).toBe('ROUND_INTRO');
+    await passGate(clients);
+    await host.waitPhase('ANSWER', (v) => v.game!.round === 2);
+  });
+
+  it('ここで終了: それまでの点で最終結果を出し、勝者の記録に残す。ホスト以外は押せない', async () => {
+    const { host, clients } = await room(3, { rounds: 3 });
+    const before = server.manager.results.list().length;
+    await playWhoseRound1(host, clients);
+    await host.waitPhase('ROUND_INTRO', (v) => v.game!.round === 2);
+    expect((await clients[1].action('gate:end')).ok).toBe(false);
+    await host.actionOk('gate:end');
+    await host.waitPhase('GAME_OVER');
+    expect(host.game.endReason).toBeNull();
+    expect(host.game.totalRounds).toBe(1);
+    expect(server.manager.results.list()).toHaveLength(before + 1);
+  });
+
+  it('嘘つきの役割確認は時間で進まず、全員の「確認した！」で進む', async () => {
+    const r = await setupRoom(server.port, 'liar', 4, { mode: 'secret', laps: 1 });
+    open.push(...r.clients);
+    await startGame(r.host, r.clients, 'ROLE');
+    await sleep(600); // 今までの 15秒 × 1/50 を越える
+    expect(r.host.game.phase).toBe('ROLE');
+    await passGate(r.clients);
+    await r.host.waitPhase('TALK');
+  });
+
+  it('10秒裁判の事件と役職も、時間で進まず、全員の「確認した！」で進む', async () => {
+    const r = await setupRoom(server.port, 'ten-sec-trial', 4, { rounds: 2 });
+    open.push(...r.clients);
+    await startGame(r.host, r.clients, 'BRIEFING');
+    await sleep(1000); // 今までの 30秒 × 1/50 を越える
+    expect(r.host.game.phase).toBe('BRIEFING');
+    await passGate(r.clients);
+    await r.host.waitPhase('TESTIMONY');
   });
 });

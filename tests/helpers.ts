@@ -134,15 +134,34 @@ export async function setupRoom(port: number, gameId: GameId, count: number, set
   return { host, clients, code };
 }
 
+type GateGame = { phase: string; round: number; gate?: { counting: boolean } | null } | null;
+
 /**
  * 準備の関門を、全員の「準備OK」で抜ける（関門が出るまで待ってから押す。カウントダウンは短縮時間で進む）。
+ * 全員の画面がその関門を抜けるまで待ってから返す（返事より画面の更新が遅れて届くので、古い画面で次の判断をしないように）。
  * 関門の無いゲーム（懇親会）では何もしない
  */
 export async function passGate(clients: TestClient[]): Promise<void> {
   await Promise.all(clients.map((c) => c.waitFor((v) => !!v.game, 3000, 'ゲームの開始')));
-  if (!clients.some((c) => (c.game as { gate?: unknown } | null)?.gate)) return;
-  await Promise.all(clients.map((c) => c.waitFor((v) => !!(v.game as { gate?: unknown } | null)?.gate, 3000, '準備の関門')));
+  if (!clients.some((c) => (c.game as GateGame)?.gate)) return;
+  // カウントダウン中（もうすぐ閉じる関門）ではなく、待っている関門で押す
+  const waiting = (v: RoomView) => {
+    const g = v.game as GateGame;
+    return !!g?.gate && !g.gate.counting;
+  };
+  await Promise.all(clients.map((c) => c.waitFor(waiting, 3000, '準備の関門')));
+  const at = clients[0].game as GateGame;
+  const key = `${at!.phase}/${at!.round}`;
   for (const c of clients) await c.actionOk('ready');
+  // 抜けた = その関門（同じフェーズ・同じラウンドの関門）ではなくなった。続けて次の関門（役割確認など）が来てもよい
+  await Promise.all(
+    clients.map((c) =>
+      c.waitFor((v) => {
+        const g = v.game as GateGame;
+        return !g?.gate || `${g.phase}/${g.round}` !== key;
+      }, 3000, '関門を抜ける'),
+    ),
+  );
 }
 
 /** ホストが開始し、開始の準備の関門を全員で抜けて、全員が最初の入力フェーズに入るまで待つ */

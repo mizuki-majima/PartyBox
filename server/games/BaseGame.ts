@@ -183,6 +183,16 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
     if (waiting.length > 0 && waiting.every((id) => g.ready.has(id))) this.advance();
   }
 
+  /**
+   * ラウンドの頭でホストが「ここで終了」: それまでに終わったラウンドの点で最終結果を出す（endReason は付けないので、勝者の記録に残る）
+   */
+  protected finishEarly(): void {
+    const done = Math.max(0, this.round - 1);
+    this.round = done;
+    this.totalRounds = done;
+    this.endGame(null);
+  }
+
   protected endGame(reason: string | null = null): void {
     this.clearTimer();
     this.onEnd = null;
@@ -230,6 +240,12 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
         this.gate.ready.add(playerId);
         this.checkGate();
         this.ctx.update();
+        return;
+      }
+      if (action.type === 'gate:end') {
+        if (!isHost) throw new UserError('ホストのみ操作できます');
+        if (!this.gate.canEnd) throw new UserError('今は終了できません');
+        this.finishEarly();
         return;
       }
       if (action.type === 'gate:stop') {
