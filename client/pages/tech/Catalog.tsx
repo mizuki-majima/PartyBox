@@ -27,7 +27,7 @@ const rows: Row[] = [
   ...EVENT_GAMES.map((g) => ({
     id: g.id,
     title: g.title,
-    kind: '催し物（司会が進行）',
+    kind: 'イベント（司会が進行）',
     players: `${g.minPlayers}〜${g.maxPlayers}人`,
     time: g.estimatedTime,
     theme: themeOfGame(g.id),
@@ -36,7 +36,7 @@ const rows: Row[] = [
   ...SOLO_GAMES.map((g) => ({
     id: g.id,
     title: g.title,
-    kind: '1人・別ページ',
+    kind: '1人用・別ページ',
     players: g.players,
     time: g.estimatedTime,
     theme: '独自の CSS',

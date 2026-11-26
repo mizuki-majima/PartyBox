@@ -83,7 +83,7 @@ function Track({ racers, pages }: { racers: AdRacer[]; pages: number }) {
   const stacks = new Map<number, number>();
   return (
     <div className="w95-window" data-testid="track">
-      <div className="w95-sunken relative mx-1 my-1 h-11">
+      <div className="w95-sunken relative mx-1 my-1 h-8">
         {/* ページの区切り */}
         {Array.from({ length: pages + 1 }, (_, i) => (
           <span key={i} className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-line" style={{ left: `calc(${(i / pages) * 88}% + 6%)` }} />
@@ -97,7 +97,7 @@ function Track({ racers, pages }: { racers: AdRacer[]; pages: number }) {
             <span
               key={r.id}
               className="absolute -translate-x-1/2 transition-[left] duration-300"
-              style={{ left: `calc(${(r.cleared / pages) * 88}% + 6%)`, top: `${3 + (level % 3) * 10}px` }}
+              style={{ left: `calc(${(r.cleared / pages) * 88}% + 6%)`, top: `${1 + (level % 3) * 3.5}px` }}
               title={nameOf(r.id)}
             >
               <Avatar name={nameOf(r.id)} color={colorOf(r.id)} size="xs" ring={r.id === room.youId} />
@@ -132,8 +132,10 @@ function useFitWidth(frame: HTMLElement | null): number | undefined {
       const top = frame.getBoundingClientRect().top + window.scrollY;
       const chrome = frame.offsetHeight - stageEl.offsetHeight;
       const avail = vh - top - chrome - 12;
-      // 小さすぎると押せないので、下限を決める（そのときだけスクロールが要る）
-      setMax(Math.max(240, Math.floor((avail * AD_STAGE_W) / AD_STAGE_H) + 6));
+      // 下限を決める（それより背の低い画面だけスクロールが要る）。窓が画面からはみ出すと、
+      // ページの中では指でスクロールできない（touch-action: none）ので、下の方の本物が押せなくなる。
+      // 背の低い iPhone（SE の Safari で高さ 548px）でも収まるよう、下限は 200px にする
+      setMax(Math.max(200, Math.floor((avail * AD_STAGE_W) / AD_STAGE_H) + 6));
     };
     measure();
     window.addEventListener('resize', measure);
@@ -155,6 +157,16 @@ function Race() {
   const prev = useRef<{ page: number; step: number } | null>(null);
   const [frame, setFrame] = useState<HTMLDivElement | null>(null);
   const fitWidth = useFitWidth(frame);
+  const racing = !!game.me && !!stage && !!me;
+  // 走っている間は、スマホではルームの見出しの帯（ロゴ・コード・退出）を隠し、ページの窓を大きくする（ad-dodge.css）。
+  // 窓の幅を測る（useFitWidth）より先に隠すので、layout effect にする
+  useLayoutEffect(() => {
+    if (!racing) return;
+    document.documentElement.dataset.adRace = '';
+    return () => {
+      delete document.documentElement.dataset.adRace;
+    };
+  }, [racing]);
 
   useEffect(() => {
     if (!stage) return;
@@ -211,7 +223,8 @@ function Race() {
             ×
           </span>
         </div>
-        <div className="flex items-center gap-1 px-1 py-1 text-xs">
+        {/* アドレス欄は飾り。スマホではページの窓を大きくするため出さない */}
+        <div className="hidden items-center gap-1 px-1 py-1 text-xs sm:flex">
           <span className="shrink-0">アドレス</span>
           <span className="w95-field min-w-0 flex-1 truncate font-display">
             {penalty ? 'http://ad.example/click?id=8f3a…' : `http://${stage.site}/${stage.page + 1}`}

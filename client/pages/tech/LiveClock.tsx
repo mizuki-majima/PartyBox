@@ -81,23 +81,23 @@ export function LiveClock() {
           disabled={busy}
           className="inline-flex min-h-11 items-center gap-1 border-2 border-line px-3 text-sm font-extrabold hover:bg-fg hover:text-bg disabled:opacity-50"
         >
-          <Icon name="repeat" /> {busy ? '測っています…' : '測り直す'}
+          <Icon name="repeat" /> {busy ? '計測中…' : 'もう一度計測'}
         </button>
       </div>
-      <p className="mt-1 text-sm text-muted">この端末からサーバーまでを、いま測った値です。</p>
-      {failed && <p className="mt-3 text-sm font-bold text-danger-ink">測れませんでした（サーバーにつながっていません）。</p>}
+      <p className="mt-1 text-sm text-muted">この端末とサーバーの間で、いま計測した値です。</p>
+      {failed && <p className="mt-3 text-sm font-bold text-danger-ink">計測できませんでした（サーバーに接続できません）。</p>}
       {m && (
         <dl className="mt-3 grid gap-4 sm:grid-cols-3">
           <div className="border-t border-line pt-2">
-            <dt className="text-xs font-bold text-muted">往復（{SAMPLES}回の中央値）</dt>
+            <dt className="text-xs font-bold text-muted">往復時間（{SAMPLES}回の中央値）</dt>
             <dd className="font-display text-3xl tabular-nums">{Math.round(m.rtt)} ms</dd>
           </div>
           <div className="border-t border-line pt-2">
-            <dt className="text-xs font-bold text-muted">時計のずれ（ゲームの画面と同じ求め方）</dt>
+            <dt className="text-xs font-bold text-muted">時計のずれ（ゲーム画面と同じ計算）</dt>
             <dd className="font-display text-3xl tabular-nums">{ms(m.offsetApp)}</dd>
           </div>
           <div className="border-t border-line pt-2">
-            <dt className="text-xs font-bold text-muted">時計のずれ（往復の半分で直した値）</dt>
+            <dt className="text-xs font-bold text-muted">時計のずれ（往復時間の半分で補正）</dt>
             <dd className="font-display text-3xl tabular-nums">{ms(m.offsetMid)}</dd>
           </div>
         </dl>

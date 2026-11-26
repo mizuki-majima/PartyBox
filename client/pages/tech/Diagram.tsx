@@ -185,7 +185,7 @@ export function Diagram({ code, title, caption, testId }: { code: string; title:
         )}
         {state.kind === 'error' && (
           <div>
-            <p className="mb-2 text-sm font-bold text-danger-ink">図を描けませんでした。図の元をそのまま出します。</p>
+            <p className="mb-2 text-sm font-bold text-danger-ink">図を表示できませんでした。代わりに Mermaid のソースを表示します。</p>
             <pre className="overflow-x-auto text-xs leading-relaxed">{code}</pre>
           </div>
         )}
@@ -193,7 +193,7 @@ export function Diagram({ code, title, caption, testId }: { code: string; title:
       {state.kind !== 'error' && (
         <details className="mt-2 text-sm">
           <summary className="inline-flex min-h-11 cursor-pointer items-center font-bold underline underline-offset-4">
-            図の元（Mermaid）
+            Mermaid のソース
           </summary>
           <pre className="mt-2 overflow-x-auto border border-line bg-panel-2 p-3 text-xs leading-relaxed">{code}</pre>
         </details>

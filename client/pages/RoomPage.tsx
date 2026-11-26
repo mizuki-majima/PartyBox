@@ -114,7 +114,8 @@ function RoomHeader({ onLeave }: { onLeave: () => void }) {
     }
   };
   return (
-    <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-6">
+    // data-room-header: 広告をすり抜けろ！のレース中、スマホではこの帯を隠す（client/themes/ad-dodge.css）
+    <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-6" data-room-header>
       <Logo />
       <div className="flex items-center gap-2">
         <button

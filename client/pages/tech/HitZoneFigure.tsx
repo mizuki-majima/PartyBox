@@ -86,7 +86,7 @@ function Stage({ mode }: { mode: 'visual' | 'zones' }) {
           <rect x="16" y="416" width="328" height="126" fill="none" stroke="var(--t-fg)" strokeWidth="1.5" strokeDasharray="6 4" />
           <rect x="24" y="424" width="214" height="22" fill="var(--t-panel)" />
           <text x="30" y="440" fontSize="12" fontWeight="700" fill="var(--t-fg)">
-            何も無い所（押しても何も起きない）
+            何もない場所（押しても何も起きない）
           </text>
           {/* タップの例 */}
           <circle cx={TAP.x} cy={TAP.y} r="9" fill="none" stroke="var(--t-accent)" strokeWidth="3" />
@@ -107,8 +107,8 @@ function Stage({ mode }: { mode: 'visual' | 'zones' }) {
 export function HitZoneFigure() {
   return (
     <figure className="border-t-4 border-line pt-3" data-testid="tech-hitzone">
-      <figcaption className="font-display text-xl leading-tight">見本：見えている ✕ と、本当の当たり判定</figcaption>
-      <p className="mt-1 text-sm text-muted">説明用の絵です（実際のページはラウンドごとにサーバーが作ります）。</p>
+      <figcaption className="font-display text-xl leading-tight">例：見えている ✕ と、実際の当たり判定</figcaption>
+      <p className="mt-1 text-sm text-muted">説明用の図です（実際のページは、ラウンドごとにサーバーが生成します）。</p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <div>
           <p className="mb-2 text-sm font-extrabold">スマホに配るもの（見た目だけ）</p>
@@ -129,10 +129,10 @@ export function HitZoneFigure() {
             style={{ backgroundImage: 'repeating-linear-gradient(45deg, var(--t-accent) 0 2px, transparent 2px 6px)' }}
             aria-hidden
           />
-          罠＝広告が開く（配らない）
+          罠：広告が開く（配らない）
         </li>
         <li className="flex items-center gap-2">
-          <span className="inline-block h-4 w-6 shrink-0 border-2 border-dashed border-fg" aria-hidden /> 何も無い所
+          <span className="inline-block h-4 w-6 shrink-0 border-2 border-dashed border-fg" aria-hidden /> 何もない場所
         </li>
       </ul>
     </figure>
