@@ -495,6 +495,9 @@ export class RoomManager {
       resumable.name = name;
       room.setName(resumable.id, name);
       this.attach(socket, room, resumable);
+      // クイズのチームを夕食のチームに揃え直す（リハーサルで選んだチームや、名前を変える前のチームが残っていることがあるため）
+      event.claimPerson(resumable.id, personId, true);
+      room.requestBroadcast();
       return this.session(room, resumable);
     }
     if (room.players.size >= room.meta.maxPlayers) throw new UserError('このルームは満員です');

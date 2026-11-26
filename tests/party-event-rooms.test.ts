@@ -599,6 +599,30 @@ describe('名簿から名前を選んで参加する', () => {
     expect(c.view!.youAreHost).toBe(false);
   });
 
+  it('切断中の本人として名簿から戻ると、クイズのチームは夕食のチームに揃う', async () => {
+    const { host, code } = await setupEvent(2);
+    const { c: first, roster } = await rosterOf(code);
+    const sakura = roster.find((p) => p.name === 'さくら')!;
+    await joinAs(first, code, 'さくら', sakura.id);
+    await first.actionOk('quiz:team', { team: 'チーム B' }); // リハーサルなどで別のチームを選んでいた
+    const id = first.id;
+    first.close();
+    await host.waitFor((v) => v.players.some((x) => x.id === id && !x.connected), 3000, '切断');
+
+    const again = await connect();
+    await joinAs(again, code, 'さくら', sakura.id);
+    await again.waitFor((v) => (v.game as unknown as PartyEventView).quiz.myTeam === 'チーム A', 3000, '夕食のチーム');
+    expect(again.id).toBe(id);
+  });
+
+  it('欠席にされた人も参加の名簿に出る（入ってから司会に声をかけられるように）', async () => {
+    const { host, code } = await setupEvent(2);
+    const p = (await rosterOf(code)).roster[4];
+    await host.actionOk('seats:absent', { personId: p.id, absent: true });
+    const { roster } = await rosterOf(code);
+    expect(roster.some((x) => x.id === p.id)).toBe(true);
+  });
+
   it('名簿に無い personId は参加させない', async () => {
     const { host, code } = await setupEvent(2);
     const c = await connect();

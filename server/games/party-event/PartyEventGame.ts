@@ -101,6 +101,10 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
   restore(snap: PartyEventSnapshot): void {
     this.section = SECTIONS.includes(snap.section) ? snap.section : 'none';
     this.quizState = { ...quiz.emptyQuiz(), ...snap.quiz };
+    // チーム名を変えたあと（例: 夕食のチームに揃えた）に読み戻すと、前のチーム名が残る。設定に無いものはチーム無しにする
+    this.quizState.teamOf = Object.fromEntries(
+      Object.entries(this.quizState.teamOf).filter(([, team]) => this.cfg.quiz.teams.includes(team)),
+    );
     this.bingoState = { ...bingo.emptyBingo(), ...snap.bingo };
     this.seatsState = { ...seats.emptySeats(), ...snap.seats };
     // 回答タイムの途中で落ちた場合、締切はもう当てにならないので締め切っておく
@@ -224,7 +228,7 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
       }
       case 'quiz:answer': {
         const team = this.quizState.teamOf[playerId];
-        if (!team) throw new UserError('先にチームを選んでください');
+        if (!team || !this.cfg.quiz.teams.includes(team)) throw new UserError('先にチームを選んでください');
         if (!quiz.acceptingAnswers(this.quizState, Number(action.qno))) throw new UserError('いまは回答できません');
         const question = quiz.currentQuestion(this.quizState, this.cfg.quiz);
         if (!question) throw new UserError('問題がありません');
@@ -287,11 +291,13 @@ export class PartyEventGame extends BaseGame<'EVENT'> {
     if (team && this.cfg.quiz.teams.includes(team)) this.quizState.teamOf[playerId] = team;
   }
 
-  /** 参加するときに選ぶ名簿（欠席の人は除く）。夕食のチームつき */
+  /**
+   * 参加するときに選ぶ名簿。夕食のチームつき。
+   * 欠席にされた人も出す（遅れて来た・間違えて欠席にされた本人が、入ってから司会に声をかけられるように。座席のくじには入らない）
+   */
   joinRoster(): { id: string; name: string; team: string | null }[] {
     return seats
       .roster(this.seatsState, this.cfg.seats)
-      .filter((p) => !this.seatsState.absent.includes(p.id))
       .map((p) => ({ id: p.id, name: p.name, team: this.cfg.dinner ? (dinner.teamOfName(this.cfg.dinner, p.name)?.team ?? null) : null }));
   }
 

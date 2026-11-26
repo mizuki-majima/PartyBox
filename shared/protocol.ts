@@ -83,7 +83,7 @@ export interface RoomSummary {
   maxPlayers: number;
   status: RoomStatus;
   /**
-   * 懇親会のルーム（開始ずみ）だけ: 参加するときに選ぶ名簿（欠席の人は除く）。team は夕食のチーム。
+   * 懇親会のルーム（開始ずみ）だけ: 参加するときに選ぶ名簿（欠席にされた人も含む）。team は夕食のチーム。
    * コードを知っている人には、入ったあとと同じ名簿が見えるだけなので、入る前に配ってよい
    */
   roster?: { id: string; name: string; team: string | null }[];

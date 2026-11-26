@@ -71,7 +71,16 @@ test('勝者の記録: 夕食のチームでゲームを遊ぶと、ルームと
   const code = await sakura.page.getByTestId('room-code').innerText();
 
   const others = [await newPlayer(browser, 'かえで', 'phone'), await newPlayer(browser, 'ひまわり', 'phone')];
+  // かえでは、懇親会の画面を開いてから、招待（コード）でゲームに入る
+  await others[0].page.goto(`/room/${eventCode}`);
+  await others[0].page.getByTestId('join-roster-person').filter({ hasText: 'かえで' }).click();
+  await others[0].page.getByTestId('join-submit').click();
+  await expect(others[0].page.getByTestId('me-bar')).toBeVisible();
   for (const p of others) await joinRoom(p, code);
+  // 招待で入った人にも、チーム名と「懇親会の画面に戻る」が出る（懇親会を開いていない人には戻り先が無い）
+  await expect(others[0].page.getByTestId('room-label')).toContainText('チーム A');
+  await expect(others[0].page.getByTestId('back-to-event')).toBeVisible();
+  await expect(others[1].page.getByTestId('back-to-event')).toHaveCount(0);
   const players = [sakura, ...others];
   await sakura.page.getByRole('button', { name: '3ラウンド' }).click();
   await sakura.page.getByTestId('start-game').click();

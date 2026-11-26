@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import type { EventSection, PartyEventView } from '../../../shared/games/views';
 import { GameEmblem, Icon, type IconName } from '../../components/Icon';
 import { Button, Card, Modal } from '../../components/ui';
+import { rememberEventRoom } from '../../lib/eventReturn';
 import { SEAT } from '../../lib/session';
 import { HowTo } from '../../guides';
 import { useToast } from '../../lib/toast';
@@ -26,7 +27,11 @@ const SECTIONS: { id: EventSection; icon: IconName; label: string }[] = [
  * 司会は上の切り替えでいつでも行き来でき、どの企画の状態も消えない。
  */
 export function PartyEventScreen() {
-  const { game, act } = useGame<PartyEventView>();
+  const { game, act, room } = useGame<PartyEventView>();
+  // 招待で入った通常のゲームのルームからも「懇親会の画面に戻る」を出せるように、このルームを覚えておく
+  useEffect(() => {
+    rememberEventRoom(room.code);
+  }, [room.code]);
 
   return (
     <div className="flex flex-col gap-4">

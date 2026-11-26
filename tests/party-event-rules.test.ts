@@ -466,6 +466,15 @@ describe('クイズ', () => {
     expect(rows.every((r) => r.seconds === null)).toBe(true);
   });
 
+  it('設定に無いチーム（古い保存に残ったチーム名）は、得点と順位に出さない', () => {
+    const s = quiz.emptyQuiz();
+    s.graded = { 1: { A: true, 旧チーム: true } };
+    expect(quiz.scoresOf(s, cfg)).toEqual({ A: 1, B: 0 });
+    expect(quiz.quizView(s, cfg, true, null).ranking.map((r) => r.team)).toEqual(['A', 'B']);
+    // 自分のチームが設定に無ければ、チーム無しとして見せる
+    expect(quiz.quizView(s, cfg, false, '旧チーム').myTeam).toBeNull();
+  });
+
   it('idle → 問題 → 回答タイム → 答え → 次の問題 → 結果 と進む', () => {
     const s = quiz.emptyQuiz();
     expect(s.phase).toBe('idle');

@@ -7,6 +7,7 @@ import { request } from '../../lib/socket';
 import { useToast } from '../../lib/toast';
 import { useGame } from '../RoomContext';
 import { DinnerSeating, useStartTeamPlay } from './DinnerSeating';
+import { nowText } from './nowText';
 import { PickMyName } from './SeatsSection';
 
 /**
@@ -130,26 +131,4 @@ export function NowBanner() {
       {text}
     </p>
   );
-}
-
-function nowText(game: PartyEventView): string {
-  const me = game.seats.myPersonId ? game.seats.roster.find((p) => p.id === game.seats.myPersonId) : null;
-  switch (game.section) {
-    case 'quiz': {
-      const q = game.quiz;
-      if (q.phase === 'idle') return 'まもなくクイズです。そのまま待ちましょう';
-      if (q.phase === 'question') return '問題を読みましょう（まだ答えられません）';
-      if (q.phase === 'answering') return q.myTeam ? 'チームで相談して、下の答えを押しましょう' : '下で、自分のチームを押しましょう';
-      if (q.phase === 'reveal') return '答えと、みんなの回答を見てみましょう';
-      return '結果発表です';
-    }
-    case 'seats':
-      if (!me) return '名簿から、自分の名前を押しましょう';
-      if (me.table == null) return '下の「くじを引く」を押しましょう';
-      return '出たテーブルへ移動しましょう';
-    case 'bingo':
-      return '読まれた番号がカードにあれば、そのマスを押して開けましょう';
-    default:
-      return '何も押さずに、司会の合図を待ちましょう';
-  }
 }

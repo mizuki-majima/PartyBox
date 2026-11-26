@@ -82,7 +82,7 @@ export function RoomPage() {
               navigate('/');
             }}
           />
-          {!isEventGame(view!.gameId) && <TeamPlayBar label={view!.label} />}
+          {!isEventGame(view!.gameId) && <TeamPlayBar inRoom label={view!.label} />}
           {view!.demo && (
             // ヘッダーはスマホ幅で詰まっているので、デモの目印は下の帯に出す
             <div className="mx-auto max-w-5xl px-3 pb-3 sm:px-6">

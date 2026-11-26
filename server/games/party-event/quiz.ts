@@ -169,7 +169,8 @@ export function scoresOf(state: QuizState, cfg: QuizConfig): Record<string, numb
   const scores: Record<string, number> = Object.fromEntries(cfg.teams.map((team) => [team, 0]));
   for (const [qno, byTeam] of Object.entries(state.graded)) {
     for (const [team, ok] of Object.entries(byTeam)) {
-      if (ok) scores[team] = (scores[team] ?? 0) + pointsOf(cfg, Number(qno));
+      // 設定に無いチーム（チーム名を変える前の保存に残ったもの）は数えない。会場の順位に、無いチームが出ないように
+      if (ok && team in scores) scores[team] += pointsOf(cfg, Number(qno));
     }
   }
   return scores;
@@ -198,7 +199,9 @@ function answerRows(state: QuizState, cfg: QuizConfig, isHost: boolean, revealed
   return rows.sort((a, b) => order(a.team) - order(b.team));
 }
 
-export function quizView(state: QuizState, cfg: QuizConfig, isHost: boolean, myTeam: string | null): QuizView {
+export function quizView(state: QuizState, cfg: QuizConfig, isHost: boolean, teamOfMe: string | null): QuizView {
+  // 設定に無いチームは、チーム無しとして見せる（選び直してもらう）
+  const myTeam = teamOfMe && cfg.teams.includes(teamOfMe) ? teamOfMe : null;
   const question = currentQuestion(state, cfg);
   const revealed = state.phase === 'reveal' || state.phase === 'result';
   const scores = scoresOf(state, cfg);

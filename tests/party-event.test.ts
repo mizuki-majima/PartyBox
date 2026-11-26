@@ -406,6 +406,19 @@ describe('再起動をまたぐ保存', () => {
     expect(card.marked[cells.indexOf(n)]).toBe(true);
   });
 
+  it('保存に残った設定に無いチーム名は、読み戻すとチーム無しになり、そのチームでは答えられない', () => {
+    const cfg = loadEventConfig();
+    const game = new PartyEventGame(ctx(), ['p1'], {}, cfg);
+    game.restore({
+      section: 'quiz',
+      quiz: { phase: 'answering', qno: 1, startedAt: Date.now(), deadline: Date.now() + 60_000, graded: {}, answers: {}, teamOf: { p1: 'チーム Z' } },
+      bingo: { called: [], claims: [], prizes: null, cards: {} },
+      seats: { assign: {}, absent: [], order: [], extras: [], claimed: {}, present: [], selfAdded: {} },
+    });
+    expect(game.viewFor('p1', false).quiz.myTeam).toBeNull();
+    expect(() => game.handleAction('p1', { type: 'quiz:answer', qno: 1, choice: 0 }, false)).toThrow('先にチームを選んでください');
+  });
+
   it('回答タイムの途中で落ちた場合は締め切った状態で戻す', () => {
     const cfg = loadEventConfig();
     const game = new PartyEventGame(ctx(), ['p1'], {}, cfg);
