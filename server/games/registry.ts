@@ -7,6 +7,7 @@
  *   4. client/games/registry.tsx に画面コンポーネントを登録
  */
 import type { GameId } from '../../shared/games';
+import { AdDodgeGame } from './ad-dodge/AdDodgeGame';
 import { GrowAnswerGame } from './grow-answer/GrowAnswerGame';
 import { LiarGame } from './liar/LiarGame';
 import { PartyEventGame } from './party-event/PartyEventGame';
@@ -21,6 +22,7 @@ const definitions: ServerGameDefinition[] = [
   { id: 'liar', create: (ctx, players, settings) => new LiarGame(ctx, players, settings) },
   { id: 'grow-answer', create: (ctx, players, settings) => new GrowAnswerGame(ctx, players, settings) },
   { id: 'ten-sec-trial', create: (ctx, players, settings) => new TrialGame(ctx, players, settings) },
+  { id: 'ad-dodge', create: (ctx, players, settings) => new AdDodgeGame(ctx, players, settings) },
   { id: 'party-event', create: (ctx, players, settings) => new PartyEventGame(ctx, players, settings) },
 ];
 

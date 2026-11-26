@@ -1,0 +1,411 @@
+/*
+ * 広告をすり抜けろ！: Windows 95 風（Retro OS）
+ *
+ * 青緑のデスクトップに、灰色の立体的な窓と紺のタイトルバー。角は丸めず、影はぼかさず、
+ * 光の当たる左上を白、影になる右下を濃い灰色にした 2 段の縁で「出っぱり／へこみ」を作る。
+ * 文字は UD の角ゴシック（BIZ UDPGothic）、見出しと数字はドットの文字（DotGothic16）。
+ *
+ * ゲームの中身（ページの中の広告）は、わざと派手な色で描く（.adx-*）。
+ * 落ち着いた灰色の窓と、けばけばしい広告の差で「どれが広告か」を見せる。
+ * 広告の色はこのファイルの中にだけ書く（画面のコードには書かない）。
+ */
+@layer base {
+  [data-theme='ad-dodge'] {
+    --t-font-body: 'BIZ UDPGothic', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Noto Sans JP', Meiryo, sans-serif;
+    --t-font-display: 'DotGothic16', 'BIZ UDPGothic', 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', monospace;
+    --t-body-weight: 400;
+    --t-display-weight: 400;
+    --t-display-tracking: 0.02em;
+
+    /* デスクトップの青緑。細かい点を薄く敷いて、昔の画面の粗さを出す */
+    --t-page-bg:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='1' height='1' fill='%23000' fill-opacity='.08'/%3E%3C/svg%3E")
+      #008080;
+    --t-bg: #c0c0c0;
+    --t-fg: #000000;
+    --t-muted: #3c3c3c;
+    --t-panel: #c0c0c0;
+    --t-panel-2: #d4d0c8;
+    --t-panel-3: #ffffff;
+    --t-line: #808080;
+    --t-shade: #000000;
+
+    --t-accent: #000080;
+    --t-accent-ink: #000080;
+    --t-on-accent: #ffffff;
+    --t-accent2: #008080;
+    --t-accent2-ink: #005c5c;
+    --t-ok: #006400;
+    --t-ok-ink: #006400;
+    --t-on-ok: #ffffff;
+    --t-hi: #ffff00;
+    --t-hi-ink: #6b5a00;
+    --t-on-hi: #000000;
+    --t-info: #000080;
+    --t-info-ink: #000080;
+    --t-sub: #808080;
+    --t-sub-ink: #3c3c3c;
+    --t-danger: #a00000;
+    --t-danger-ink: #a00000;
+    --t-on-danger: #ffffff;
+    --t-warn: #808000;
+    --t-warn-ink: #4d4d00;
+    --t-on-warn: #ffffff;
+    --t-focus: #000000;
+
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --t-elev: 1px 1px 0 #000000;
+
+    /* 出っぱった縁（左上が白、右下が黒と濃い灰色） */
+    --w95-raised: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+    /* へこんだ縁（入力欄・押している間のボタン） */
+    --w95-sunken: inset 1px 1px #808080, inset -1px -1px #ffffff, inset 2px 2px #000000, inset -2px -2px #dfdfdf;
+
+    --t-card-bg: #c0c0c0;
+    --t-card-border: 0;
+    --t-card-radius: 0;
+    --t-card-shadow: var(--w95-raised);
+    --t-tile-bg: #c0c0c0;
+    --t-tile-border: 0;
+    --t-tile-radius: 0;
+
+    --t-btn-border: 0;
+    --t-btn-radius: 0;
+    --t-btn-shadow: var(--w95-raised);
+    --t-btn-shadow-press: var(--w95-sunken);
+    --t-btn-press: translate(1px, 1px);
+    --t-btn-font: var(--t-font-body);
+    --t-btn-weight: 700;
+    --t-btn-tracking: 0.02em;
+    --t-btn-hover: none;
+    --t-btn-primary-bg: #c0c0c0;
+    --t-btn-primary-fg: #000000;
+    --t-btn-secondary-bg: #c0c0c0;
+    --t-btn-secondary-fg: #000000;
+    --t-btn-danger-bg: #c0c0c0;
+    --t-btn-danger-fg: #a00000;
+
+    --t-input-bg: #ffffff;
+    --t-input-fg: #000000;
+    --t-input-border: 0;
+    --t-input-radius: 0;
+    --t-input-shadow: var(--w95-sunken);
+    --t-input-placeholder: #6b6b6b;
+
+    --t-badge-radius: 0;
+    --t-badge-border: 1px solid #808080;
+
+    --t-overlay: rgb(0 0 0 / 0.5);
+    --t-modal-bg: #c0c0c0;
+    --t-modal-shadow: var(--w95-raised), 2px 2px 0 #000000;
+
+    --t-q-bg: #ffffe1;
+    --t-q-fg: #000000;
+    --t-q-border: 1px solid #000000;
+    --t-q-shadow: 2px 2px 0 #000000;
+    --t-q-accent: #000080;
+    --t-q-label: #000080;
+
+    /* 上の帯は、タスクバーのような灰色の面 */
+    --t-bar-bg: #c0c0c0;
+    --t-bar-border: #ffffff;
+    --t-bar-filter: none;
+
+    /* 残り時間は、区切られた紺の四角が並ぶ進み具合の棒 */
+    --t-timer-track: #ffffff;
+    --t-timer-border: 0;
+    --t-timer-radius: 0;
+    --t-timer-fill: repeating-linear-gradient(90deg, #000080 0 9px, transparent 9px 11px);
+  }
+}
+
+/* 主なボタンは、太い黒枠が付く（キーボードで決まるボタンの印） */
+[data-theme='ad-dodge'] .ui-btn-primary {
+  outline: 1px solid #000000;
+  outline-offset: -1px;
+}
+[data-theme='ad-dodge'] .ui-timer-track {
+  box-shadow: var(--w95-sunken);
+  padding: 2px;
+}
+[data-theme='ad-dodge'] .ui-bar {
+  box-shadow: inset 0 1px #ffffff, inset 0 -1px #808080, 0 1px 0 #000000;
+}
+/* 結果などの「窓」。見出しは紺のタイトルバー */
+[data-theme='ad-dodge'] .w95-window {
+  background: #c0c0c0;
+  box-shadow: var(--w95-raised);
+  padding: 3px;
+}
+[data-theme='ad-dodge'] .w95-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.6rem;
+  padding: 0.15rem 0.35rem;
+  background: #000080;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+[data-theme='ad-dodge'] .w95-title-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1rem;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--w95-raised);
+  font-size: 0.7rem;
+  line-height: 1;
+  font-weight: 700;
+}
+[data-theme='ad-dodge'] .w95-sunken {
+  background: #ffffff;
+  box-shadow: var(--w95-sunken);
+}
+[data-theme='ad-dodge'] .w95-field {
+  background: #ffffff;
+  box-shadow: var(--w95-sunken);
+  padding: 0.15rem 0.4rem;
+}
+[data-theme='ad-dodge'] .w95-status {
+  box-shadow: inset 1px 1px #808080, inset -1px -1px #ffffff;
+  padding: 0.1rem 0.4rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* ページの中身（ブラウザの窓の中）                                        */
+/* ------------------------------------------------------------------ */
+[data-theme='ad-dodge'] .adx-stage {
+  container-type: inline-size;
+  background: #ffffff;
+  color: #1a1a1a;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  font-family: var(--t-font-body);
+}
+[data-theme='ad-dodge'] .adx-stage * {
+  pointer-events: none;
+}
+/* 記事の地（本物のサイトに見えるように、落ち着いた色で） */
+[data-theme='ad-dodge'] .adx-line {
+  background: #e3e3e3;
+  height: 1.8cqw;
+}
+[data-theme='ad-dodge'] .adx-art {
+  background: repeating-linear-gradient(45deg, #ececec 0 6px, #f6f6f6 6px 12px);
+}
+
+/* 広告の配色（variant 0〜5）。わざとけばけばしく */
+[data-theme='ad-dodge'] .adx-v0 { background: linear-gradient(160deg, #ff1f1f, #ff7a00); color: #ffff00; }
+[data-theme='ad-dodge'] .adx-v1 { background: linear-gradient(180deg, #3cff5a, #00a82d); color: #ffffff; }
+[data-theme='ad-dodge'] .adx-v2 { background: linear-gradient(135deg, #ff2fa8, #ff86d0); color: #ffffff; }
+[data-theme='ad-dodge'] .adx-v3 { background: linear-gradient(180deg, #ffb000, #ff6a00); color: #1a0000; }
+[data-theme='ad-dodge'] .adx-v4 { background: linear-gradient(180deg, #2a5cff, #0018a8); color: #ffe600; }
+[data-theme='ad-dodge'] .adx-v5 { background: radial-gradient(circle at 50% 30%, #3a2a00, #0d0d0d 70%); color: #ffd700; }
+[data-theme='ad-dodge'] .adx-ad-text {
+  text-shadow: 0.4cqw 0.4cqw 0 rgb(0 0 0 / 0.55);
+  font-weight: 700;
+}
+[data-theme='ad-dodge'] .adx-starburst {
+  background: #ffff00;
+  color: #d40000;
+  clip-path: polygon(50% 0, 61% 18%, 82% 8%, 80% 30%, 100% 36%, 85% 52%, 98% 70%, 76% 72%, 74% 94%, 56% 82%, 42% 100%, 34% 80%, 12% 90%, 16% 68%, 0 58%, 16% 44%, 4% 24%, 26% 24%, 26% 2%, 42% 16%);
+}
+[data-theme='ad-dodge'] .adx-cta {
+  background: linear-gradient(180deg, #ffef5a, #ffb300);
+  color: #6a1a00;
+  border: 0.6cqw solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 1cqw 0 #9a4a00;
+  font-weight: 700;
+}
+[data-theme='ad-dodge'] .adx-tag {
+  background: #ffffff;
+  color: #555555;
+  border: 1px solid #999999;
+  font-size: 2.4cqw;
+  line-height: 1;
+  padding: 0.3cqw 0.8cqw;
+}
+[data-theme='ad-dodge'] .adx-loud {
+  border-radius: 2.4cqw;
+  border: 0.6cqw solid rgb(255 255 255 / 0.85);
+  box-shadow: 0 1.2cqw 0 rgb(0 0 0 / 0.35);
+  font-weight: 700;
+  text-shadow: 0.3cqw 0.3cqw 0 rgb(0 0 0 / 0.4);
+}
+/* 記事の中の、本物らしい文字のリンク */
+[data-theme='ad-dodge'] .adx-link {
+  color: #0000ee;
+  text-decoration: underline;
+}
+[data-theme='ad-dodge'] .adx-muted {
+  color: #9a9a9a;
+}
+/* 閉じる印 */
+[data-theme='ad-dodge'] .adx-x-faint {
+  color: rgb(255 255 255 / 0.55);
+  background: rgb(0 0 0 / 0.18);
+}
+[data-theme='ad-dodge'] .adx-x-drawn {
+  color: #ffffff;
+  background: rgb(0 0 0 / 0.55);
+  border: 0.6cqw solid #ffffff;
+  border-radius: 999px;
+}
+[data-theme='ad-dodge'] .adx-x-red {
+  color: #ffffff;
+  background: #e00000;
+  border-radius: 999px;
+  border: 0.5cqw solid #ffffff;
+}
+[data-theme='ad-dodge'] .adx-x-plain,
+[data-theme='ad-dodge'] .adx-x-title {
+  color: #000000;
+  background: #c0c0c0;
+  box-shadow: var(--w95-raised);
+}
+[data-theme='ad-dodge'] .adx-x-ghost {
+  color: rgb(0 0 0 / 0.3);
+  border: 1px dashed rgb(0 0 0 / 0.3);
+}
+[data-theme='ad-dodge'] .adx-ghost {
+  border: 1px dashed rgb(0 0 0 / 0.28);
+}
+/* サイトの確認の窓（OS の窓ではなく、ページが出す丸い窓） */
+[data-theme='ad-dodge'] .adx-dialog {
+  background: #ffffff;
+  border-radius: 3cqw;
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.45), 0 2cqw 6cqw rgb(0 0 0 / 0.35);
+}
+[data-theme='ad-dodge'] .adx-dialog-head {
+  background: linear-gradient(90deg, #ff4f8b, #ff9a3c);
+  color: #ffffff;
+  border-radius: 3cqw 3cqw 0 0;
+}
+[data-theme='ad-dodge'] .adx-video {
+  background: #111111;
+  color: #ffffff;
+}
+[data-theme='ad-dodge'] .adx-cookie {
+  background: #20232a;
+  color: #f0f0f0;
+  box-shadow: 0 -1cqw 4cqw rgb(0 0 0 / 0.35);
+}
+[data-theme='ad-dodge'] .adx-toggle {
+  background: #2ecc40;
+  border-radius: 999px;
+}
+[data-theme='ad-dodge'] .adx-toggle::after {
+  content: '';
+  position: absolute;
+  top: 12%;
+  right: 6%;
+  width: 40%;
+  height: 76%;
+  background: #ffffff;
+  border-radius: 999px;
+}
+/* 押したところの波紋 */
+[data-theme='ad-dodge'] .adx-ripple {
+  border: 0.8cqw solid #000080;
+  border-radius: 999px;
+  animation: adx-ripple 0.45s ease-out forwards;
+}
+@keyframes adx-ripple {
+  from { transform: translate(-50%, -50%) scale(0.3); opacity: 0.9; }
+  to { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+/* 広告のページが開いた瞬間、窓が揺れる */
+[data-theme='ad-dodge'] .adx-shake {
+  animation: adx-shake 0.35s linear;
+}
+@keyframes adx-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+/* 「今だけ」などの点滅（昔の広告の定番）。動きを減らす設定では止まる */
+[data-theme='ad-dodge'] .adx-blink {
+  animation: adx-blink 0.9s steps(2, start) infinite;
+}
+@keyframes adx-blink {
+  to { visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='ad-dodge'] .adx-blink,
+  [data-theme='ad-dodge'] .adx-shake {
+    animation: none;
+  }
+}
+
+/* 広告・記事の細かい部品 */
+[data-theme='ad-dodge'] .adx-raised {
+  color: #000000;
+  background: #c0c0c0;
+  box-shadow: var(--w95-raised);
+}
+[data-theme='ad-dodge'] .adx-alert-title {
+  background: #000080;
+  color: #ffffff;
+}
+[data-theme='ad-dodge'] .adx-count {
+  background: rgb(0 0 0 / 0.6);
+  color: #ffffff;
+}
+[data-theme='ad-dodge'] .adx-progress {
+  background: #555555;
+}
+[data-theme='ad-dodge'] .adx-progress-fill {
+  background: #ffcc00;
+}
+[data-theme='ad-dodge'] .adx-divider {
+  border-color: #dddddd;
+}
+[data-theme='ad-dodge'] .adx-date {
+  color: #777777;
+}
+/* サイトごとに色の違う見出しの帯（色相だけ、サイト名から決める） */
+[data-theme='ad-dodge'] .adx-sitebar {
+  background: hsl(var(--adx-hue, 200) 45% 32%);
+  color: #ffffff;
+}
+/* ひとことの吹き出し（昔の画面の黄色いツールチップ） */
+[data-theme='ad-dodge'] .w95-tooltip {
+  background: #ffffe1;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+/*
+ * ゲームの画面全体を、青緑のデスクトップに置いた1枚の大きな灰色の窓にする。
+ * 地の上に直接文字を置くと、青緑と黒・灰色の文字の差が足りず読みにくいため
+ */
+[data-theme='ad-dodge'] [data-game-shell] {
+  background: #c0c0c0;
+  box-shadow: var(--w95-raised), 2px 2px 0 #000000;
+  padding: 3px 3px 12px;
+}
+[data-theme='ad-dodge'] [data-game-shell] > .ui-bar {
+  margin-left: 0;
+  margin-right: 0;
+}
+[data-theme='ad-dodge'] [data-game-shell] > :not(.ui-bar) {
+  margin-inline: 6px;
+}
+/* 部屋の上の帯（ロゴ・コード・退出）も、デスクトップの上で読める色に */
+[data-theme='ad-dodge'] header .ui-btn-ghost {
+  color: #ffffff;
+}

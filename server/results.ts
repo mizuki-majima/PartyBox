@@ -23,7 +23,7 @@ export const MAX_RESULTS = 500;
  * 個人の順位が付くゲーム。
  * 「全員一致を目指せ！」は全員で1チーム、「回答を育てろ」は勝ち負けが無いので、1位は決めない
  */
-const RANKED_GAMES: ReadonlySet<GameId> = new Set<GameId>(['whose-answer', 'liar', 'ten-sec-trial']);
+const RANKED_GAMES: ReadonlySet<GameId> = new Set<GameId>(['whose-answer', 'liar', 'ten-sec-trial', 'ad-dodge']);
 
 export function isRankedGame(gameId: GameId): boolean {
   return RANKED_GAMES.has(gameId);

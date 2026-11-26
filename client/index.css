@@ -18,6 +18,7 @@
 @import './themes/liar.css';
 @import './themes/grow-answer.css';
 @import './themes/ten-sec-trial.css';
+@import './themes/ad-dodge.css';
 
 /* 意味の名前 → トークン。inline なので、その要素の位置のトークンで決まる（入れ子の data-theme でも効く） */
 @theme inline {

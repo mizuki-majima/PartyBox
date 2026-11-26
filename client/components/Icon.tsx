@@ -187,6 +187,18 @@ const EMBLEMS: Record<EmblemId, ReactNode> = {
       <path d="M22 58h28" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
     </>
   ),
+  // 広告をすり抜けろ！: 窓（紺のタイトルバー）と、小さすぎる✕に向かう矢印のカーソル
+  'ad-dodge': (
+    <>
+      <rect x="10" y="12" width="66" height="50" fill="var(--t-panel)" stroke="currentColor" strokeWidth="3" />
+      <rect x="10" y="12" width="66" height="11" fill="var(--t-accent)" stroke="currentColor" strokeWidth="3" />
+      <rect x="66" y="15" width="6" height="5" fill="var(--t-panel)" stroke="currentColor" strokeWidth="1.500" />
+      <rect x="18" y="31" width="50" height="22" fill="var(--t-hi)" stroke="currentColor" strokeWidth="2.500" />
+      <path d="M26 42h22M26 47h14" stroke="currentColor" strokeWidth="2.500" />
+      <path d="M62 34l4 4M66 34l-4 4" stroke="currentColor" strokeWidth="1.500" />
+      <path d="M70 44v26l6-6 5 10 5-2-5-10h8z" fill="var(--t-panel-3)" stroke="currentColor" strokeWidth="2.500" strokeLinejoin="round" />
+    </>
+  ),
   // 懇親会: 波線・三角・丸・四角
   'party-event': (
     <>

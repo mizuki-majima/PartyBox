@@ -6,7 +6,7 @@
  * （ゲーム本体は server/games/registry.ts と client/games/registry.tsx に登録）
  */
 
-export type GameId = 'whose-answer' | 'unanimous' | 'liar' | 'grow-answer' | 'ten-sec-trial' | 'party-event';
+export type GameId = 'whose-answer' | 'unanimous' | 'liar' | 'grow-answer' | 'ten-sec-trial' | 'ad-dodge' | 'party-event';
 
 export interface SettingOption {
   value: number | string;
@@ -37,6 +37,8 @@ export interface GameMeta {
   /** 遊び方（ルーム画面に表示） */
   howToPlay: string[];
   settings: GameSettingDef[];
+  /** 作っている途中のゲーム。カードとゲーム中の見出しに「開発中」と出す */
+  inDevelopment?: boolean;
 }
 
 export type GameSettings = Record<string, number | string>;
@@ -182,6 +184,30 @@ export const GAMES: GameMeta[] = [
       { key: 'speakTime', label: '1人の発言時間', options: [sec(10), sec(15), sec(20)], default: 10 },
       { key: 'voteTime', label: '投票時間', options: [sec(20), sec(30), sec(45)], default: 30 },
     ],
+  },
+  {
+    id: 'ad-dodge',
+    title: '広告をすり抜けろ！',
+    tagline: '本物の「次へ」はどれだ',
+    description: '小さすぎる✕、押すとずれるボタン、偽のスキップ…。たちの悪い広告をかわして、誰がいちばん早く最後のページに着くかを競う。',
+    emoji: '🪟',
+    category: 'スピード',
+    minPlayers: 2,
+    maxPlayers: 10,
+    estimatedTime: '約5分',
+    theme: { from: '#008080', to: '#000080' },
+    howToPlay: [
+      '全員が同時にスタート。全員に同じページが同じ順で出ます。',
+      'ページごとに、たちの悪い広告がじゃまをします。広告を押さずに、本物の「次へ」や「✕」を押して進みましょう。',
+      '広告を押すと広告のページが開き、3秒は戻れません。',
+      '早く最後のページに着いた順に点が入ります（1位 +5点・2位 +3点・3位 +2点・ゴール +1点）。',
+    ],
+    settings: [
+      { key: 'rounds', label: 'ラウンド数', options: [times(1), times(2), times(3)], default: 3 },
+      { key: 'pages', label: '1回のページ数', options: [times(5, 'ページ'), times(8, 'ページ'), times(10, 'ページ')], default: 8 },
+      { key: 'timeLimit', label: '制限時間', options: [sec(60), sec(90), sec(120)], default: 90 },
+    ],
+    inDevelopment: true,
   },
 ];
 

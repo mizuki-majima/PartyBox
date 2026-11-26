@@ -181,6 +181,14 @@ export function LandingPage() {
         <Link to="/results" className="inline-flex min-h-11 items-center gap-1 font-bold underline underline-offset-4 hover:text-accent-ink">
           <Icon name="trophy" /> 勝者の記録
         </Link>
+        {/* システムに詳しい人向け。遊ぶ人には要らないので、下の端にだけ置く */}
+        <Link
+          to="/tech"
+          className="inline-flex min-h-11 items-center gap-1 font-bold underline underline-offset-4 hover:text-accent-ink"
+          data-testid="tech-link"
+        >
+          <Icon name="puzzle" /> 技術者向け：しくみ（開発中）
+        </Link>
         <p>友達と、すぐに、ブラウザで。</p>
       </footer>
     </div>
