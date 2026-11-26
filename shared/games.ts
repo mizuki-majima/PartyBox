@@ -39,6 +39,8 @@ export interface GameMeta {
   settings: GameSettingDef[];
   /** 作っている途中のゲーム。カードとゲーム中の見出しに「開発中」と出す */
   inDevelopment?: boolean;
+  /** 一覧（トップ・ロビーのゲーム変更）に出さないゲーム。作りは残し、/play/<id> を直接開けば遊べる */
+  hidden?: boolean;
 }
 
 export type GameSettings = Record<string, number | string>;
@@ -184,6 +186,8 @@ export const GAMES: GameMeta[] = [
       { key: 'speakTime', label: '1人の発言時間', options: [sec(10), sec(15), sec(20)], default: 10 },
       { key: 'voteTime', label: '投票時間', options: [sec(20), sec(30), sec(45)], default: 30 },
     ],
+    // 2026-11-26: 面白さが分かりにくいので、懇親会の前に一覧から外す（直したら戻す）
+    hidden: true,
   },
   {
     id: 'ad-dodge',
@@ -293,6 +297,9 @@ export function isGameId(id: unknown): id is GameId {
 export function isEventGame(id: string): boolean {
   return EVENT_GAMES.some((g) => g.id === id);
 }
+
+/** 一覧（トップ・ロビーのゲーム変更）に出すゲーム */
+export const LISTED_GAMES: GameMeta[] = GAMES.filter((g) => !g.hidden);
 
 export function defaultSettings(meta: GameMeta): GameSettings {
   return Object.fromEntries(meta.settings.map((s) => [s.key, s.default]));

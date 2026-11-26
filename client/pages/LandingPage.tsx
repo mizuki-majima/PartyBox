@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { EVENT_GAMES, GAMES, SOLO_GAMES } from '../../shared/games';
+import { EVENT_GAMES, LISTED_GAMES, SOLO_GAMES } from '../../shared/games';
 import { EventGameCard, GameCard, SoloGameCard } from '../components/GameCard';
 import { TeamPlayBar } from '../components/TeamPlayBar';
 import { GameEmblem, Icon, type IconName } from '../components/Icon';
@@ -107,7 +107,7 @@ export function LandingPage() {
           <dl className="grid grid-cols-3 gap-4 self-end border-t-4 border-line pt-3 text-sm lg:grid-cols-1">
             <div>
               <dt className="text-xs font-bold tracking-[0.2em] text-muted">GAMES</dt>
-              <dd className="font-display text-4xl tabular-nums">{String(GAMES.length + SOLO_GAMES.length + EVENT_GAMES.length).padStart(2, '0')}</dd>
+              <dd className="font-display text-4xl tabular-nums">{String(LISTED_GAMES.length + SOLO_GAMES.length + EVENT_GAMES.length).padStart(2, '0')}</dd>
             </div>
             <div>
               <dt className="text-xs font-bold tracking-[0.2em] text-muted">PLAYERS</dt>
@@ -139,13 +139,13 @@ export function LandingPage() {
       </Section>
 
       {/* Game list */}
-      <Section id="games" label="Game list" title="ゲームをえらぶ" note={`全${GAMES.length + SOLO_GAMES.length}種類`}>
+      <Section id="games" label="Game list" title="ゲームをえらぶ" note={`全${LISTED_GAMES.length + SOLO_GAMES.length}種類`}>
         <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-          {GAMES.map((g, i) => (
+          {LISTED_GAMES.map((g, i) => (
             <GameCard key={g.id} game={g} index={i} />
           ))}
           {SOLO_GAMES.map((g, i) => (
-            <SoloGameCard key={g.id} game={g} index={GAMES.length + i} />
+            <SoloGameCard key={g.id} game={g} index={LISTED_GAMES.length + i} />
           ))}
           <div className="flex min-h-48 flex-col items-start justify-end gap-2 border-t-4 border-b border-dashed border-line p-4 text-muted">
             <GameEmblem id="soon" className="h-16 w-20" />

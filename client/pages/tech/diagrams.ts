@@ -154,7 +154,7 @@ export const TIMER = `sequenceDiagram
 export const BASE_STATES = `stateDiagram-v2
   direction TB
   [*] --> START: room:start
-  START --> ROUND: 4秒の演出のあと beginGame()
+  START --> ROUND: 全員の準備OK → 3・2・1 → beginGame()（準備の関門）
   state "ラウンド（内容はゲームごとに異なる）" as ROUND {
     direction LR
     [*] --> INTRO
@@ -173,8 +173,8 @@ export const BASE_STATES = `stateDiagram-v2
 export const AD_DODGE_STATES = `stateDiagram-v2
   direction TB
   [*] --> START
-  START --> ROUND_INTRO: 演出のあと
-  ROUND_INTRO --> RACE: 3・2・1
+  START --> ROUND_INTRO: 全員の準備OK → 3・2・1
+  ROUND_INTRO --> RACE: 1ラウンド目は 3・2・1、2ラウンド目からは全員の準備OK → 3・2・1
   state RACE {
     direction TB
     [*] --> 段
