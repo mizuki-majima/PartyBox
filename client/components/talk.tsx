@@ -107,11 +107,20 @@ export function SpeakerPanel({
 export function StatementLog({ statements, labelOf, title = 'みんなの発言' }: { statements: Statement[]; labelOf?: (id: string) => string | null; title?: string }) {
   const { nameOf, colorOf } = useRoomContext();
   if (statements.length === 0) return null;
+  // 何周も話すゲーム（嘘つきは誰だ？）では、周の変わり目に「n周目」の見出しを入れる
+  const showLaps = new Set(statements.map((s) => s.lap).filter((l) => l !== undefined)).size > 1;
   return (
     <div className="ui-tile p-4">
       <p className="mb-2 text-xs font-extrabold tracking-[0.2em] text-muted">{title}</p>
       <ul className="space-y-2">
-        {statements.map((s, i) => (
+        {statements.flatMap((s, i) => [
+          ...(showLaps && s.lap !== undefined && s.lap !== statements[i - 1]?.lap
+            ? [
+                <li key={`lap-${s.lap}`} className="pt-1 text-sm font-extrabold text-muted" data-testid="statement-lap">
+                  {s.lap}周目
+                </li>,
+              ]
+            : []),
           <li key={i} className="animate-slide-up flex items-start gap-2">
             <Avatar name={nameOf(s.playerId)} color={colorOf(s.playerId)} size="sm" />
             <div className="min-w-0 rounded-2xl rounded-tl-sm bg-fg/10 px-3 py-2">
@@ -121,8 +130,8 @@ export function StatementLog({ statements, labelOf, title = 'みんなの発言'
               </p>
               <p className="font-bold break-all">{s.text}</p>
             </div>
-          </li>
-        ))}
+          </li>,
+        ])}
       </ul>
     </div>
   );

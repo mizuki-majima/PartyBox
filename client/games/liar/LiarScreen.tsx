@@ -5,12 +5,15 @@ import { GameOverPanel, HostNext, HostSkip, PhaseHeader, Scoreboard, StartSplash
 import { SpeakerPanel, StatementLog, TurnOrder } from '../../components/talk';
 import { Icon } from '../../components/Icon';
 import { Avatar, Button } from '../../components/ui';
+import { keepAwakeIn, useWakeLock } from '../../lib/wakeLock';
 import { useGame } from '../RoomContext';
 
 const meta = getGameMeta('liar')!;
 
 export function LiarScreen() {
   const { game } = useGame<LiarView>();
+  // 話を聞いている間に画面が消えて切断し、自分の番が飛ばされないように
+  useWakeLock(keepAwakeIn('liar', game.phase));
   switch (game.phase) {
     case 'START':
       return <StartSplash meta={meta} />;
@@ -90,9 +93,17 @@ function TalkPhase() {
   return (
     <div className="flex flex-col gap-4">
       <PhaseHeader icon="users" title="順番にお題について答えよう" sub="答えそのものを言いすぎると嘘つきにバレるかも？" />
+      {game.laps > 1 && (
+        // 1つのお題で何周も話すので、いま何周目かを大きく出す（あと何周で投票かが分かるように）
+        <p className="ui-tile self-center px-4 py-1.5 font-display text-lg" data-testid="liar-lap">
+          {game.lap}周目 <span className="text-base text-muted">/ {game.laps}周</span>
+        </p>
+      )}
+      <p className="text-center text-base text-muted">自分の番まで、画面をつけたままにしてください（消えると番が飛ばされます）</p>
       <TurnOrder order={game.order} index={game.turnIndex} />
       <SpeakerPanel
-        key={game.turnIndex}
+        // 周をまたいで同じ人が続いても、入力欄を作り直す（前の文字が残って送り直されないように）
+        key={`${game.lap}-${game.turnIndex}`}
         speakerId={speaker}
         deadline={game.deadline}
         duration={game.duration}

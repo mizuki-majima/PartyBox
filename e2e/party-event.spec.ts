@@ -106,9 +106,14 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   await expect(guestA.getByTestId('seats-tables')).toHaveCount(0);
   await expect(guestA.getByTestId('seats-last')).toHaveCount(0);
   await expect(guestA.getByTestId('my-table')).toBeVisible();
+  // 参加者の表紙には、テーブルの一覧を出さない（「テーブルの一覧」から見る）
+  await expect(guestA.getByTestId('seats-tables')).toHaveCount(0);
+  await guestA.getByTestId('seats-more-open').click();
   await expect(guestA.getByTestId('seats-tables')).toBeVisible();
+  await expect(guestA.getByTestId('seats-last')).toBeVisible(); // いま引いた人も、テーブルの一覧の中で見られる
+  await guestA.getByTestId('seats-more-close').click();
   await expect(host.getByTestId('seats-last')).toBeVisible();
-  await expect(guestB.getByTestId('seats-tables')).toBeVisible();
+  await expect(host.getByTestId('seats-tables')).toBeVisible(); // 司会の画面は今までどおり
   await expect(host.getByTestId('seats-draw')).toContainText('残り 1');
 
   // 自分で引かない人（スマホが無い人など）は、司会が引く
@@ -151,7 +156,11 @@ test('懇親会: 司会用URL → ビンゴ → 座席決め → クイズ', asy
   await expect(guestA.getByTestId('quiz-all-answers')).toContainText('不正解');
   await expect(guestA.locator('body')).toContainText('北海道は全国の約2割');
   // 選択問題は自動採点される
+  // 得点は表紙に出さず、「得点・チーム」から見る
+  await expect(guestA.getByTestId('quiz-scores')).toHaveCount(0);
+  await guestA.getByTestId('quiz-more-open').click();
   await expect(guestA.getByTestId('quiz-scores')).toContainText('1');
+  await guestA.getByTestId('quiz-more-close').click();
 
   for (const p of [host, guestA, guestB]) await p.context().close();
 });
@@ -298,6 +307,7 @@ test('懇親会: 始めたあとも招待QRを出せ、途中参加・名前の�
   // 名簿で名前を選んだときに夕食のチームに入っている。「変える」で選び直せる
   await expect(guestA2.getByTestId('my-team')).toBeVisible();
   const firstTeam = await guestA2.getByTestId('my-team').innerText();
+  await guestA2.getByTestId('quiz-more-open').click(); // チームを変えるのは「得点・チーム」の中
   await guestA2.getByTestId('quiz-team-change').click();
   await guestA2.getByTestId('quiz-team-pick').getByRole('button').nth(1).click();
   await expect(guestA2.getByTestId('my-team')).not.toHaveText(firstTeam);
@@ -346,8 +356,8 @@ test('懇親会: 2人目の司会がロビーから始められ、二度押し�
   await mc2.getByTestId('start-game').click();
   await expect(host.getByTestId('section-quiz')).toBeVisible();
 
-  /* ---- 説明書き: 参加者には、待っている間の流れと、いつでも開ける「遊び方」が出る ---- */
-  await expect(right.getByTestId('event-howto-waiting')).toBeVisible();
+  /* ---- 説明書き: 参加者の表紙には説明を出さず、いつでも開ける「遊び方」から見る ---- */
+  await expect(right.getByTestId('event-howto-waiting')).toHaveCount(0);
   await right.getByTestId('guide-open').click();
   await expect(right.getByTestId('game-guide')).toContainText('そのマスを押して開けます'); // 参加者向けの説明
   await expect(right.getByTestId('game-guide')).not.toContainText('司会用URL'); // 司会向けの説明は出さない
@@ -358,7 +368,7 @@ test('懇親会: 2人目の司会がロビーから始められ、二度押し�
 
   /* ---- クイズ: 二度押ししても、問題を読む段が飛ばない ---- */
   await host.getByTestId('section-quiz').click();
-  await expect(right.getByTestId('event-howto-quiz')).toContainText('自分のチームを押します'); // いまやることが番号つきで出る
+  await expect(right.getByTestId('event-howto-quiz')).toHaveCount(0); // 説明は表紙に出さない
   await right.getByTestId('quiz-team-pick').getByRole('button').first().click();
   await wrong.getByTestId('quiz-team-pick').getByRole('button').nth(1).click();
   await expect(wrong.getByTestId('my-team')).toBeVisible();
@@ -420,12 +430,12 @@ test('懇親会: 2人目の司会がロビーから始められ、二度押し�
   /* ---- 同じブラウザの別のタブで開いても、「退出しました」とは出ず、どちらでも続けられる ---- */
   const tab2 = await right.context().newPage();
   await tab2.goto(`/room/${code}`);
-  await expect(tab2.getByTestId('seats-tables')).toBeVisible();
+  await expect(tab2.getByTestId('me-bar')).toBeVisible();
   await expect(right.getByTestId('resume-here')).toBeVisible();
   await expect(right.getByText('ルームを退出しました')).toHaveCount(0);
   await right.screenshot({ path: 'e2e/screenshots/party-event-other-tab.png' });
   await right.getByTestId('resume-here').click();
-  await expect(right.getByTestId('seats-tables')).toBeVisible(); // 同じ人として続きから
+  await expect(right.getByTestId('me-bar')).toBeVisible(); // 同じ人として続きから
   await expect(tab2.getByTestId('resume-here')).toBeVisible();
 
   for (const p of [host, mc2, right, wrong]) await p.context().close();
@@ -456,6 +466,15 @@ test('懇親会: 始まったルームには名簿から名前を選んで入り
   await host.getByTestId('section-quiz').click();
   await expect(guest.getByTestId('my-team')).toHaveText('チーム A');
   await expect(guest.getByTestId('quiz-team-pick')).toHaveCount(0);
+
+  // 「得点・チーム」を開いたまま回答タイムに入ったら、閉じて答えのボタンを見せる
+  await host.getByTestId('quiz-next').click(); // 第1問
+  await expect(guest.getByTestId('question')).toBeVisible();
+  await guest.getByTestId('quiz-more-open').click();
+  await expect(guest.getByTestId('quiz-more-close')).toBeVisible();
+  await host.getByTestId('quiz-next').click(); // 回答タイム
+  await expect(guest.getByTestId('quiz-more-close')).toHaveCount(0);
+  await expect(guest.getByTestId('quiz-choices')).toBeVisible();
 
   // 座席決めは、選んだ名簿の名前で待つ（表示名ではない）
   await host.getByTestId('section-seats').click();
@@ -490,13 +509,16 @@ test('懇親会: 夕食の席が待機画面とモーダルで見られ、自分
   await guest.getByTestId('join-roster-person').filter({ hasText: 'さくら' }).click();
   await guest.getByTestId('join-submit').click();
 
-  // 待機画面: いまやること・あなたの帯・夕食の席（自分に印）
+  // 待機画面: いまやること・あなたの帯。夕食の席は表紙に出さず、帯の「夕食の席」から開く
   await expect(guest.getByTestId('now-banner')).toContainText('司会の合図を待ちましょう');
   await expect(guest.getByTestId('me-bar')).toContainText('さくら さん');
   await expect(guest.getByTestId('me-bar')).toContainText('チーム A');
+  await expect(guest.getByTestId('dinner-seating')).toHaveCount(0);
+  await guest.getByTestId('me-dinner-open').click();
   await expect(guest.getByTestId('dinner-seating')).toBeVisible();
   await expect(guest.getByTestId('dinner-table')).toHaveCount(2);
   await expect(guest.getByTestId('dinner-you')).toHaveText(/さくら/);
+  await guest.getByRole('button', { name: '閉じる' }).click();
 
   // ほかの企画の間も、帯の「夕食の席」から開ける
   await host.getByTestId('section-bingo').click();

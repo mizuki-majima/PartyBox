@@ -104,12 +104,19 @@ export const GAMES: GameMeta[] = [
     theme: { from: '#f43f5e', to: '#f97316' },
     howToPlay: [
       '全員に同じお題が配られますが、1人だけ「嘘つき」にはお題が届きません。',
-      '順番にお題への答えを発表します（通話で話す or 入力）。嘘つきはバレないように話を合わせましょう。',
-      '話し合って「嘘つきだと思う人」に投票。最多票が嘘つきなら市民の勝ち！',
+      '1つのお題について、順番に何周か話します（通話で話す or 入力）。嘘つきはバレないように話を合わせましょう。',
+      '話し終わったら「嘘つきだと思う人」に投票。最多票が嘘つきなら市民の勝ち！',
       '見破られた嘘つきは、本当のお題を当てれば逆転ボーナス。',
     ],
     settings: [
-      { key: 'rounds', label: 'ラウンド数', options: [times(2), times(3), times(5)], default: 3 },
+      { key: 'rounds', label: 'お題の数（ラウンド数）', options: [times(1), times(2), times(3)], default: 1 },
+      {
+        key: 'laps',
+        label: '1つのお題で話す周回数',
+        options: [times(1, '周'), times(3, '周'), times(4, '周'), times(5, '周')],
+        default: 3,
+        description: '全員が順番に1回ずつ話すのを1周として、何周話してから投票するかです。',
+      },
       { key: 'talkTime', label: '1人の発言時間', options: [sec(15), sec(20), sec(30)], default: 20 },
       { key: 'voteTime', label: '話し合い・投票時間', options: [sec(60), sec(90), sec(120), sec(180)], default: 90 },
       {

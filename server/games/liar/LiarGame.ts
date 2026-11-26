@@ -44,6 +44,8 @@ export class LiarGame extends BaseGame<LiarPhase> {
 
   private readonly mode: LiarMode;
   private readonly talkTime: number;
+  /** 1つのお題で、順番に何周話すか */
+  private readonly laps: number;
   private readonly voteTime: number;
   private readonly topics: Topic[];
 
@@ -62,6 +64,7 @@ export class LiarGame extends BaseGame<LiarPhase> {
     super(ctx, participants, settings);
     this.totalRounds = Number(settings.rounds);
     this.talkTime = Number(settings.talkTime) * 1000;
+    this.laps = Math.max(1, Number(settings.laps) || 1);
     this.voteTime = Number(settings.voteTime) * 1000;
     this.mode = settings.mode === 'wordwolf' ? 'wordwolf' : 'secret';
     this.topics = ctx.drawFromDeck('liar', ALL_TOPICS, this.totalRounds, (t) => t.topic);
@@ -85,7 +88,7 @@ export class LiarGame extends BaseGame<LiarPhase> {
     this.votes.clear();
     this.liarGuess = null;
     this.result = null;
-    this.turns.reset(shuffle(this.active));
+    this.turns.reset(shuffle(this.active), this.laps);
     this.setPhase('ROLE', { duration: 15000, onEnd: () => this.nextTurn() });
   }
 
@@ -217,6 +220,8 @@ export class LiarGame extends BaseGame<LiarPhase> {
       ready: [...this.ready],
       order: inRound ? this.turns.order : [],
       turnIndex: this.turns.index,
+      lap: this.turns.lap,
+      laps: this.laps,
       statements: this.turns.statements,
       voted: [...this.votes.keys()],
       myVote: this.votes.get(playerId) ?? null,

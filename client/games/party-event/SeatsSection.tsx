@@ -4,8 +4,8 @@ import type { PartyEventView, SeatsRosterEntry } from '../../../shared/games/vie
 import { Confetti } from '../../components/game';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
-import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
+import { MoreRow, MoreSheet } from './MoreSheet';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 import { useSeatReveal } from './seatReveal';
 
@@ -21,6 +21,33 @@ export function SeatsSection() {
     s.tables.map((t) => t.name),
   );
 
+  if (!game.isHost) {
+    // 参加者の表紙は、自分のくじと結果だけ。テーブルの一覧は「テーブルの一覧」から開く（回っている間は結果が分かるので出さない）
+    return (
+      <div className="flex flex-col gap-3">
+        <MySeat reveal={reveal} />
+        {!reveal.spinning && (
+          <MoreRow>
+            <MoreSheet label="テーブルの一覧" title="テーブルの一覧" testId="seats-more">
+              <p className="mb-3 text-base font-bold">
+                {s.drawn} / {s.drawn + s.remaining} 人の席が決まりました
+              </p>
+              {s.last && (
+                <div className="ui-tile mb-3 bg-hi px-4 py-2 text-on-hi">
+                  <p className="text-sm">いま引いた人</p>
+                  <p className="font-display text-xl" data-testid="seats-last">
+                    {s.last.name}・{s.last.table == null ? '席なし' : (s.tables[s.last.table]?.name ?? `テーブル ${s.last.table + 1}`)}
+                  </p>
+                </div>
+              )}
+              <Tables />
+            </MoreSheet>
+          </MoreRow>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <Card className="text-center">
@@ -28,7 +55,7 @@ export function SeatsSection() {
         <p className="mt-2 font-display text-2xl">
           {s.drawn} / {s.drawn + s.remaining} 人
         </p>
-        {s.last && !reveal.spinning && (
+        {s.last && (
           <div key={s.last.id} className="ui-tile animate-pop-in mt-3 bg-hi px-4 py-3 text-on-hi">
             <p className="text-sm">いま引いた人</p>
             <p className="font-display text-2xl" data-testid="seats-last">
@@ -41,27 +68,9 @@ export function SeatsSection() {
         )}
       </Card>
 
-      {/* 参加者は、押すもの（くじ・名簿）を説明より上に出す（リハーサルで、どこを押すか分からなくなったため） */}
-      {game.isHost ? <HostControls /> : <MySeat reveal={reveal} />}
-
-      {!game.isHost && (
-        <HowTo
-          title="座席決めのやり方"
-          testId="event-howto-seats"
-          steps={
-            s.myPersonId
-              ? ['「くじを引く」を押します。テーブル名が回って、あなたの席が決まります。', '出たテーブルに移動してください。']
-              : [
-                  '名簿から、自分の名前を押します（名前の一部を入れると、さがしやすくなります）。',
-                  '名前が無いときは、「名簿に名前が無い方はこちら」から自分で足せます。',
-                  '名前を選んだら、「くじを引く」を押します。',
-                ]
-          }
-        />
-      )}
-
-      {!reveal.spinning && <Tables />}
-      {game.isHost && <Roster />}
+      <HostControls />
+      <Tables />
+      <Roster />
     </div>
   );
 }

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { PartyEventView } from '../../../shared/games/views';
 import { Icon } from '../../components/Icon';
 import { Badge, Button, Card, Modal, SectionTitle, TextInput } from '../../components/ui';
-import { HowTo } from '../../guides';
 import { useGame } from '../RoomContext';
+import { MoreRow, MoreSheet } from './MoreSheet';
 import { ConfirmModal, HostActionBar, HostButton, HostPanel, ResetButton } from './PartyEventScreen';
 
 const letterOf = (n: number) => 'BINGO'[Math.min(4, Math.floor((n - 1) / 15))];
@@ -12,45 +12,56 @@ export function BingoSection() {
   const { game } = useGame<PartyEventView>();
   const b = game.bingo;
 
+  if (!game.isHost) {
+    // 参加者の表紙は、いま読まれた番号と自分のカード（と景品の結果）だけ。読まれた番号の一覧・ビンゴした人は「くわしく」から
+    return (
+      <div className="flex flex-col gap-3">
+        <LastNumber compact />
+        <MyCard />
+        {b.prizes && <Prizes />}
+        <MoreRow>
+          <MoreSheet label="読まれた番号・ビンゴした人" title="読まれた番号・ビンゴした人" testId="bingo-more">
+            <div className="flex flex-col gap-3">
+              {b.called.length ? <CalledNumbers called={b.called} /> : <p className="text-base text-muted">まだ番号は読まれていません。</p>}
+              {b.claims.length ? <Claims /> : <p className="text-base text-muted">まだビンゴした人はいません。</p>}
+            </div>
+          </MoreSheet>
+        </MoreRow>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      {/* いま読み上げている番号 */}
-      <Card className="text-center">
-        <p className="text-xs font-extrabold tracking-[0.2em] text-muted uppercase">{b.title}</p>
-        {b.last == null ? (
-          <p className="mt-4 mb-2 font-display text-2xl text-fg/60">まだ引いていません</p>
-        ) : (
-          <div key={b.last} className="animate-pop-in mt-3">
-            <div className="font-display text-7xl leading-none sm:text-8xl" data-testid="bingo-last">
-              <span className="text-accent-ink">{letterOf(b.last)}</span> {b.last}
-            </div>
-          </div>
-        )}
-        <p className="mt-3 text-sm font-bold text-muted" data-testid="bingo-count">
-          {b.called.length} 個 / 残り {b.remaining}
-        </p>
-      </Card>
-
-      {/* 参加者は、押すもの（カード）を説明より上に出す */}
-      {game.isHost ? <HostControls /> : <MyCard />}
-
-      {!game.isHost && (
-        <HowTo
-          title="ビンゴのやり方"
-          testId="event-howto-bingo"
-          steps={[
-            '読み上げられた番号がカードにあれば、そのマスを押して開けます（いま読まれた番号のマスは点滅して知らせます）。',
-            'たて・よこ・ななめのどれか1列を開けると、「ビンゴ！」のボタンが出ます。出たら押してください。',
-            'まん中の ★ は、最初から開いています。',
-          ]}
-        />
-      )}
-
-
+      <LastNumber />
+      <HostControls />
       <CalledNumbers called={b.called} />
       <Claims />
       {b.prizes && <Prizes />}
     </div>
+  );
+}
+
+/** いま読み上げている番号（大きく）。compact は参加者の画面用（カードを1画面目に収めるため、枠を詰める） */
+function LastNumber({ compact = false }: { compact?: boolean }) {
+  const { game } = useGame<PartyEventView>();
+  const b = game.bingo;
+  return (
+    <Card className={`text-center ${compact ? '!py-3' : ''}`}>
+      <p className="text-xs font-extrabold tracking-[0.2em] text-muted uppercase">{b.title}</p>
+      {b.last == null ? (
+        <p className="mt-4 mb-2 font-display text-2xl text-fg/60">まだ引いていません</p>
+      ) : (
+        <div key={b.last} className={`animate-pop-in ${compact ? 'mt-1' : 'mt-3'}`}>
+          <div className={`font-display leading-none ${compact ? 'text-6xl' : 'text-7xl sm:text-8xl'}`} data-testid="bingo-last">
+            <span className="text-accent-ink">{letterOf(b.last)}</span> {b.last}
+          </div>
+        </div>
+      )}
+      <p className={`${compact ? 'mt-1' : 'mt-3'} text-sm font-bold text-muted`} data-testid="bingo-count">
+        {b.called.length} 個 / 残り {b.remaining}
+      </p>
+    </Card>
   );
 }
 

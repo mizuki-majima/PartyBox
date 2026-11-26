@@ -88,6 +88,8 @@ export type LiarMode = 'secret' | 'wordwolf';
 export interface Statement {
   playerId: string;
   text: string;
+  /** 何周目の発言か（何周も話すゲームだけ） */
+  lap?: number;
 }
 
 export interface LiarResult {
@@ -113,6 +115,9 @@ export interface LiarView extends GameViewBase {
   ready: string[];
   order: string[];
   turnIndex: number;
+  /** いま何周目か（1 始まり）と、1つのお題で何周話すか */
+  lap: number;
+  laps: number;
   statements: Statement[];
   voted: string[];
   myVote: string | null;
