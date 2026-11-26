@@ -3,7 +3,7 @@ import type { UnanimousView } from '../shared/games/views';
 import type { PartyServer } from '../server/app';
 import { groupAnswers, unanimousPoints } from '../server/games/unanimous/UnanimousGame';
 import { normalizeAnswer } from '../server/utils/text';
-import { setupRoom, startGame, startTestServer, type TestClient } from './helpers';
+import { passGate, setupRoom, startGame, startTestServer, type TestClient } from './helpers';
 
 let server: PartyServer;
 let open: TestClient[] = [];
@@ -131,6 +131,7 @@ describe('全員一致を目指せ！ 通しプレイ', () => {
 
     // もう一回
     await host.ok('room:restart');
+    await passGate(clients); // もう一回も、開始の準備の関門から
     await Promise.all(clients.map((c) => c.waitPhase('ANSWER', (v) => v.game!.round === 1)));
     expect(g(host).teamScore).toBe(0);
   });

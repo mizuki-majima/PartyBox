@@ -6,7 +6,7 @@ import type { WhoseView } from '../shared/games/views';
 import { type GameResult, type ResultsResponse, winnersByLabel } from '../shared/results';
 import type { PartyServer } from '../server/app';
 import { MAX_RESULTS, ResultLog, buildResult, rankPlayers } from '../server/results';
-import { TestClient, setupRoom, startGame, startTestServer } from './helpers';
+import { TestClient, passGate, setupRoom, startGame, startTestServer } from './helpers';
 
 /**
  * 勝者の記録。卓ごとに遊んだゲームが最後まで終わるたびに、「いつ・誰が1位か」を1件残す。
@@ -176,6 +176,7 @@ describe('ゲームが終わると記録に残る', () => {
     const { host, clients } = await playWhose(2);
     const before = server.manager.results.list().length;
     await host.ok('room:restart');
+    await passGate(clients); // もう一回も、開始の準備の関門から
     await host.waitPhase('ANSWER', (v) => v.game!.round === 1);
     // 2回目は誰も答えずに時間切れで進める
     for (let round = 1; round <= 2; round++) {
@@ -194,6 +195,7 @@ describe('ゲームが終わると記録に残る', () => {
     open.push(...clients);
     const before = server.manager.results.list().length;
     await host.ok('room:start');
+    await passGate(clients);
     for (;;) {
       await host.waitFor((v) => v.game?.phase === 'ANSWER' || v.game?.phase === 'GAME_OVER', 15_000, 'ANSWER');
       if (host.game.phase === 'GAME_OVER') break;

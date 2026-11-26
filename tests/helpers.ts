@@ -134,9 +134,21 @@ export async function setupRoom(port: number, gameId: GameId, count: number, set
   return { host, clients, code };
 }
 
-/** ホストが開始し、全員が最初の入力フェーズに入るまで待つ（START演出は短縮時間で自動的に進む） */
+/**
+ * 準備の関門を、全員の「準備OK」で抜ける（関門が出るまで待ってから押す。カウントダウンは短縮時間で進む）。
+ * 関門の無いゲーム（懇親会）では何もしない
+ */
+export async function passGate(clients: TestClient[]): Promise<void> {
+  await Promise.all(clients.map((c) => c.waitFor((v) => !!v.game, 3000, 'ゲームの開始')));
+  if (!clients.some((c) => (c.game as { gate?: unknown } | null)?.gate)) return;
+  await Promise.all(clients.map((c) => c.waitFor((v) => !!(v.game as { gate?: unknown } | null)?.gate, 3000, '準備の関門')));
+  for (const c of clients) await c.actionOk('ready');
+}
+
+/** ホストが開始し、開始の準備の関門を全員で抜けて、全員が最初の入力フェーズに入るまで待つ */
 export async function startGame(host: TestClient, clients: TestClient[], firstPhase: string) {
   await host.ok('room:start');
+  await passGate(clients);
   await Promise.all(clients.map((c) => c.waitPhase(firstPhase)));
 }
 

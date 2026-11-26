@@ -11,10 +11,22 @@ interface PhaseOptions {
   onEnd?: () => void;
 }
 
+/** 準備の関門の状態（ビューの GateView のもと） */
+interface GateState {
+  ready: Set<string>;
+  counting: boolean;
+  canEnd: boolean;
+  /** カウントダウンが終わったら呼ぶ */
+  onGo: () => void;
+}
+
 /**
  * 全ゲーム共通の状態管理
  *
- *   START → (ROUND → ANSWER → RESULT) × N → GAME_OVER
+ *   START（準備の関門）→ (ROUND → ANSWER → RESULT) × N → GAME_OVER
+ *
+ * - 準備の関門（openGate）: 時間では進まず、全員（切れている人を除く）の「準備OK」で自動のカウントダウンに入り、終わると進む。
+ *   カウントダウン中はホストが止められる。ホストの「待たずに始める」（skip）はすぐカウントダウンに入る
  *
  * - フェーズ・ラウンド・締切時刻・得点を保持
  * - タイマー切れ / 全員完了 / ホストのスキップ を同じ `advance()` で処理するので二重進行しない
@@ -38,6 +50,10 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
   private timer: NodeJS.Timeout | null = null;
   private onEnd: (() => void) | null = null;
   private disposed = false;
+  private gate: GateState | null = null;
+
+  /** 準備の関門のカウントダウンの長さ（ルームの時間の倍率で縮む） */
+  static readonly GATE_COUNTDOWN_MS = 3000;
 
   constructor(
     protected readonly ctx: GameContext,
@@ -49,11 +65,12 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
 
   /* ---------------- ライフサイクル ---------------- */
 
+  /** 遊び方を出して、全員の準備OKを待つ（準備の関門）。カウントダウンが終わったら beginGame */
   start(): void {
-    this.setPhase('START', { duration: 4000, onEnd: () => this.beginGame() });
+    this.openGate('START', { onGo: () => this.beginGame() });
   }
 
-  /** START 演出の後に呼ばれる */
+  /** START の関門を抜けた後に呼ばれる */
   protected abstract beginGame(): void;
 
   /** ゲーム固有のアクション処理 */
@@ -78,6 +95,7 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
     this.disposed = true;
     this.clearTimer();
     this.onEnd = null;
+    this.gate = null;
   }
 
   /* ---------------- ヘルパー ---------------- */
@@ -130,9 +148,45 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
     this.ctx.update();
   }
 
+  /**
+   * 準備の関門を開く。時間では進まず、全員（切れている人を除く）が「準備OK」を押すと自動でカウントダウンに入り、
+   * 終わると onGo を呼ぶ。roundHead（ラウンドの頭）なら、2ラウンド目からホストに「ここで終了」を出す
+   */
+  protected openGate(phase: P | 'START', opts: { roundHead?: boolean; onGo: () => void }): void {
+    this.gate = { ready: new Set(), counting: false, canEnd: opts.roundHead === true && this.round > 1, onGo: opts.onGo };
+    this.waitGate(phase);
+  }
+
+  /** 関門で待つ（時間なし。そろう・ホストの skip で beginCountdown） */
+  private waitGate(phase: P | 'START'): void {
+    this.setPhase(phase, { onEnd: () => this.beginCountdown() });
+  }
+
+  private beginCountdown(): void {
+    const g = this.gate;
+    if (!g) return;
+    g.counting = true;
+    this.setPhase(this.phase as P | 'START', {
+      duration: BaseGame.GATE_COUNTDOWN_MS,
+      onEnd: () => {
+        this.gate = null;
+        g.onGo();
+      },
+    });
+  }
+
+  /** 待つ相手（つながっていて、抜けていない参加者）が全員準備OKなら、カウントダウンに入る */
+  private checkGate(): void {
+    const g = this.gate;
+    if (!g || g.counting || this.phase === 'GAME_OVER') return;
+    const waiting = this.active.filter((id) => this.ctx.isConnected(id));
+    if (waiting.length > 0 && waiting.every((id) => g.ready.has(id))) this.advance();
+  }
+
   protected endGame(reason: string | null = null): void {
     this.clearTimer();
     this.onEnd = null;
+    this.gate = null;
     this.endReason = reason;
     this.phase = 'GAME_OVER';
     this.deadline = null;
@@ -169,6 +223,25 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
       return;
     }
     if (this.phase === 'GAME_OVER') throw new UserError('ゲームは終了しています');
+    if (this.gate) {
+      // 準備の関門の操作は、各ゲームより先に受ける
+      if (action.type === 'ready') {
+        this.requireActive(playerId);
+        this.gate.ready.add(playerId);
+        this.checkGate();
+        this.ctx.update();
+        return;
+      }
+      if (action.type === 'gate:stop') {
+        if (!isHost) throw new UserError('ホストのみ操作できます');
+        if (!this.gate.counting) return;
+        // 止めたら全員の準備OKを取り消す（もう一度そろうと、またカウントダウン）
+        this.gate.counting = false;
+        this.gate.ready.clear();
+        this.waitGate(this.phase as P | 'START');
+        return;
+      }
+    }
     this.onAction(playerId, action, isHost);
     this.ctx.update();
   }
@@ -184,6 +257,7 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
       this.endGame('参加者が足りなくなったため、ゲームを終了しました');
       return;
     }
+    this.checkGate(); // 抜けた人を待たない
     try {
       this.onLeave(playerId);
     } catch (err) {
@@ -193,6 +267,7 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
   }
 
   onPlayerConnectionChange(_playerId: string, _connected: boolean): void {
+    this.checkGate(); // 切れた人を待たない
     this.ctx.update();
   }
 
@@ -213,6 +288,7 @@ export abstract class BaseGame<P extends string = string> implements GameInstanc
       scores: { ...this.scores },
       me: this.isParticipant(playerId) ? playerId : null,
       endReason: this.endReason,
+      gate: this.gate ? { ready: [...this.gate.ready], counting: this.gate.counting, canEnd: this.gate.canEnd } : null,
     };
   }
 }
