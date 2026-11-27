@@ -260,10 +260,10 @@ export class RoomManager {
 
     on('room:create', ({ gameId, name, demo, label }) => {
       if (!isGameId(gameId)) throw new UserError('ゲームが見つかりません');
-      // 常設のルームがあるときは、懇親会のルームを新しく作らせない。
+      // 常設のルームがあるときは、懇親会のルームを新しく作らせない（デモも）。
       // 作れると、コードを知らない人でも名簿とクイズ（答え）を見られてしまう。
-      // デモだけは作れる（使い捨てのルームで、本番と同じ名簿・問題で動く。常設のルームには触れない）
-      if (isEventGame(gameId) && this.hasFixedRoom() && demo !== true) {
+      // デモは本番と同じ名簿・問題・答えで動くので、懇親会の最中に参加者が開くと答えが分かる（2026-11-27 に止めた）
+      if (isEventGame(gameId) && this.hasFixedRoom()) {
         throw new UserError('懇親会のルームは用意してあります。トップの「コードで参加」から、ルームコードを入れて参加してください');
       }
       const cleanName = this.validateName(name);

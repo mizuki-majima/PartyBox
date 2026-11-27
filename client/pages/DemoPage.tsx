@@ -4,7 +4,6 @@ import { type GameMeta, getGameMeta, isEventGame } from '../../shared/games';
 import { Icon } from '../components/Icon';
 import { Button, Card, FullScreenMessage, Logo, Spinner } from '../components/ui';
 import { type DemoRoom, GUEST_COUNTS, HOST_SEAT, addDemoGuests, closeDemoRoom, createDemoRoom, guestSeat } from '../lib/demo';
-import { useFixedEventRoom } from '../lib/eventInfo';
 import { useToast } from '../lib/toast';
 import { Frame, JoinQr } from './demo/DemoParts';
 import { GameDemo } from './demo/GameDemo';
@@ -52,8 +51,7 @@ function saveCount(n: number): void {
 }
 
 function Demo({ meta }: { meta: GameMeta }) {
-  // 常設のルームがあるサーバーでも、デモは本番と同じ名簿・問題で動く（常設のルームには触れない）
-  const fixed = useFixedEventRoom() === true;
+  // 常設のルームがあるサーバーでは、懇親会のデモはサーバーが作らせない（作れなかった旨を下の error に出す）
   const toast = useToast();
   const [count, setCount] = useState(loadCount);
   const [room, setRoom] = useState<DemoRoom | null>(null);
@@ -166,11 +164,6 @@ function Demo({ meta }: { meta: GameMeta }) {
             このデモは使い捨てのルームなので、本番のルームには影響しません（誰もいなくなって30分で消えます）。
             <span className="lg:hidden">PCの大きな画面で開くのがおすすめです。</span>
           </p>
-          {fixed && (
-            <p className="mt-2 text-sm font-bold" data-testid="demo-real-data-note">
-              名簿とクイズ（答えも）は、用意してあるルームと同じです。デモで進めても、用意してあるルームの進み具合は変わりません。
-            </p>
-          )}
         </Card>
       </section>
 

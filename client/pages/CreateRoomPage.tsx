@@ -99,12 +99,6 @@ export function CreateRoomPage() {
                 <Icon name="key" /> コードを入れて参加する
               </Button>
             </Link>
-            <Link to={`/demo/${gameId}`} className="mt-3 block">
-              <Button size="lg" block variant="secondary">
-                <Icon name="eye" /> まずはデモで試す
-              </Button>
-            </Link>
-            <p className="mt-2 text-center text-xs text-muted">デモは本番と同じ名簿・問題で動きます（用意してあるルームには影響しません）</p>
           </Card>
         ) : (
         <Card className="animate-slide-up self-start">
