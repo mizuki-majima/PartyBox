@@ -105,8 +105,8 @@ export function GameCard({ game, index = 0 }: { game: GameMeta; index?: number }
  * 「ルームを作る（司会）」と「デモで試す」の2つの入り口を並べる。
  */
 export function EventGameCard({ game }: { game: GameMeta }) {
-  // 常設のルームがあるときは、ルームを作る入口を出さない（コードを入れて参加するだけ）。
-  // デモの入口は出す（使い捨てのルームで、本番と同じ名簿・問題で動く。用意してあるルームには触れない）
+  // 常設のルームがあるときは、ルームを作る入口もデモの入口も出さない（コードを入れて参加するだけ）。
+  // デモは本番と同じ名簿・問題・答えで動くので、参加者が開くと答えが分かる（サーバーでも作れないようにしてある）
   const fixed = useFixedEventRoom();
   return (
     <div
@@ -131,14 +131,6 @@ export function EventGameCard({ game }: { game: GameMeta }) {
             </div>
             <p className="text-sm text-muted">
               ルームはもう用意してあります。司会から聞いたルームコードを入れると、いつでも入れます（何度入り直しても大丈夫です）。
-            </p>
-            <Link to={`/demo/${game.id}`} data-testid={`event-demo-${game.id}`}>
-              <Button block variant="secondary">
-                <Icon name="eye" /> デモで試す
-              </Button>
-            </Link>
-            <p className="text-xs text-muted">
-              デモでは、司会と参加者の画面を並べて1人で進行を試せます（PC向け）。名簿と問題は本番と同じです。用意してあるルームには影響しません。
             </p>
           </>
         ) : (
